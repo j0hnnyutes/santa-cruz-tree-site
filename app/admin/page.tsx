@@ -3,12 +3,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminLoginPage({
+export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
-  const next = searchParams?.next || "/admin/leads";
+  const sp = await searchParams;
+  const next = sp?.next || "/admin/leads";
 
   return (
     <main className="mx-auto max-w-md px-6 py-12">

@@ -4,8 +4,7 @@ import { cookies } from "next/headers";
 const COOKIE_NAME = "sc_tree_admin";
 const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 
-function base64url(input: Buffer | string) {
-  const buf = Buffer.isBuffer(input) ? input : Buffer.from(input);
+function base64url(buf: Buffer) {
   return buf
     .toString("base64")
     .replaceAll("+", "-")
@@ -21,65 +20,59 @@ function base64urlToBuffer(input: string) {
 }
 
 function hmac(payload: string, secret: string) {
-  return crypto.createHmac("sha256").update(payload).update(secret).digest();
+  return crypto.createHmac("sha256", secret).update(payload).digest();
 }
 
-type SessionPayload = {
-  v: 1;
-  exp: number; // unix seconds
-  iat: number; // unix seconds
-};
-
-export function setAdminSessionCookie() {
+function getSecretOrThrow() {
   const secret = process.env.ADMIN_COOKIE_SECRET;
-  if (!secret) throw new Error("Missing ADMIN_COOKIE_SECRET in .env.local");
+  if (!secret) {
+    throw new Error(
+      "Missing ADMIN_COOKIE_SECRET. Add it to .env/.env.local and restart the dev server."
+    );
+  }
+  return secret;
+}
 
+type SessionPayload = { v: 1; iat: number; exp: number };
+
+export function makeAdminCookieValue() {
+  const secret = getSecretOrThrow();
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = { v: 1, iat: now, exp: now + SESSION_TTL_SECONDS };
 
-  const payloadJson = JSON.stringify(payload);
-  const payloadB64 = base64url(payloadJson);
+  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
+  const sigB64 = base64url(hmac(payloadB64, secret));
 
-  const sig = hmac(payloadB64, secret);
-  const sigB64 = base64url(sig);
+  return `${payloadB64}.${sigB64}`;
+}
 
-  const value = `${payloadB64}.${sigB64}`;
+export function getAdminCookieName() {
+  return COOKIE_NAME;
+}
 
-  cookies().set(COOKIE_NAME, value, {
-    httpOnly: true,
-    sameSite: "lax",
+export function getAdminCookieOptions() {
+  return {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
-  });
+  };
 }
 
-export function clearAdminSessionCookie() {
-  cookies().set(COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
-}
-
-export function isAdminAuthenticated(): boolean {
+// ✅ async in your Next version
+export async function isAdminAuthenticated(): Promise<boolean> {
   const secret = process.env.ADMIN_COOKIE_SECRET;
   if (!secret) return false;
 
-  const cookie = cookies().get(COOKIE_NAME)?.value;
+  const store = await cookies(); // <-- KEY FIX
+  const cookie = store.get(COOKIE_NAME)?.value;
   if (!cookie) return false;
 
   const [payloadB64, sigB64] = cookie.split(".");
   if (!payloadB64 || !sigB64) return false;
 
-  let expectedSig: Buffer;
-  try {
-    expectedSig = hmac(payloadB64, secret);
-  } catch {
-    return false;
-  }
+  const expectedSig = hmac(payloadB64, secret);
 
   let gotSig: Buffer;
   try {
@@ -96,7 +89,6 @@ export function isAdminAuthenticated(): boolean {
     const payload = JSON.parse(payloadJson) as SessionPayload;
 
     if (payload?.v !== 1) return false;
-
     const now = Math.floor(Date.now() / 1000);
     if (!payload.exp || now >= payload.exp) return false;
 

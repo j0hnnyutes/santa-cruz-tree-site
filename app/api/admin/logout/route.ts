@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
-import { clearAdminSessionCookie } from "@/lib/adminAuth";
+import { getAdminCookieName } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  clearAdminSessionCookie();
+export function GET(req: Request) {
   const url = new URL(req.url);
-  return NextResponse.redirect(new URL("/admin", url), { status: 303 });
+  const res = NextResponse.redirect(new URL("/admin", url), { status: 303 });
+  res.cookies.set(getAdminCookieName(), "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+  return res;
 }
