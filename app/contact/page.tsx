@@ -94,15 +94,17 @@ export default function Page() {
     });
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setTouched({ name: true, phone: true, email: true });
-    setServerError(null);
+async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  if (isSending) return; // extra guard against double clicks / races
 
-    if (!canSubmit) return;
+  setTouched({ name: true, phone: true, email: true });
+  setServerError(null);
 
-    setIsSending(true);
-    try {
+  if (!canSubmit) return;
+
+  setIsSending(true);
+  try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
