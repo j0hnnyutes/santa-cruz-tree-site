@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Option 1 — Coastal Evergreen */
+  --brand-green: #1F3D2B;     /* header/footer, primary */
+  --brand-accent: #2F6B43;    /* links/hover/accent */
+  --bg-soft: #F7F9F7;         /* page background */
+  --surface: #FFFFFF;         /* cards/sections */
+  --text: #1A1A1A;            /* headings */
+  --muted: #4B5563;           /* body text */
+  --border: #E5E7EB;          /* borders */
+  --cta-soft: #EEF4EF;        /* soft CTA background */
 }
 
 @theme inline {
