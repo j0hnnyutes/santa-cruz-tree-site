@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,36 +9,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Lead {
-  id           String   @id @default(cuid())
-  leadId       String   @unique
-  createdAt    DateTime @default(now())
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CLOSED
+  ARCHIVED
+}
 
+model Lead {
+  leadId       String     @id
+  createdAt    DateTime   @default(now())
   fullName     String
-  email        String
   phoneDigits  String
+  email        String
   service      String
   details      String?
+  status       LeadStatus @default(NEW)
+  contactedAt  DateTime?
+  adminNotes   String?
 
-  // Tracking
-  pagePath     String?
-  referrer     String?
-  utmSource    String?
-  utmMedium    String?
-  utmCampaign  String?
-  utmTerm      String?
-  utmContent   String?
-  gclid        String?
-  fbclid       String?
-
-  // Request metadata
-  ip           String?
-  userAgent    String?
-  country      String?
-  region       String?
-  city         String?
-  postal       String?
-
-  // Raw JSON snapshot
-  raw          String?
+  // ✅ NEW: archive support
+  archivedAt   DateTime?
 }

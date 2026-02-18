@@ -4,8 +4,16 @@ import { rateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
+const TIME_ZONE = "America/Los_Angeles";
+
 function digitsOnly(input: string) {
   return (input ?? "").replace(/\D/g, "");
+}
+
+function formatPhoneUS10(digits: string) {
+  const d = (digits ?? "").replace(/\D/g, "").slice(0, 10);
+  if (d.length !== 10) return digits ?? "";
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
 function isValidEmail(email: string) {
@@ -21,32 +29,41 @@ function escapeHtml(input: string) {
     .replaceAll("'", "&#039;");
 }
 
-function getClientIp(req: Request) {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip") || "";
+function formatDateTimeInTZ(date: Date) {
+  // Explicit, human-friendly Santa Cruz time (tries to show PST/PDT)
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
+}
+
+function safeString(v: unknown) {
+  return typeof v === "string" ? v : "";
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-
-    // Honeypot: bots fill this, humans won't.
-    const honey = String(body.company ?? "").trim();
-    if (honey.length > 0) {
-      // Return OK to avoid tipping off bots.
-      return Response.json({ ok: true });
-    }
-
-    // Rate limit: 10/min per IP
-    const ip = getClientIp(req) || "unknown";
-    const rl = rateLimit(`lead:${ip}`, 10, 60_000);
-    if (!rl.ok) {
+    // Rate limit
+    const limited = await rateLimit(req, { windowMs: 60_000, max: 10 });
+    if (!limited.ok) {
       return Response.json(
-        { ok: false, error: "Too many requests. Try again shortly." },
+        { ok: false, error: "Too many requests. Please try again shortly." },
         { status: 429 }
       );
     }
+
+    const body = await req.json();
+
+    // Honeypot
+    const honey = String(body.company ?? "").trim();
+    if (honey.length > 0) return Response.json({ ok: true });
 
     // Env checks
     const apiKey = process.env.RESEND_API_KEY;
@@ -69,21 +86,15 @@ export async function POST(req: Request) {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (toList.length === 0) {
-      return Response.json(
-        { ok: false, error: "LEAD_TO_EMAIL has no valid recipients." },
-        { status: 500 }
-      );
-    }
+    const fullName = safeString(body.fullName).trim();
+    const email = safeString(body.email).trim();
+    const service = safeString(body.service).trim();
+    const details = safeString(body.details).trim();
 
-    // Inputs
-    const fullName = String(body.fullName ?? "").trim();
-    const email = String(body.email ?? "").trim();
-    const service = String(body.service ?? "").trim();
-    const details = String(body.details ?? "").trim();
-    const phoneDigits = digitsOnly(String(body.phoneDigits ?? "")).slice(0, 10);
+    const phoneDigits = digitsOnly(safeString(body.phoneDigits)).slice(0, 10);
+    const phonePretty = formatPhoneUS10(phoneDigits);
 
-    // Server-side validation
+    // Validation
     const errors: Record<string, string> = {};
     if (fullName.length < 2) errors.fullName = "Name is required.";
     if (phoneDigits.length !== 10) errors.phone = "Phone must be 10 digits.";
@@ -94,91 +105,58 @@ export async function POST(req: Request) {
       return Response.json({ ok: false, errors }, { status: 400 });
     }
 
+    // DB insert (schema matches your latest Lead table)
     const leadId = crypto.randomUUID();
-    const submittedAtIso = new Date().toISOString();
-    const userAgent = req.headers.get("user-agent") || null;
-
-    // OPTIONAL tracking fields (if your frontend later sends them)
-    const pagePath = typeof body.pagePath === "string" ? body.pagePath : null;
-    const referrer = typeof body.referrer === "string" ? body.referrer : null;
-
-    const utmSource = typeof body.utmSource === "string" ? body.utmSource : null;
-    const utmMedium = typeof body.utmMedium === "string" ? body.utmMedium : null;
-    const utmCampaign =
-      typeof body.utmCampaign === "string" ? body.utmCampaign : null;
-    const utmTerm = typeof body.utmTerm === "string" ? body.utmTerm : null;
-    const utmContent =
-      typeof body.utmContent === "string" ? body.utmContent : null;
-    const gclid = typeof body.gclid === "string" ? body.gclid : null;
-    const fbclid = typeof body.fbclid === "string" ? body.fbclid : null;
-
-    // ✅ DB LOG
     await prisma.lead.create({
       data: {
         leadId,
         fullName,
-        email,
         phoneDigits,
+        email,
         service,
         details: details || null,
-
-        pagePath,
-        referrer,
-        utmSource,
-        utmMedium,
-        utmCampaign,
-        utmTerm,
-        utmContent,
-        gclid,
-        fbclid,
-
-        ip: ip || null,
-        userAgent,
-
-        raw: JSON.stringify(body).slice(0, 50_000),
+        // status defaults to NEW
       },
     });
 
-    // Email
-    const resend = new Resend(apiKey);
+    // Email content (Santa Cruz time)
+    const submittedAt = new Date();
+    const submittedAtPretty = formatDateTimeInTZ(submittedAt);
 
-    const subject = `New Lead • ${service}`;
+    const resend = new Resend(apiKey);
+    const subject = `New Tree Lead: ${service}`;
+
     const text = [
-      "New lead submission",
-      "",
-      `Lead ID: ${leadId}`,
-      `Submitted: ${submittedAtIso}`,
+      "New lead submission:",
       "",
       `Name: ${fullName}`,
-      `Phone: ${phoneDigits}`,
+      `Phone: ${phonePretty}`,
       `Email: ${email}`,
       `Service: ${service}`,
       `Details: ${details || "(none)"}`,
       "",
-      pagePath ? `Page: ${pagePath}` : "",
-      referrer ? `Referrer: ${referrer}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+      `Lead ID: ${leadId}`,
+      `Submitted at (Santa Cruz): ${submittedAtPretty}`,
+    ].join("\n");
 
     const html = `
       <h2>New lead submission</h2>
       <ul>
-        <li><strong>Lead ID:</strong> ${escapeHtml(leadId)}</li>
-        <li><strong>Submitted:</strong> ${escapeHtml(submittedAtIso)}</li>
         <li><strong>Name:</strong> ${escapeHtml(fullName)}</li>
-        <li><strong>Phone:</strong> ${escapeHtml(phoneDigits)}</li>
+        <li><strong>Phone:</strong> ${escapeHtml(phonePretty)}</li>
         <li><strong>Email:</strong> ${escapeHtml(email)}</li>
         <li><strong>Service:</strong> ${escapeHtml(service)}</li>
+        <li><strong>Lead ID:</strong> <span style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(
+          leadId
+        )}</span></li>
       </ul>
-      ${pagePath ? `<p><strong>Page:</strong> ${escapeHtml(pagePath)}</p>` : ""}
-      ${
-        referrer ? `<p><strong>Referrer:</strong> ${escapeHtml(referrer)}</p>` : ""
-      }
       <p><strong>Details:</strong></p>
-      <pre style="white-space:pre-wrap;font-family:monospace;">${escapeHtml(
+      <pre style="white-space:pre-wrap;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(
         details || "(none)"
       )}</pre>
+      <p style="color:#666;font-size:12px;">Submitted at (Santa Cruz): ${escapeHtml(
+        submittedAtPretty
+      )}</p>
     `;
 
     const result = await resend.emails.send({
