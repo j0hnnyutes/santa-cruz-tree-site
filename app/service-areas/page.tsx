@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import AccentCardLink from "@/components/AccentCardLink";
+import ServiceCta from "@/components/ServiceCta";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -7,23 +8,23 @@ const pagePath = "/service-areas";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service Areas | Santa Cruz County Tree Experts",
+  title: "Tree Service Areas in Santa Cruz County | Santa Cruz Tree Pros",
   description:
-    "Santa Cruz Tree Pros proudly serves Santa Cruz County and nearby communities including Capitola, Aptos, Watsonville, Scotts Valley, and more.",
+    "Santa Cruz Tree Pros serves Santa Cruz County and nearby communities. Select your city to see local tree service details, common issues, and what to expect.",
   alternates: { canonical: pageUrl },
   openGraph: {
-    title: "Tree Service Areas | Santa Cruz County Tree Experts",
+    title: "Tree Service Areas in Santa Cruz County | Santa Cruz Tree Pros",
     description:
-      "Serving Santa Cruz County and surrounding communities with professional tree removal, trimming, stump grinding, and arborist consulting.",
+      "We serve Santa Cruz County and nearby communities with tree removal, trimming, stump grinding, emergency service, and arborist consulting.",
     url: pageUrl,
     type: "website",
     siteName,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tree Service Areas | Santa Cruz County Tree Experts",
+    title: "Tree Service Areas in Santa Cruz County | Santa Cruz Tree Pros",
     description:
-      "Professional tree services throughout Santa Cruz County including emergency response and arborist evaluations.",
+      "Choose your city to learn about local tree services across Santa Cruz County and nearby communities.",
   },
   robots: { index: true, follow: true },
 };
@@ -40,18 +41,18 @@ const cities = [
   { name: "Felton", slug: "felton" },
   { name: "Boulder Creek", slug: "boulder-creek" },
   { name: "Ben Lomond", slug: "ben-lomond" },
-];
+] as const;
 
 function jsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Service Areas",
-    itemListElement: cities.map((city, index) => ({
+    name: "Tree Service Areas",
+    itemListElement: cities.map((c, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      name: `${city.name}, CA`,
-      url: `${siteUrl}/service-areas/${city.slug}`,
+      name: `Tree Service in ${c.name}, CA`,
+      url: `${siteUrl}/service-areas/${c.slug}`,
     })),
   };
 }
@@ -60,56 +61,61 @@ export default function ServiceAreasPage() {
   const ld = jsonLd();
 
   return (
-    <main className="mx-auto max-w-4xl p-8 space-y-8">
-      <section className="space-y-4">
-        <h1 className="text-3xl font-semibold">
-          Tree Services Throughout Santa Cruz County
-        </h1>
+    <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
+      <header className="space-y-4">
+        <h1 className="text-3xl font-semibold">Service Areas</h1>
 
-        <p className="text-gray-700 leading-7">
-          Santa Cruz Tree Pros provides professional tree removal, tree trimming,
-          stump grinding, emergency tree service, and arborist consulting
-          throughout Santa Cruz County and nearby coastal and mountain communities.
+        <p className="text-[var(--muted)] leading-7">
+          Santa Cruz County includes coastal neighborhoods exposed to wind and salt air,
+          as well as mountain communities where slope, access, and storm runoff can affect
+          tree safety. We tailor recommendations to local conditions—whether you need
+          pruning for wind resistance, storm cleanup, or hazard mitigation near structures.
         </p>
 
-        <p className="text-gray-700 leading-7">
-          From ocean-exposed properties dealing with salt air and wind stress
-          to hillside neighborhoods with slope and erosion concerns, our services
-          are tailored to the unique environmental conditions of each location.
-          Select your city below to learn more about service availability.
+        <p className="text-[var(--muted)] leading-7">
+          Select your city below to learn more about common tree concerns in your area
+          and what to expect when requesting an estimate.
         </p>
-      </section>
+      </header>
 
       <section>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cities.map((c) => (
-            <li
-              key={c.slug}
-              className="rounded-xl border p-5 hover:shadow-sm transition"
-            >
-              <Link
-                className="font-medium text-lg underline"
+            <li key={c.slug}>
+              <AccentCardLink
                 href={`/service-areas/${c.slug}`}
-              >
-                Tree Service in {c.name}, CA
-              </Link>
+                title={`Tree Service in ${c.name}, CA`}
+                description="Local service details, common tree issues, and what to expect."
+              />
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="pt-6 border-t">
-        <h2 className="text-xl font-semibold mb-3">
-          Services Available in Each Area
-        </h2>
-        <ul className="grid gap-2 sm:grid-cols-2 text-sm text-gray-700">
+      <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold">Services Available Across These Areas</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          Most locations we serve can request any of the services below. If you have a time-sensitive issue,
+          choose Emergency Tree Service for priority response.
+        </p>
+
+        <ul className="mt-4 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
           <li>• Tree Removal</li>
           <li>• Tree Trimming & Pruning</li>
-          <li>• Stump Grinding</li>
+          <li>• Stump Grinding & Root Removal</li>
           <li>• Emergency Tree Service</li>
-          <li>• Arborist Consulting & Risk Assessment</li>
+          <li>• Arborist Consulting</li>
         </ul>
       </section>
+
+      <ServiceCta
+        heading="Not sure which service you need?"
+        body="Describe what’s going on and we’ll recommend the safest, most practical plan for your property—based on local conditions in your area."
+        primaryHref="/contact"
+        primaryLabel="Request a Free Estimate"
+        secondaryHref="tel:+1XXXXXXXXXX"
+        secondaryLabel="Call Now"
+      />
 
       <script
         type="application/ld+json"

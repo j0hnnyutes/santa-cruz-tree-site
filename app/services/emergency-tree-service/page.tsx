@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ServiceCta from "@/components/ServiceCta";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -123,6 +124,14 @@ export default function EmergencyTreeServicePage() {
         <strong>Safety note:</strong> If a tree is in contact with power lines, keep your distance and contact the
         utility provider.
       </p>
+
+      <ServiceCta
+        heading="Need Emergency Help?"
+        body="If there’s an immediate hazard, call now. For faster triage, send photos and your address through the estimate form."
+        primaryLabel="Send Photos / Request Help"
+        secondaryLabel="Call for Emergency Service"
+        secondaryHref="tel:+1XXXXXXXXXX"
+      />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
     </main>

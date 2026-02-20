@@ -1,39 +1,85 @@
 import Link from "next/link";
 
 export default function Footer() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="border-t mt-16">
-      <div className="mx-auto max-w-6xl px-6 py-10 grid gap-8 md:grid-cols-3">
-        <div className="space-y-2">
-          <div className="font-semibold">Santa Cruz Tree Service</div>
-          <p className="text-sm text-gray-600">
-            Tree removal, trimming, stump grinding & root removal, emergency service, and arborist consulting.
-          </p>
+    <footer className="mt-16 bg-[#F0E8D8] text-[#242008]">
+      {/* Top stripe (matches header) */}
+      <div className="h-[5px] w-full bg-[#5a4a20]" />
+
+      <div className="mx-auto max-w-[1400px] px-4 py-12">
+        <div className="flex flex-col gap-10 md:flex-row md:justify-between">
+          {/* Brand Section */}
+          <div className="space-y-3 max-w-md">
+            <div className="text-xl font-bold tracking-tight">
+              Santa Cruz Tree Pros
+            </div>
+            <p className="text-sm leading-6 text-[#4a4018]">
+              Professional tree removal, trimming, stump grinding,
+              emergency response, and arborist consulting across Santa Cruz County.
+            </p>
+          </div>
+
+          {/* Links Section */}
+          <div className="grid grid-cols-2 gap-12 text-sm">
+            <div className="space-y-3">
+              <div className="font-semibold tracking-wide">Company</div>
+              <ul className="space-y-2">
+                <li>
+                  <Link
+                    href="/services"
+                    className="font-semibold text-[#242008] hover:text-[#5a4a20]"
+                  >
+                    Services
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/service-areas"
+                    className="font-semibold text-[#242008] hover:text-[#5a4a20]"
+                  >
+                    Service Areas
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/contact"
+                    className="font-semibold text-[#242008] hover:text-[#5a4a20]"
+                  >
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <div className="font-semibold tracking-wide">Get an Estimate</div>
+              <ul className="space-y-2">
+                <li>
+                  <Link
+                    href="/contact"
+                    className="font-semibold text-[#242008] hover:text-[#5a4a20]"
+                  >
+                    Request an Estimate
+                  </Link>
+                </li>
+                <li className="text-[#4a4018]">
+                  Santa Cruz County, CA
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="font-semibold">Pages</div>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li><Link className="hover:underline" href="/services">Services</Link></li>
-            <li><Link className="hover:underline" href="/service-areas">Service Areas</Link></li>
-            <li><Link className="hover:underline" href="/contact">Contact</Link></li>
-          </ul>
-        </div>
-
-        <div className="space-y-2">
-          <div className="font-semibold">Get a free estimate</div>
-          <p className="text-sm text-gray-600">Tell us what you need and we’ll follow up.</p>
-          <Link className="inline-block text-sm font-medium underline" href="/contact">
-            Request an estimate →
-          </Link>
+        {/* Divider line (matches header subtle line style) */}
+        <div className="mt-10 border-t border-[#524820]/40 pt-6 text-sm text-[#4a4018]">
+          © {year} Santa Cruz Tree Pros. All rights reserved.
         </div>
       </div>
 
-      <div className="border-t">
-        <div className="mx-auto max-w-6xl px-6 py-4 text-xs text-gray-500">
-          © {new Date().getFullYear()} Santa Cruz Tree Service. All rights reserved.
-        </div>
-      </div>
+      {/* Bottom stripe (matches header) */}
+      <div className="h-[5px] w-full bg-[#5a4a20]" />
     </footer>
   );
 }

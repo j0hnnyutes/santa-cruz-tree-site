@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200">
+  <defs>
+    <linearGradient id="treed3nb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#383808"/>
+      <stop offset="100%" stop-color="#464610"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="200" fill="#F0E8D8"/>
+
+  <!-- Tallest center redwood -->
+  <path d="M95,196 L95,14 L74,56 L87,56 L66,92 L81,92 L60,126 L78,126 L68,152 L95,152" fill="url(#treed3nb)"/>
+  <path d="M95,196 L95,14 L116,56 L103,56 L124,92 L109,92 L130,126 L112,126 L122,152 L95,152" fill="#525418"/>
+  <rect x="90" y="152" width="10" height="44" fill="#6a4a1c"/>
+  <!-- Left tree -->
+  <path d="M60,196 L60,36 L45,68 L54,68 L38,98 L49,98 L32,126 L47,126 L40,148 L60,148" fill="#383808"/>
+  <path d="M60,196 L60,36 L75,68 L66,68 L82,98 L71,98 L88,126 L73,126 L80,148 L60,148" fill="#464610"/>
+  <rect x="57" y="148" width="6" height="48" fill="#6a4a1c"/>
+  <!-- Right tree -->
+  <path d="M130,196 L130,44 L117,74 L125,74 L111,102 L121,102 L106,128 L120,128 L114,150 L130,150" fill="#383808"/>
+  <path d="M130,196 L130,44 L143,74 L135,74 L149,102 L139,102 L154,128 L140,128 L146,150 L130,150" fill="#464610"/>
+  <rect x="127" y="150" width="6" height="46" fill="#6a4a1c"/>
+  <!-- Far-left small tree -->
+  <path d="M30,196 L30,66 L20,88 L26,88 L14,110 L22,110 L10,132 L22,132 L16,150 L30,150" fill="#464610" opacity="0.7"/>
+  <path d="M30,196 L30,66 L40,88 L34,88 L46,110 L38,110 L50,132 L38,132 L44,150 L30,150" fill="#525418" opacity="0.7"/>
+  <rect x="27" y="150" width="6" height="46" fill="#6a4a1c" opacity="0.7"/>
+  <!-- Ground shadow -->
+  <path d="M0,188 Q80,180 155,186 L155,196 L0,196Z" fill="#5a4a20" opacity="0.18"/>
+  <!-- Vertical divider -->
+  <rect x="170" y="18" width="1.5" height="164" fill="#524820" opacity="0.45"/>
+
+  <!-- SANTA CRUZ -->
+  <text x="200" y="66" font-family="Georgia, serif" font-size="17" fill="#4a4018" letter-spacing="5" font-weight="bold">SANTA CRUZ</text>
+  <line x1="200" y1="75" x2="690" y2="75" stroke="#524820" stroke-width="1" opacity="0.45"/>
+  <!-- TREE PROS -->
+  <text x="195" y="140" font-family="Georgia, serif" font-size="72" fill="#242008" font-weight="bold" letter-spacing="-1">TREE PROS</text>
+  <line x1="200" y1="150" x2="690" y2="150" stroke="#524820" stroke-width="1" opacity="0.45"/>
+  <!-- Tagline -->
+  <text x="200" y="170" font-family="Georgia, serif" font-size="13" fill="#484018" letter-spacing="3" font-weight="bold">Tree Care  •  Removal  •  Preservation</text>
+</svg>

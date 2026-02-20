@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
+import AccentCardLink from "@/components/AccentCardLink";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -83,24 +83,21 @@ export default function ServicesIndexPage() {
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
       <header className="space-y-4">
         <h1 className="text-3xl font-semibold">Tree Services in Santa Cruz</h1>
-        <p className="text-gray-700 leading-7">
+        <p className="text-[var(--muted)] leading-7">
           Santa Cruz properties face coastal winds, salt air exposure, winter storms, and in many areas, slope and
           erosion concerns. We provide professional tree services tailored to local conditions—focused on safety,
           long-term tree health, and protecting your home and landscape.
         </p>
-        <p className="text-gray-700 leading-7">
+        <p className="text-[var(--muted)] leading-7">
           Choose a service below to learn more, see FAQs, and request an estimate.
         </p>
       </header>
 
       <section>
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((s) => (
-            <li key={s.href} className="rounded-2xl border p-6 hover:shadow-sm transition">
-              <Link href={s.href} className="text-lg font-semibold underline">
-                {s.title}
-              </Link>
-              <p className="mt-2 text-sm leading-6 text-gray-700">{s.description}</p>
+            <li key={s.href}>
+              <AccentCardLink href={s.href} title={s.title} description={s.description} />
             </li>
           ))}
         </ul>
