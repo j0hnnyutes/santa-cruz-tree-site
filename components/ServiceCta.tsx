@@ -18,25 +18,39 @@ export default function ServiceCta({
   secondaryLabel = "Call Now",
 }: ServiceCtaProps) {
   return (
-    <section className="mt-12 rounded-2xl border border-[var(--border)] bg-[var(--cta-soft)] p-6 shadow-sm">
-      <h2 className="text-xl font-semibold">{heading}</h2>
-      <p className="mt-2 text-sm text-[var(--muted)]">{body}</p>
+    <section className="relative mt-12 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-7 shadow-[var(--shadow-soft)] sm:px-8 sm:py-8">
+      {/* Top accent bar */}
+      <div aria-hidden="true" className="absolute left-0 top-0 h-[6px] w-full bg-[var(--brand-green)] opacity-90" />
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Link
-          href={primaryHref}
-          className="inline-flex items-center justify-center rounded-xl bg-[var(--brand-green)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-accent)]"
-        >
+      <div className="space-y-2">
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)]">{heading}</h2>
+        <p className="text-sm leading-7 text-[var(--muted)]">{body}</p>
+      </div>
+
+      <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-start">
+        <Link href={primaryHref} className="btn-primary">
           {primaryLabel}
         </Link>
 
-        <a
-          href={secondaryHref}
-          className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-[var(--bg-soft)]"
-        >
+        <a href={secondaryHref} className="btn-secondary">
           {secondaryLabel}
         </a>
       </div>
+
+      <ul className="mt-6 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
+        <li className="flex items-start gap-2">
+          <span aria-hidden="true">•</span>
+          <span>On-site evaluation</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span aria-hidden="true">•</span>
+          <span>Transparent scope of work</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span aria-hidden="true">•</span>
+          <span>Safety-first execution</span>
+        </li>
+      </ul>
     </section>
   );
 }

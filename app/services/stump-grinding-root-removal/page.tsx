@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 
 const siteUrl = "https://santacruztreepros.com";
@@ -7,134 +8,236 @@ const pagePath = "/services/stump-grinding-root-removal";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Stump Grinding in Santa Cruz, CA | Safe & Efficient Removal",
+  title: "Stump Grinding in Santa Cruz, CA | Santa Cruz Tree Pros",
   description:
-    "Remove unsightly stumps and restore usable yard space in Santa Cruz. Professional stump grinding and surface root reduction available.",
+    "Stump grinding to remove stumps below grade, reduce hazards, and prep for landscaping across Santa Cruz County. Optional chip haul-away.",
   alternates: { canonical: pageUrl },
   openGraph: {
-    title: "Stump Grinding in Santa Cruz, CA | Safe & Efficient Removal",
+    title: "Stump Grinding in Santa Cruz, CA | Santa Cruz Tree Pros",
     description:
-      "Remove unsightly stumps and restore usable yard space in Santa Cruz. Professional stump grinding and surface root reduction available.",
+      "Grind stumps below grade to reclaim space and prep for new landscaping across Santa Cruz County.",
     url: pageUrl,
     type: "website",
     siteName,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Stump Grinding in Santa Cruz, CA | Safe & Efficient Removal",
-    description:
-      "Remove unsightly stumps and restore usable yard space in Santa Cruz. Professional stump grinding and surface root reduction available.",
   },
   robots: { index: true, follow: true },
 };
 
 const faqs = [
   {
+    q: "Can you grind stumps in rocky soil?",
+    a: "Often yes. Rocky or compacted soil can affect speed and access, but stump grinding is commonly performed across a range of soil types. We’ll evaluate the site and confirm the best approach during your estimate.",
+  },
+  {
     q: "How deep do you grind a stump?",
-    a: "Typically several inches below grade. Depth can vary based on your landscaping plans (replanting, turf, hardscape, etc.).",
+    a: "Depth depends on your plans (turf vs. replanting vs. hardscape). A common approach is grinding below grade so the area can be backfilled and leveled; deeper grinding may be recommended for replanting in the same spot.",
   },
   {
-    q: "Will roots continue to grow after stump grinding?",
-    a: "Most root systems naturally decay once the tree is removed. Some species may produce sprouts from remaining roots for a period of time.",
+    q: "Does stump grinding leave the area level?",
+    a: "We grind the stump down and leave grindings (wood chips) that can be used as mulch or hauled away. With backfill/topsoil, the area can be restored to a clean, level finish.",
   },
   {
-    q: "Can I plant a new tree where the stump was?",
-    a: "It’s often better to plant slightly offset from the original root mass and refresh the soil for best results.",
+    q: "How long does stump grinding take?",
+    a: "Many stumps can be completed quickly, but time varies based on stump size, root flare, soil conditions, and access. We’ll estimate duration when we see the site.",
   },
   {
-    q: "What happens to the wood chips?",
-    a: "Grindings can be left as backfill or hauled away upon request. Many homeowners reuse them as mulch in non-turf areas.",
+    q: "Do you haul away the grindings (wood chips)?",
+    a: "Yes—if you don’t want the chips for mulch, we can haul them away. Let us know your preference when scheduling.",
+  },
+  {
+    q: "Can I replant a tree after stump grinding?",
+    a: "Often yes. Replanting is easiest when grinding is done deeper and the area is amended with clean soil. We can recommend a practical depth based on what you want to plant and where.",
+  },
+  {
+    q: "Stump grinding vs. full stump/root removal—what’s the difference?",
+    a: "Grinding removes the visible stump below grade and allows roots to decay over time. Full removal involves excavation, which is more disruptive and may be preferred for certain construction or hardscape projects.",
   },
 ] as const;
 
-function jsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Service",
-        "@id": `${pageUrl}#service`,
-        name: "Stump Grinding & Root Removal",
-        serviceType: "Stump grinding and surface root reduction",
-        areaServed: {
-          "@type": "City",
-          name: "Santa Cruz",
-          address: { "@type": "PostalAddress", addressRegion: "CA", addressCountry: "US" },
-        },
-        provider: { "@type": "LocalBusiness", name: siteName, url: siteUrl },
-        url: pageUrl,
-        description:
-          "Stump grinding and surface root reduction to restore usable yard space and reduce hazards, tailored for Santa Cruz soil and coastal moisture conditions.",
-      },
-      {
-        "@type": "FAQPage",
-        "@id": `${pageUrl}#faq`,
-        url: pageUrl,
-        mainEntity: faqs.map((f) => ({
-          "@type": "Question",
-          name: f.q,
-          acceptedAnswer: { "@type": "Answer", text: f.a },
-        })),
-      },
-    ],
-  };
+const relatedServices = [
+  {
+    title: "Tree Removal",
+    href: "/services/tree-removal",
+    desc: "Remove the tree, then grind the stump for a clean finish and usable space.",
+  },
+  {
+    title: "Tree Trimming & Pruning",
+    href: "/services/tree-trimming",
+    desc: "Maintain safer trees and reduce future removals with proactive pruning.",
+  },
+  {
+    title: "Arborist Consulting",
+    href: "/services/arborist-consulting",
+    desc: "Get an expert opinion on tree health, risk, and the best plan forward.",
+  },
+] as const;
+
+function ChevronDown() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.5 7.5l4.5 4.5 4.5-4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
-export default function StumpGrindingRootRemovalPage() {
-  const ld = jsonLd();
+function FaqBlock({ items }: { items: readonly { q: string; a: string }[] }) {
+  return (
+    <div className="space-y-3">
+      {items.map((f) => (
+        <details
+          key={f.q}
+          className="group rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
+            <span>{f.q}</span>
+            <ChevronDown />
+          </summary>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function RelatedServicesBlock() {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-semibold">Related Services</h2>
+      <ul className="grid gap-4 sm:grid-cols-3">
+        {relatedServices.map((s) => (
+          <li
+            key={s.href}
+            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
+          >
+            <Link
+              href={s.href}
+              className="font-semibold text-[var(--text)] hover:text-[var(--brand-accent)] transition"
+            >
+              {s.title} →
+            </Link>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.desc}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export default function StumpGrindingPage() {
+  const ldService = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Stump Grinding",
+    provider: { "@type": "LocalBusiness", name: siteName, url: siteUrl },
+    areaServed: { "@type": "AdministrativeArea", name: "Santa Cruz County, CA" },
+    serviceType: "Stump Grinding",
+    url: pageUrl,
+  };
+
+  const ldFaq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Stump Grinding in Santa Cruz</h1>
+    <main className="mx-auto w-full max-w-[1100px] py-10 space-y-12">
+      <header className="space-y-4">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Stump Grinding in Santa Cruz, CA
+        </h1>
+        <p className="text-[var(--muted)] leading-7">
+          Stumps can be an eyesore and a tripping hazard—especially in high-traffic yards and rental properties.
+          Stump grinding removes the stump below grade so you can reclaim space and prep for turf, planting,
+          or hardscape.
+        </p>
+      </header>
 
-      <p className="mt-4 text-base leading-7">
-        After a tree is removed, stumps can limit landscaping options and create long-term maintenance headaches. In
-        Santa Cruz, coastal moisture and seasonal rain can accelerate decay, which may attract pests and create soft,
-        uneven areas over time. Grinding removes the visible stump below grade so your yard feels finished and usable.
-      </p>
-      <p className="mt-3 text-base leading-7">
-        We account for site specifics like irrigation lines, slopes, and soil stability—so the surrounding area is left
-        in a clean, workable condition for your next step.
-      </p>
+      {/* General info */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-semibold">What Stump Grinding Includes</h2>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">What’s Included</h2>
-        <ul className="mt-3 list-disc pl-6 space-y-2">
-          <li>Grinding below surface level</li>
-          <li>Surface root reduction when necessary</li>
-          <li>Debris containment and cleanup</li>
-          <li>Optional removal of grindings</li>
-        </ul>
-      </section>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Site check & access</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              We confirm access width, slope, and obstacles (fences, gates, irrigation). Tight access is common in
+              Santa Cruz neighborhoods, so planning avoids surprises.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Grinding below grade</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              We grind below the surface so the area can be backfilled and leveled. If you want to replant in the
+              same spot, deeper grinding and soil amendment is often recommended.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Chips: keep or haul away</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              Grindings can be used as mulch, or we can haul them away if you prefer a cleaner finish for turf or
+              hardscape prep.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Better use of the space</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              Reduce trip hazards, open up planting beds, and make mowing/maintenance easier—especially after
+              removals.
+            </p>
+          </div>
+        </div>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">After Grinding</h2>
-        <ul className="mt-3 list-disc pl-6 space-y-2">
-          <li>Area can be leveled and topsoil added</li>
-          <li>Seed, sod, or planting beds can be installed</li>
-          <li>Remaining roots naturally decay underground</li>
-        </ul>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">FAQs</h2>
-        <div className="mt-4 space-y-4">
-          {faqs.map((f) => (
-            <details key={f.q} className="rounded-lg border p-4">
-              <summary className="cursor-pointer font-medium">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6">{f.a}</p>
-            </details>
-          ))}
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+          <div className="font-semibold">Helpful prep before we arrive</div>
+          <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
+            <li>• Mark sprinklers/irrigation lines if known</li>
+            <li>• Clear rocks/decor around the stump</li>
+            <li>• Ensure gate access is unlocked</li>
+            <li>• Tell us your plan (turf, planting, hardscape)</li>
+          </ul>
         </div>
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Stump Grinding FAQs</h2>
+        <FaqBlock items={faqs} />
+      </section>
+
+      <RelatedServicesBlock />
+
       <ServiceCta
-        heading="Request a Free Stump Grinding Estimate"
-        body="Tell us where the stump is located and your plans for the area. We’ll recommend the right grinding depth and cleanup option."
+        heading="Request a Free Estimate"
+        body="Tell us how many stumps you have and what you plan to do with the space. We’ll recommend the right depth and cleanup option."
+        primaryHref="/contact"
+        primaryLabel="Request an Estimate"
         secondaryHref="tel:+1XXXXXXXXXX"
+        secondaryLabel="Call Now"
       />
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldService) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldFaq) }}
+      />
     </main>
   );
 }

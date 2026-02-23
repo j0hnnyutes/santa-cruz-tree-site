@@ -1,60 +1,27 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-// ✅ Use string-literal statuses (avoid Prisma enum import issues)
-const STATUSES = ["NEW", "CONTACTED", "CLOSED", "ARCHIVED"] as const;
-type Status = (typeof STATUSES)[number];
+type LeadStatus = "NEW" | "CONTACTED" | "CLOSED" | "ARCHIVED";
 
 type LeadRow = {
   leadId: string;
-  createdAt: Date | string;
+  createdAt: string | Date;
   fullName: string;
   phoneDigits: string;
   email: string;
   service: string;
-  details: string | null;
-  status: Status; // ✅
-  contactedAt: Date | string | null;
-  adminNotes: string | null;
-  archivedAt: Date | string | null;
+  status: LeadStatus;
 };
 
-type Props = {
-  leads: LeadRow[];
-  initialFilters: {
-    q: string;
-    status: string; // "ALL" | Status
-    from: string; // YYYY-MM-DD or ""
-    to: string; // YYYY-MM-DD or ""
-    archived: boolean;
-  };
-  pagination: {
-    page: number;
-    pageSize: number;
-    totalCount: number;
-    totalPages: number;
-  };
+type Toast = {
+  kind: "success" | "error";
+  text: string;
 };
 
-const TIME_ZONE = "America/Los_Angeles";
-
-function toDate(d: Date | string | null | undefined): Date | null {
-  if (!d) return null;
-  const dt = d instanceof Date ? d : new Date(d);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
-
-function formatDateTimeInTZ(d: Date | string | null | undefined) {
-  const dt = toDate(d);
-  if (!dt) return "";
-  return dt.toLocaleString("en-US", { timeZone: TIME_ZONE });
-}
-
-function digitsOnly(input: string) {
-  return (input ?? "").replace(/\D/g, "");
+function digitsOnly(v: unknown) {
+  return String(v ?? "").replace(/\D/g, "");
 }
 
 function formatPhoneUS10(digits: string) {
@@ -63,472 +30,443 @@ function formatPhoneUS10(digits: string) {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
-function clsx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
+function formatDateShort(d: string | Date) {
+  const dt = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(dt.getTime())) return "";
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const yy = String(dt.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
 }
 
-function isStatus(v: string): v is Status {
-  return (STATUSES as readonly string[]).includes(v);
+function normalizeServiceLabel(s: string) {
+  const v = String(s || "").trim();
+  const up = v.toUpperCase();
+
+  if (
+    up === "STUMP_GRINDING" ||
+    up === "STUMP_GRINDING_ROOT_REMOVAL" ||
+    up === "STUMP_GRINDING_&_ROOT_REMOVAL"
+  ) {
+    return "Stump Grinding / Removal";
+  }
+  if (
+    up === "TREE_TRIMMING" ||
+    up === "TREE_TRIMMING_PRUNING" ||
+    up === "TREE_TRIMMING_&_PRUNING"
+  ) {
+    return "Tree Trimming / Pruning";
+  }
+  if (up === "TREE_REMOVAL") return "Tree Removal";
+  if (up === "EMERGENCY_TREE_SERVICE") return "Emergency Tree Service";
+  if (up === "ARBORIST_CONSULTING") return "Arborist Consulting";
+
+  // If it's already human readable, keep it
+  // Otherwise convert SNAKE_CASE -> Title Case
+  if (!v.includes("_")) return v;
+
+  return v
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+async function postJSON<T>(url: string, body: any): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = json?.error || "Something went wrong.";
+    throw new Error(msg);
+  }
+  return json as T;
 }
 
 export default function AdminLeadsTableClient({
-  leads,
-  initialFilters,
-  pagination,
-}: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const sp = useSearchParams();
-
-  // Selection
-  const [selected, setSelected] = React.useState<Set<string>>(new Set());
-  const allOnPageSelected = leads.length > 0 && selected.size === leads.length;
-
-  // Local controlled filter UI
-  const [q, setQ] = React.useState(initialFilters.q ?? "");
-  const [status, setStatus] = React.useState(initialFilters.status ?? "ALL");
-  const [from, setFrom] = React.useState(initialFilters.from ?? "");
-  const [to, setTo] = React.useState(initialFilters.to ?? "");
-  const [archived, setArchived] = React.useState<boolean>(
-    Boolean(initialFilters.archived)
+  initialLeads,
+}: {
+  initialLeads: LeadRow[];
+}) {
+  const [allLeads, setAllLeads] = useState<LeadRow[]>(
+    (initialLeads || []).map((l) => ({
+      ...l,
+      createdAt: typeof l.createdAt === "string" ? l.createdAt : l.createdAt,
+    }))
   );
 
-  const [busy, setBusy] = React.useState(false);
-  const [toast, setToast] = React.useState<string | null>(null);
+  // Filters
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"ALL" | LeadStatus>("ALL");
+  const [start, setStart] = useState<string>(""); // YYYY-MM-DD
+  const [end, setEnd] = useState<string>(""); // YYYY-MM-DD
 
-  const page = pagination.page;
-  const totalPages = pagination.totalPages;
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
-  function buildUrl(next: Partial<Record<string, string | null>>) {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    for (const [k, v] of Object.entries(next)) {
-      if (v === null || v === "" || v === undefined) params.delete(k);
-      else params.set(k, v);
-    }
-    if (!("page" in next)) params.delete("page");
-    const qs = params.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
+  // Selection + bulk actions
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  // Toast
+  const [toast, setToast] = useState<Toast | null>(null);
+  const toastTimer = useRef<number | null>(null);
+
+  const filterCardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  function showToast(t: Toast) {
+    setToast(t);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 4000);
   }
 
-  function applyFilters() {
-    const url = buildUrl({
-      q: q.trim() || null,
-      status: status || "ALL",
-      from: from || null,
-      to: to || null,
-      archived: archived ? "1" : null,
-      page: "1",
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const startTs = start ? new Date(start + "T00:00:00").getTime() : null;
+    const endTs = end ? new Date(end + "T23:59:59").getTime() : null;
+
+    return allLeads.filter((l) => {
+      const createdTs = new Date(l.createdAt).getTime();
+
+      if (status !== "ALL" && l.status !== status) return false;
+      if (startTs != null && createdTs < startTs) return false;
+      if (endTs != null && createdTs > endTs) return false;
+
+      if (!q) return true;
+
+      const hay = [
+        l.fullName,
+        l.email,
+        l.phoneDigits,
+        normalizeServiceLabel(l.service),
+        l.status,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return hay.includes(q);
     });
-    router.push(url);
+  }, [allLeads, query, status, start, end]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  const pageItems = useMemo(() => {
+    const safePage = Math.min(Math.max(page, 1), totalPages);
+    const from = (safePage - 1) * pageSize;
+    return filtered.slice(from, from + pageSize);
+  }, [filtered, page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+    setSelected({});
+  }, [query, status, start, end]);
+
+  const selectedIds = useMemo(
+    () => Object.keys(selected).filter((k) => selected[k]),
+    [selected]
+  );
+
+  const allOnPageSelected = useMemo(() => {
+    if (pageItems.length === 0) return false;
+    return pageItems.every((l) => selected[l.leadId]);
+  }, [pageItems, selected]);
+
+  function toggleAllOnPage(v: boolean) {
+    const next = { ...selected };
+    for (const l of pageItems) next[l.leadId] = v;
+    setSelected(next);
   }
 
-  function clearFilters() {
-    setQ("");
-    setStatus("ALL");
-    setFrom("");
-    setTo("");
-    setArchived(false);
-    router.push(pathname);
+  function toggleOne(id: string, v: boolean) {
+    setSelected((prev) => ({ ...prev, [id]: v }));
   }
 
-  function goToPage(p: number) {
-    const clamped = Math.max(1, Math.min(totalPages, p));
-    const url = buildUrl({ page: String(clamped) });
-    router.push(url);
-  }
-
-  function toggleAllOnPage() {
-    if (allOnPageSelected) {
-      setSelected(new Set());
-      return;
-    }
-    setSelected(new Set(leads.map((l) => l.leadId)));
-  }
-
-  function toggleOne(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function setStatusFor(ids: string[], nextStatus: Status) {
+  async function bulkSetStatus(nextStatus: LeadStatus) {
+    const ids = selectedIds;
     if (ids.length === 0) return;
-    setBusy(true);
-    setToast(null);
 
     try {
-      const res = await fetch("/api/admin/leads/set-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: ids, status: nextStatus }),
+      await postJSON("/api/admin/leads/set-status", {
+        leadIds: ids,
+        status: nextStatus,
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "Failed to update status.");
-      }
-
-      setSelected(new Set());
-      setToast(
-        ids.length === 1
-          ? `Updated lead status → ${nextStatus}`
-          : `Updated ${ids.length} leads → ${nextStatus}`
+      setAllLeads((prev) =>
+        prev.map((l) =>
+          ids.includes(l.leadId) ? { ...l, status: nextStatus } : l
+        )
       );
 
-      router.refresh();
+      setSelected({});
+      showToast({
+        kind: "success",
+        text: `Saved: Updated ${ids.length} lead(s) → ${nextStatus}`,
+      });
     } catch (e: any) {
-      setToast(e?.message || "Something went wrong.");
-    } finally {
-      setBusy(false);
+      showToast({ kind: "error", text: `Error: ${e?.message || "Failed."}` });
     }
   }
 
-  // Bulk actions
-  const selectedIds = Array.from(selected);
+  async function bulkArchive() {
+    const ids = selectedIds;
+    if (ids.length === 0) return;
 
-  // Pagination controls visibility
-  const showPagination = totalPages > 1;
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
+    try {
+      await postJSON("/api/admin/leads/bulk", {
+        leadIds: ids,
+        action: "ARCHIVE",
+      });
 
-  // Page buttons: show first/last/current/neighbor pages only
-  const pageButtons = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
-    (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1
-  );
+      // Remove from view (client-side "archivedAt null" mimic)
+      setAllLeads((prev) => prev.filter((l) => !ids.includes(l.leadId)));
+      setSelected({});
+      showToast({
+        kind: "success",
+        text: `Saved: Archived ${ids.length} lead(s).`,
+      });
+    } catch (e: any) {
+      showToast({ kind: "error", text: `Error: ${e?.message || "Failed."}` });
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      {toast && (
-        <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm">
-          {toast}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-600">Status</span>
-            <select
-              className="rounded-lg border border-neutral-300 bg-white px-2 py-1"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+    <div className="space-y-6">
+      {/* Filter Card Wrapper (relative so toast centers to this card width) */}
+      <div ref={filterCardRef} className="relative">
+        {/* Toast (centered above the filter card, no layout pushdown) */}
+        {toast ? (
+          <div className="pointer-events-none absolute -top-4 left-0 w-full flex justify-center z-10">
+            <div
+              className={[
+                "px-2 py-1 text-sm font-semibold",
+                toast.kind === "success" ? "text-emerald-700" : "text-rose-700",
+              ].join(" ")}
             >
-              <option value="ALL">All</option>
-              <option value="NEW">New</option>
-              <option value="CONTACTED">Contacted</option>
-              <option value="CLOSED">Closed</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </label>
+              {toast.text}
+            </div>
+          </div>
+        ) : null}
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              checked={archived}
-              onChange={(e) => setArchived(e.target.checked)}
-            />
-            <span className="text-neutral-700">Show archived</span>
-          </label>
+        {/* FILTER CARD — NO HOVER EFFECTS */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-12 items-end">
+            <div className="lg:col-span-6">
+              <label className="block text-xs font-semibold text-[var(--text)]">
+                Search
+              </label>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Name, email, phone, service…"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+              />
+            </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-600">From</span>
-            <input
-              type="date"
-              className="rounded-lg border border-neutral-300 px-2 py-1"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-            <span className="text-neutral-600">To</span>
-            <input
-              type="date"
-              className="rounded-lg border border-neutral-300 px-2 py-1"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-semibold text-[var(--text)]">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+              >
+                <option value="ALL">All</option>
+                <option value="NEW">NEW</option>
+                <option value="CONTACTED">CONTACTED</option>
+                <option value="CLOSED">CLOSED</option>
+              </select>
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-semibold text-[var(--text)]">
+                Start
+              </label>
+              <input
+                type="date"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm text-[var(--text)] text-black opacity-100 outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-semibold text-[var(--text)]">
+                End
+              </label>
+              <input
+                type="date"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm text-[var(--text)] text-black opacity-100 outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <input
-              className="w-64 max-w-full rounded-lg border border-neutral-300 px-3 py-1.5"
-              placeholder="Search name, email, phone, service, leadId"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") applyFilters();
-              }}
-            />
-            <button
-              className="rounded-lg bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800"
-              onClick={applyFilters}
-              type="button"
-            >
-              Search
-            </button>
-            <button
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm hover:bg-neutral-50"
-              onClick={clearFilters}
-              type="button"
-            >
-              Clear
-            </button>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-[var(--muted)]">
+              Showing{" "}
+              <span className="font-semibold text-[var(--text)]">
+                {filtered.length}
+              </span>{" "}
+              leads
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => bulkSetStatus("CONTACTED")}
+                disabled={selectedIds.length === 0}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-neutral-700 px-4 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Mark Contacted
+              </button>
+              <button
+                onClick={() => bulkSetStatus("CLOSED")}
+                disabled={selectedIds.length === 0}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-neutral-700 px-4 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => bulkArchive()}
+                disabled={selectedIds.length === 0}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text)] disabled:opacity-40"
+              >
+                Archive
+              </button>
+              <button
+                onClick={() => bulkSetStatus("NEW")}
+                disabled={selectedIds.length === 0}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text)] disabled:opacity-40"
+              >
+                Reset to New
+              </button>
+            </div>
           </div>
-
-          <div className="ml-auto text-sm text-neutral-600">
-            Page {pagination.page} of {pagination.totalPages} •{" "}
-            {pagination.totalCount.toLocaleString()} total
-          </div>
-        </div>
-
-        {/* Bulk Actions */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            className={clsx(
-              "rounded-lg border px-3 py-2 text-sm",
-              selectedIds.length === 0 || busy
-                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                : "border-neutral-300 bg-white hover:bg-neutral-50"
-            )}
-            disabled={selectedIds.length === 0 || busy}
-            onClick={() => setStatusFor(selectedIds, "CONTACTED")}
-            type="button"
-          >
-            Mark Contacted
-          </button>
-
-          <button
-            className={clsx(
-              "rounded-lg border px-3 py-2 text-sm",
-              selectedIds.length === 0 || busy
-                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                : "border-neutral-300 bg-white hover:bg-neutral-50"
-            )}
-            disabled={selectedIds.length === 0 || busy}
-            onClick={() => setStatusFor(selectedIds, "CLOSED")}
-            type="button"
-          >
-            Mark Closed
-          </button>
-
-          <button
-            className={clsx(
-              "rounded-lg border px-3 py-2 text-sm",
-              selectedIds.length === 0 || busy
-                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                : "border-neutral-300 bg-white hover:bg-neutral-50"
-            )}
-            disabled={selectedIds.length === 0 || busy}
-            onClick={() => setStatusFor(selectedIds, "ARCHIVED")}
-            type="button"
-          >
-            Archive
-          </button>
-
-          <button
-            className={clsx(
-              "rounded-lg border px-3 py-2 text-sm",
-              selectedIds.length === 0 || busy
-                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                : "border-neutral-300 bg-white hover:bg-neutral-50"
-            )}
-            disabled={selectedIds.length === 0 || busy}
-            onClick={() => setStatusFor(selectedIds, "NEW")}
-            type="button"
-          >
-            Unarchive (→ New)
-          </button>
-
-          {busy && <span className="text-sm text-neutral-500">Working…</span>}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-neutral-700">
-            <tr>
-              <th className="w-10 px-3 py-3 text-left">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={allOnPageSelected}
-                  onChange={toggleAllOnPage}
-                />
-              </th>
-              <th className="px-3 py-3 text-left">Created (Santa Cruz)</th>
-              <th className="px-3 py-3 text-left">Name</th>
-              <th className="px-3 py-3 text-left">Phone</th>
-              <th className="px-3 py-3 text-left">Email</th>
-              <th className="px-3 py-3 text-left">Service</th>
-              <th className="px-3 py-3 text-left">Status</th>
-              <th className="px-3 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {leads.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-10 text-center text-neutral-500"
-                >
-                  No leads found.
-                </td>
+      {/* LEADS TABLE CARD — NO HOVER EFFECTS */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] w-full text-sm">
+            <thead className="bg-white">
+              <tr className="border-b border-[var(--border)]">
+                <th className="w-10 px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allOnPageSelected}
+                    onChange={(e) => toggleAllOnPage(e.target.checked)}
+                  />
+                </th>
+                <th className="px-4 py-3 text-left font-semibold">Date</th>
+                <th className="px-4 py-3 text-left font-semibold">Name</th>
+                <th className="px-4 py-3 text-left font-semibold">Phone</th>
+                <th className="px-4 py-3 text-left font-semibold">Email</th>
+                <th className="px-4 py-3 text-left font-semibold">Service</th>
+                <th className="px-4 py-3 text-left font-semibold">Status</th>
               </tr>
-            ) : (
-              leads.map((lead) => {
-                const created = formatDateTimeInTZ(lead.createdAt);
-                const phonePretty = formatPhoneUS10(lead.phoneDigits);
+            </thead>
+            <tbody>
+              {pageItems.map((l) => (
+                <tr
+                  key={l.leadId}
+                  className="border-b border-[var(--border)] last:border-b-0"
+                >
+                  <td className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={!!selected[l.leadId]}
+                      onChange={(e) => toggleOne(l.leadId, e.target.checked)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {formatDateShort(l.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/leads/${l.leadId}`}
+                      className="font-semibold text-[var(--brand-accent)] hover:underline"
+                    >
+                      {l.fullName}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {formatPhoneUS10(l.phoneDigits)}
+                  </td>
+                  <td className="px-4 py-3">{l.email}</td>
+                  <td className="px-4 py-3">
+                    {normalizeServiceLabel(l.service)}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">{l.status}</td>
+                </tr>
+              ))}
 
-                return (
-                  <tr key={lead.leadId} className="border-t border-neutral-100">
-                    <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={selected.has(lead.leadId)}
-                        onChange={() => toggleOne(lead.leadId)}
-                      />
-                    </td>
-
-                    <td className="px-3 py-3 text-neutral-700">{created}</td>
-
-                    <td className="px-3 py-3 font-medium text-neutral-900">
-                      {lead.fullName}
-                    </td>
-
-                    <td className="px-3 py-3 text-neutral-700">
-                      {phonePretty}
-                    </td>
-
-                    <td className="px-3 py-3 text-neutral-700">{lead.email}</td>
-
-                    <td className="px-3 py-3 text-neutral-700">
-                      {lead.service}
-                    </td>
-
-                    <td className="px-3 py-3">
-                      <span className="inline-flex items-center rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-700">
-                        {lead.status}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <Link
-                          href={`/admin/leads/${lead.leadId}`}
-                          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs hover:bg-neutral-50"
-                        >
-                          View
-                        </Link>
-
-                        {lead.status !== "ARCHIVED" ? (
-                          <button
-                            className={clsx(
-                              "rounded-lg border px-3 py-1.5 text-xs",
-                              busy
-                                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                                : "border-neutral-300 bg-white hover:bg-neutral-50"
-                            )}
-                            disabled={busy}
-                            onClick={() => setStatusFor([lead.leadId], "ARCHIVED")}
-                            type="button"
-                          >
-                            Archive
-                          </button>
-                        ) : (
-                          <button
-                            className={clsx(
-                              "rounded-lg border px-3 py-1.5 text-xs",
-                              busy
-                                ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                                : "border-neutral-300 bg-white hover:bg-neutral-50"
-                            )}
-                            disabled={busy}
-                            onClick={() => setStatusFor([lead.leadId], "NEW")}
-                            type="button"
-                          >
-                            Unarchive
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+              {pageItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-10 text-center text-[var(--muted)]"
+                  >
+                    No leads found.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
 
         {/* Pagination */}
-        {showPagination && (
-          <div className="flex items-center justify-between border-t border-neutral-200 bg-white px-4 py-3">
-            <div className="text-sm text-neutral-600">
-              Showing{" "}
-              <span className="font-medium">
-                {(page - 1) * pagination.pageSize + 1}
-              </span>{" "}
-              –{" "}
-              <span className="font-medium">
-                {Math.min(page * pagination.pageSize, pagination.totalCount)}
-              </span>{" "}
-              of <span className="font-medium">{pagination.totalCount}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => goToPage(page - 1)}
-                disabled={!hasPrev}
-                className={clsx(
-                  "rounded-lg border px-3 py-2 text-sm",
-                  !hasPrev
-                    ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                    : "border-neutral-300 bg-white hover:bg-neutral-50"
-                )}
-              >
-                Prev
-              </button>
-
-              {pageButtons.map((p) => {
-                const active = p === page;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => goToPage(p)}
-                    className={clsx(
-                      "rounded-lg border px-3 py-2 text-sm",
-                      active
-                        ? "border-black bg-black text-white"
-                        : "border-neutral-300 bg-white hover:bg-neutral-50"
-                    )}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={() => goToPage(page + 1)}
-                disabled={!hasNext}
-                className={clsx(
-                  "rounded-lg border px-3 py-2 text-sm",
-                  !hasNext
-                    ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
-                    : "border-neutral-300 bg-white hover:bg-neutral-50"
-                )}
-              >
-                Next
-              </button>
-            </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="text-sm text-[var(--muted)]">
+            Page{" "}
+            <span className="font-semibold text-[var(--text)]">{page}</span> of{" "}
+            <span className="font-semibold text-[var(--text)]">
+              {totalPages}
+            </span>
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page <= 1}
+              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+            >
+              Last
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

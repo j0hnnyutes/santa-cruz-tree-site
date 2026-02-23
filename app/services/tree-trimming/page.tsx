@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 
 const siteUrl = "https://santacruztreepros.com";
@@ -7,136 +8,233 @@ const pagePath = "/services/tree-trimming";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Trimming & Pruning in Santa Cruz, CA | Improve Tree Health",
+  title: "Tree Trimming & Pruning in Santa Cruz, CA | Santa Cruz Tree Pros",
   description:
-    "Professional tree trimming in Santa Cruz. Structural pruning, storm risk reduction, and canopy balancing for coastal conditions.",
+    "Tree trimming and pruning to improve safety, structure, clearance, and tree health in Santa Cruz County—ideal for coastal winds and winter storms.",
   alternates: { canonical: pageUrl },
   openGraph: {
-    title: "Tree Trimming & Pruning in Santa Cruz, CA | Improve Tree Health",
+    title: "Tree Trimming & Pruning in Santa Cruz, CA | Santa Cruz Tree Pros",
     description:
-      "Professional tree trimming in Santa Cruz. Structural pruning, storm risk reduction, and canopy balancing for coastal conditions.",
+      "Structural pruning and canopy balancing for healthier, safer trees in coastal conditions across Santa Cruz County.",
     url: pageUrl,
     type: "website",
     siteName,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tree Trimming & Pruning in Santa Cruz, CA | Improve Tree Health",
-    description:
-      "Professional tree trimming in Santa Cruz. Structural pruning, storm risk reduction, and canopy balancing for coastal conditions.",
   },
   robots: { index: true, follow: true },
 };
 
 const faqs = [
   {
-    q: "When is the best time to trim trees in Santa Cruz?",
-    a: "Timing depends on species. Many trees are best pruned outside peak growth or during dormancy to reduce stress and improve healing.",
+    q: "Why is tree trimming or pruning important?",
+    a: "Proper pruning reduces deadwood, improves structure, and can lower the chance of limb failure—especially helpful in Santa Cruz coastal winds and winter storms. It also supports long-term tree health and appearance.",
   },
   {
-    q: "Does trimming help prevent storm damage?",
-    a: "Yes. Removing weak, dead, or overextended limbs reduces the likelihood of breakage during coastal winds and winter storms.",
+    q: "What’s the difference between trimming and pruning?",
+    a: "People use the terms interchangeably, but in practice: trimming often focuses on shaping and managing growth, while pruning is more targeted—removing specific branches for structure, clearance, or risk reduction.",
   },
   {
-    q: "How often should trees be pruned?",
-    a: "Most mature trees benefit from evaluation every 1–3 years. Younger trees may need more frequent structural pruning early on.",
+    q: "How often should trees be trimmed or pruned?",
+    a: "A common cadence is every few years, but ideal timing depends on species, age, prior pruning history, and exposure (wind/salt). During the estimate we’ll recommend a practical interval for your trees and goals.",
   },
   {
-    q: "Is tree topping recommended?",
-    a: "Topping is generally avoided because it can weaken structure and increase long-term risk. Structural pruning is the preferred approach.",
+    q: "When should a tree be removed instead of trimmed?",
+    a: "Removal may be the better choice if the tree is dead/dying, structurally compromised, repeatedly failing, or creating a high-risk situation that pruning can’t reasonably mitigate.",
+  },
+  {
+    q: "Can I trim a tree myself?",
+    a: "Small, low branches can be DIY, but pruning larger limbs can be dangerous and easy to do incorrectly. Professional pruning helps avoid improper cuts, over-thinning, and safety hazards—especially near roofs and power lines.",
+  },
+  {
+    q: "Will pruning help reduce storm damage?",
+    a: "Often yes. Selective deadwood removal, canopy balancing, and clearance pruning can reduce sail effect and remove weak attachments—helpful for coastal wind events.",
   },
 ] as const;
 
-function jsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Service",
-        "@id": `${pageUrl}#service`,
-        name: "Tree Trimming & Pruning",
-        serviceType: "Tree trimming and pruning",
-        areaServed: {
-          "@type": "City",
-          name: "Santa Cruz",
-          address: { "@type": "PostalAddress", addressRegion: "CA", addressCountry: "US" },
-        },
-        provider: { "@type": "LocalBusiness", name: siteName, url: siteUrl },
-        url: pageUrl,
-        description:
-          "Strategic pruning to improve structure, reduce storm risk, and support long-term tree health in Santa Cruz coastal conditions.",
-      },
-      {
-        "@type": "FAQPage",
-        "@id": `${pageUrl}#faq`,
-        url: pageUrl,
-        mainEntity: faqs.map((f) => ({
-          "@type": "Question",
-          name: f.q,
-          acceptedAnswer: { "@type": "Answer", text: f.a },
-        })),
-      },
-    ],
-  };
+const relatedServices = [
+  {
+    title: "Tree Removal",
+    href: "/services/tree-removal",
+    desc: "When trimming isn’t enough—controlled removals for high-risk or compromised trees.",
+  },
+  {
+    title: "Emergency Tree Service",
+    href: "/services/emergency-tree-service",
+    desc: "Storm response for downed limbs and urgent hazards—stabilization and cleanup.",
+  },
+  {
+    title: "Arborist Consulting",
+    href: "/services/arborist-consulting",
+    desc: "Professional evaluations and recommendations for tree health and risk.",
+  },
+] as const;
+
+function ChevronDown() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.5 7.5l4.5 4.5 4.5-4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FaqBlock({ items }: { items: readonly { q: string; a: string }[] }) {
+  return (
+    <div className="space-y-3">
+      {items.map((f) => (
+        <details
+          key={f.q}
+          className="group rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
+            <span>{f.q}</span>
+            <ChevronDown />
+          </summary>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function RelatedServicesBlock() {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-semibold">Related Services</h2>
+      <ul className="grid gap-4 sm:grid-cols-3">
+        {relatedServices.map((s) => (
+          <li
+            key={s.href}
+            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
+          >
+            <Link
+              href={s.href}
+              className="font-semibold text-[var(--text)] hover:text-[var(--brand-accent)] transition"
+            >
+              {s.title} →
+            </Link>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.desc}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 export default function TreeTrimmingPage() {
-  const ld = jsonLd();
+  const ldService = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Tree Trimming & Pruning",
+    provider: { "@type": "LocalBusiness", name: siteName, url: siteUrl },
+    areaServed: { "@type": "AdministrativeArea", name: "Santa Cruz County, CA" },
+    serviceType: "Tree Trimming & Pruning",
+    url: pageUrl,
+  };
+
+  const ldFaq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Tree Trimming in Santa Cruz</h1>
+    <main className="mx-auto w-full max-w-[1100px] py-10 space-y-12">
+      <header className="space-y-4">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Tree Trimming &amp; Pruning in Santa Cruz, CA
+        </h1>
+        <p className="text-[var(--muted)] leading-7">
+          Trimming and pruning in Santa Cruz isn’t just about appearance—coastal wind exposure, salt air,
+          and winter storms make structure and thoughtful canopy management especially important. We tailor
+          pruning to your tree species, location, and goals.
+        </p>
+      </header>
 
-      <p className="mt-4 text-base leading-7">
-        Santa Cruz trees face coastal winds, seasonal storms, and salt air exposure that can stress canopies and
-        increase the chance of limb failure. Strategic trimming improves structural integrity, reduces risk over homes
-        and walkways, and keeps growth balanced for long-term health.
-      </p>
-      <p className="mt-3 text-base leading-7">
-        Professional pruning focuses on targeted cuts that support the tree’s natural form—prioritizing safety, storm
-        resilience, and healthier growth patterns rather than cosmetic over-cutting.
-      </p>
+      {/* General info */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-semibold">How Pruning Helps</h2>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Services May Include</h2>
-        <ul className="mt-3 list-disc pl-6 space-y-2">
-          <li>Deadwood removal</li>
-          <li>Clearance pruning (rooflines, driveways, walkways)</li>
-          <li>Structural pruning for young trees</li>
-          <li>Canopy thinning where appropriate</li>
-          <li>Risk-reduction trimming before storm season</li>
-        </ul>
-      </section>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Safety & risk reduction</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              Removing deadwood and addressing weak attachments can lower the chance of failures—especially
+              in windy coastal corridors and during winter storms.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Clearance & access</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              Improve clearance over roofs, driveways, walkways, and views while keeping the tree’s natural
+              shape and long-term structure in mind.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">Health & longevity</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              Targeted cuts can reduce stress and support healthier growth without over-thinning.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+            <div className="font-semibold">A practical plan</div>
+            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
+              We recommend a pruning approach and cadence based on species, age, and exposure—so you avoid
+              unnecessary work while staying ahead of hazards.
+            </p>
+          </div>
+        </div>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Benefits</h2>
-        <ul className="mt-3 list-disc pl-6 space-y-2">
-          <li>Improved safety around structures and high-traffic areas</li>
-          <li>Better airflow and light penetration</li>
-          <li>Stronger branch structure over time</li>
-          <li>Reduced risk of storm-related breakage</li>
-        </ul>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">FAQs</h2>
-        <div className="mt-4 space-y-4">
-          {faqs.map((f) => (
-            <details key={f.q} className="rounded-lg border p-4">
-              <summary className="cursor-pointer font-medium">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6">{f.a}</p>
-            </details>
-          ))}
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+          <div className="font-semibold">Common trimming goals</div>
+          <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
+            <li>• Deadwood and hazard reduction</li>
+            <li>• Canopy balancing for wind exposure</li>
+            <li>• Roof and utility clearance</li>
+            <li>• Structure for young trees</li>
+            <li>• Better views and sunlight management</li>
+            <li>• A cleaner, well-kept look</li>
+          </ul>
         </div>
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Tree Trimming FAQs</h2>
+        <FaqBlock items={faqs} />
+      </section>
+
+      <RelatedServicesBlock />
+
       <ServiceCta
-        heading="Request a Free Trimming Estimate"
-        body="We’ll assess your trees and recommend pruning that improves safety, structure, and storm resilience—without over-cutting."
+        heading="Request a Free Estimate"
+        body="We’ll evaluate your trees and recommend the right pruning approach for safety, structure, and coastal conditions."
+        primaryHref="/contact"
+        primaryLabel="Request an Estimate"
         secondaryHref="tel:+1XXXXXXXXXX"
+        secondaryLabel="Call Now"
       />
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldService) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldFaq) }}
+      />
     </main>
   );
 }

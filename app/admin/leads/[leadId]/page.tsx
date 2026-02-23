@@ -13,6 +13,11 @@ function formatPhoneUS10(digits: string) {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
+function formatDateTime(d: Date) {
+  // nice readable but not huge
+  return d.toLocaleString();
+}
+
 export default async function LeadDetailPage({
   params,
 }: {
@@ -39,6 +44,8 @@ export default async function LeadDetailPage({
       contactedAt: true,
       adminNotes: true,
       archivedAt: true,
+      address: true,
+      city: true,
     },
   });
 
@@ -62,23 +69,43 @@ export default async function LeadDetailPage({
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{lead.fullName}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {lead.fullName}
+            </h1>
             <p className="mt-1 text-sm text-neutral-600">
               Lead ID: <span className="font-mono">{lead.leadId}</span>
             </p>
           </div>
 
           <div className="text-right text-sm text-neutral-600">
-            <div>Created: {lead.createdAt.toLocaleString()}</div>
-            <div>Status: <span className="font-medium text-black">{lead.status}</span></div>
-            {lead.archivedAt ? <div>Archived: {lead.archivedAt.toLocaleString()}</div> : null}
+            <div>Created: {formatDateTime(lead.createdAt)}</div>
+            <div>
+              Status:{" "}
+              <span className="font-medium text-black">{lead.status}</span>
+            </div>
+            {lead.archivedAt ? (
+              <div>Archived: {formatDateTime(lead.archivedAt)}</div>
+            ) : null}
           </div>
         </div>
 
         <div className="mt-6 grid gap-3 text-sm">
-          <div><span className="font-medium">Phone:</span> {formatPhoneUS10(lead.phoneDigits)}</div>
-          <div><span className="font-medium">Email:</span> {lead.email}</div>
-          <div><span className="font-medium">Service:</span> {lead.service}</div>
+          <div>
+            <span className="font-medium">Phone:</span>{" "}
+            {formatPhoneUS10(lead.phoneDigits)}
+          </div>
+          <div>
+            <span className="font-medium">Email:</span> {lead.email}
+          </div>
+          <div>
+            <span className="font-medium">Service:</span> {lead.service}
+          </div>
+          <div>
+            <span className="font-medium">Address:</span> {lead.address}
+          </div>
+          <div>
+            <span className="font-medium">City:</span> {lead.city}
+          </div>
         </div>
 
         <div className="mt-6">

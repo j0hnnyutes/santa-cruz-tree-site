@@ -22,12 +22,15 @@ model Lead {
   fullName     String
   phoneDigits  String
   email        String
+
+  // ✅ REQUIRED IN DB + safe defaults so existing rows can migrate
+  address      String     @default("UNKNOWN")
+  city         String     @default("UNKNOWN")
+
   service      String
   details      String?
   status       LeadStatus @default(NEW)
   contactedAt  DateTime?
   adminNotes   String?
-
-  // ✅ NEW: archive support
   archivedAt   DateTime?
 }

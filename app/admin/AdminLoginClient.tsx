@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   next: string;
@@ -8,84 +9,85 @@ type Props = {
 };
 
 export default function AdminLoginClient({ next, loggedOut }: Props) {
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(
+    loggedOut ? "You’ve been logged out." : null
+  );
+  const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
-
-    const form = e.currentTarget;
-    const fd = new FormData(form);
+    setLoading(true);
 
     try {
-      const res = await fetch(`/api/admin/login?next=${encodeURIComponent(next)}`, {
+      const res = await fetch("/api/admin/login", {
         method: "POST",
-        body: fd,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          password: password.trim(),
+          next,
+        }),
       });
 
-      if (res.redirected) {
-        window.location.href = res.url;
-        return;
-      }
-
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok || !data?.ok) {
-        setError(data?.error || "Login failed.");
-        setSubmitting(false);
+        setError(data?.error || "Invalid password.");
+        setLoading(false);
         return;
       }
 
-      window.location.href = next || "/admin/leads";
-    } catch (err: any) {
-      setError(err?.message || "Login failed.");
-      setSubmitting(false);
+      router.replace(data.next || "/admin/leads");
+      router.refresh();
+    } catch {
+      setError("Login failed. Please try again.");
+      setLoading(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Admin Login</h1>
+    <main className="site-container py-14">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm max-w-md mx-auto">
+        <h1 className="text-2xl font-semibold">Admin Login</h1>
+        <p className="mt-2 text-[var(--muted)]">
+          Enter the admin password to access leads.
+        </p>
 
-      {loggedOut ? (
-        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          You’ve been logged out.
-        </div>
-      ) : null}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-11 border border-[var(--border)] bg-white px-4 text-base outline-none focus:ring-2 focus:ring-[var(--brand-accent)]"
+              autoComplete="current-password"
+            />
+          </div>
 
-      {error ? (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
-        </div>
-      ) : null}
+          {error && (
+            <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-      <p className="mt-3 text-sm text-neutral-600">
-        Enter your admin password to view leads.
-      </p>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 bg-[var(--brand-green)] text-white font-semibold hover:bg-[var(--brand-accent)] transition"
+          >
+            {loading ? "Signing In..." : "Sign In"}
+          </button>
 
-      <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-        <label className="block">
-          <span className="text-sm font-medium">Password</span>
-          <input
-            name="password"
-            type="password"
-            required
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2"
-            placeholder="••••••••"
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className={`w-full rounded-lg px-4 py-2 text-white ${
-            submitting ? "bg-neutral-400" : "bg-black hover:bg-neutral-800"
-          }`}
-        >
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+          <p className="text-xs text-[var(--muted)]">
+            Tip: if you just changed <code>.env.local</code>, restart npm run dev.
+          </p>
+        </form>
+      </div>
     </main>
   );
 }

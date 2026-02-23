@@ -1,33 +1,39 @@
 @import "tailwindcss";
 
 /* ========================================= */
-/*  Santa Cruz Tree Pros – Global Theme     */
+/*  Santa Cruz Tree Pros – Warm Paper Theme */
 /* ========================================= */
 
 :root {
   /* Brand Colors */
-  --brand-green: #1F3D2B;
-  --brand-accent: #2F6B43;
+  --brand-green: #1f3d2b;
+  --brand-accent: #2f6b43;
 
-  /* Header (exact from SVG) */
-  --header-bg: #F0E8D8;
+  /* Header/Footer (from SVG palette) */
+  --header-bg: #f0e8d8;
   --header-stripe: #5a4a20;
 
-  /* Page Background (darker than header) */
-  --bg-soft: #E1D4BE;
+  /* Option 2 — Warm paper site background */
+  --bg-soft: #f3efe7;
 
   /* Surfaces */
-  --surface: #FFFFFF;
-  --text: #1A1A1A;
-  --muted: #4B5563;
-  --border: #E5E7EB;
+  --surface: #ffffff;
+  --surface-hover: #faf8f3;
 
-  /* CTA Background */
-  --cta-soft: #EEF4EF;
+  /* Typography */
+  --text: #242008;
+  --muted: #4a4018;
+
+  /* Borders / Shadows */
+  --border: #e6e0d6;
+  --border-hover: #d8cfbf;
+
+  --shadow-soft: 0 10px 28px rgba(36, 32, 8, 0.08);
+  --shadow-hover: 0 18px 42px rgba(36, 32, 8, 0.14);
 }
 
 /* ========================================= */
-/* Base Reset                                */
+/* Base */
 /* ========================================= */
 
 html,
@@ -38,7 +44,6 @@ body {
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -46,15 +51,140 @@ body {
 }
 
 /* ========================================= */
-/* Accessibility + UX Enhancements           */
+/* Links */
 /* ========================================= */
 
-:focus-visible {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 2px;
+a {
+  color: var(--brand-accent);
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
 }
 
-a,
-button {
+a:hover {
+  color: var(--brand-green);
+}
+
+/* ========================================= */
+/* Site Container Helpers */
+/* ========================================= */
+
+.site-container {
+  max-width: 1240px; /* wider than before */
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* ========================================= */
+/* Premium Card Styling */
+/* ========================================= */
+
+/* Usage: className="surface-card p-6 h-full" */
+.surface-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  border-radius: 16px;
+  transition: all 0.25s ease;
+  overflow: hidden; /* for accent bar */
+}
+
+/* top accent bar (subtle) */
+.surface-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 6px;
+  width: 100%;
+  background: color-mix(in srgb, var(--brand-green) 92%, white);
+  opacity: 0.9;
+}
+
+/* premium hover */
+.surface-card:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-6px);
+}
+
+/* Accessible focus */
+.surface-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 75%, transparent);
+  outline-offset: 3px;
+}
+
+/* ========================================= */
+/* Buttons – Global Standards                */
+/* ========================================= */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--brand-green);
+  color: #ffffff !important; /* force white text */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
   transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--brand-accent);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 75%, transparent);
+  outline-offset: 3px;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  background: #ffffff;
+  color: var(--brand-green);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand-accent) 75%, transparent);
+  outline-offset: 3px;
+}
+
+/* Force Safari date inputs to render black text */
+input[type="date"] {
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  opacity: 1 !important;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #000 !important;
+}
+
+input[type="date"] {
+  appearance: none;
 }

@@ -1,157 +1,88 @@
-import type { Metadata } from "next";
+// app/page.tsx
 import Link from "next/link";
-import AccentCardLink from "@/components/AccentCardLink";
-import ServiceCta from "@/components/ServiceCta";
-
-const siteUrl = "https://santacruztreepros.com";
-const siteName = "Santa Cruz Tree Pros";
-const pageUrl = siteUrl;
-
-export const metadata: Metadata = {
-  title: "Santa Cruz Tree Pros | Tree Service in Santa Cruz County, CA",
-  description:
-    "Tree removal, tree trimming, stump grinding, emergency tree service, and arborist consulting across Santa Cruz County. Request a free estimate.",
-  alternates: { canonical: pageUrl },
-  openGraph: {
-    title: "Santa Cruz Tree Pros | Tree Service in Santa Cruz County, CA",
-    description:
-      "Tree removal, trimming, stump grinding, emergency service, and arborist consulting. Request a free estimate.",
-    url: pageUrl,
-    type: "website",
-    siteName,
-  },
-  robots: { index: true, follow: true },
-};
+import HeroCarousel from "@/components/HeroCarousel";
 
 const services = [
   {
     title: "Tree Removal",
     href: "/services/tree-removal",
     description:
-      "Controlled removals for hazardous, dead, or storm-damaged trees—planned to protect nearby structures and landscaping.",
+      "Controlled removal for hazardous, storm-damaged, dead, or unwanted trees—planned to protect structures and landscaping.",
   },
   {
-    title: "Tree Trimming & Pruning",
+    title: "Tree Trimming / Pruning",
     href: "/services/tree-trimming",
     description:
-      "Structural pruning and canopy balancing to reduce limb failure and support long-term health in coastal wind conditions.",
+      "Structural pruning and canopy balancing to reduce limb failure risk and support long-term tree health in coastal winds.",
   },
   {
-    title: "Stump Grinding & Root Removal",
+    title: "Stump Grinding / Removal",
     href: "/services/stump-grinding-root-removal",
     description:
-      "Remove stumps below grade to restore usable space and prepare for turf, planting, or hardscape.",
+      "Grind stumps below grade to reclaim usable space, reduce hazards, and prep for turf, planting, or hardscape.",
   },
   {
     title: "Emergency Tree Service",
     href: "/services/emergency-tree-service",
     description:
-      "Rapid response for fallen trees and hazardous limbs—stabilization and controlled removal with safety-first priorities.",
+      "Rapid response for fallen trees and urgent hazards—stabilization, controlled removal, and cleanup.",
   },
   {
     title: "Arborist Consulting",
     href: "/services/arborist-consulting",
     description:
-      "Professional evaluations for health and risk—clear recommendations for pruning, monitoring, treatment, or removal.",
+      "Professional evaluations for tree health and risk with clear recommendations for pruning, monitoring, or removal.",
   },
-] as const;
+];
 
 export default function HomePage() {
   return (
-    <main className="space-y-12 py-10">
-      {/* Buttons directly under hero (hero is in SiteShell) */}
-      <section>
-        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/contact"
-            className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--brand-green)] px-6 py-3 text-sm font-semibold text-white hover:bg-[var(--brand-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/40 sm:w-auto"
-          >
-            Request an Estimate
-          </Link>
+    <main className="site-container py-10 space-y-12">
+      {/* Keep ONLY the card carousel */}
+      <section className="space-y-5">
+        <HeroCarousel heightPx={420} />
 
-          <a
-            href="tel:+1XXXXXXXXXX"
-            className="inline-flex w-full items-center justify-center rounded-lg border border-[var(--border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-[var(--bg-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/30 sm:w-auto"
-          >
-            Call Now
-          </a>
+        {/* Buttons below carousel (centered) */}
+        <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <Link
+  href="/contact"
+  className="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold shadow-sm transition"
+  style={{
+    backgroundColor: "var(--brand-green)",
+    color: "#ffffff",
+  }}
+>
+  Request an Estimate
+</Link>
         </div>
       </section>
 
       {/* Overview */}
-      <section>
-        <div className="grid gap-8 md:grid-cols-12 md:items-start">
-          <div className="md:col-span-7 space-y-4">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Trusted Tree Service for Santa Cruz County
-            </h1>
-            <p className="text-[var(--muted)] leading-7">
-              Santa Cruz properties face unique conditions—coastal wind, salt air exposure,
-              winter storms, and in many areas, slope and erosion concerns. Santa Cruz Tree Pros
-              helps homeowners and property managers choose the safest, most practical plan—
-              from pruning for wind resistance to hazard mitigation and removals.
-            </p>
-            <p className="text-[var(--muted)] leading-7">
-              We focus on clear communication, careful execution, and meticulous cleanup—so your
-              property looks better than when we arrived.
-            </p>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/services"
-                className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-[var(--bg-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/30"
-              >
-                Browse Services
-              </Link>
-              <Link
-                href="/service-areas"
-                className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-[var(--bg-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/30"
-              >
-                View Service Areas
-              </Link>
-            </div>
-          </div>
-
-          <div className="md:col-span-5 rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="text-lg font-semibold">What you can expect</div>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-              <li>• On-site evaluation and clear scope of work</li>
-              <li>• Safety-first execution with property protection</li>
-              <li>• Clean job sites and meticulous cleanup</li>
-              <li>• Recommendations tailored to coastal conditions</li>
-            </ul>
-          </div>
-        </div>
+      <section className="surface-card p-8">
+        <h1 className="text-3xl font-semibold tracking-tight">Santa Cruz Tree Pros</h1>
+        <p className="mt-3 text-[var(--muted)] leading-7">
+          Santa Cruz properties face coastal winds, salt air exposure, winter storms, and hillside terrain.
+          We provide safety-first tree services designed for local conditions—focused on protecting your home,
+          improving tree health, and keeping your property looking great.
+        </p>
       </section>
 
-      {/* Services */}
-      <section className="space-y-5">
-        <div>
-          <h2 className="text-2xl font-semibold">Our Services</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Choose a service to learn more, see FAQs, and request an estimate.
-          </p>
-        </div>
-
-        <ul className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Services cards */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Our Services</h2>
+        <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {services.map((s) => (
-            <li key={s.href}>
-              <AccentCardLink href={s.href} title={s.title} description={s.description} />
+            <li key={s.href} className="h-full">
+              <Link href={s.href} className="surface-card block h-full p-6">
+                <h3 className="text-xl font-semibold mb-3">{s.title}</h3>
+                <p className="text-[var(--muted)] leading-relaxed">{s.description}</p>
+                <div className="mt-6 text-sm font-semibold text-[var(--brand-accent)]">
+                  Learn more →
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
-      </section>
-
-      {/* CTA */}
-      <section className="pb-6">
-        <ServiceCta
-          heading="Request a Free Estimate"
-          body="Tell us what you need and we’ll recommend the safest, most practical plan for your property in Santa Cruz County."
-          primaryHref="/contact"
-          primaryLabel="Request an Estimate"
-          secondaryHref="tel:+1XXXXXXXXXX"
-          secondaryLabel="Call Now"
-        />
       </section>
     </main>
   );

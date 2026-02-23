@@ -1,109 +1,42 @@
-import { NextRequest } from "next/server";
+// app/api/admin/leads/export/route.ts
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isAdminAuthenticatedRequest } from "@/lib/adminAuth";
-
-const TIME_ZONE = "America/Los_Angeles";
-
-function isYYYYMMDD(s: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
-function getTimeZoneOffsetMinutes(timeZone: string, date: Date) {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  const parts = dtf.formatToParts(date);
-  const map: Record<string, string> = {};
-  for (const p of parts) {
-    if (p.type !== "literal") map[p.type] = p.value;
-  }
-
-  const asUTC = Date.UTC(
-    Number(map.year),
-    Number(map.month) - 1,
-    Number(map.day),
-    Number(map.hour),
-    Number(map.minute),
-    Number(map.second)
-  );
-
-  return (asUTC - date.getTime()) / 60000;
-}
-
-function zonedDateTimeToUtc(timeZone: string, y: number, m: number, d: number, hh: number, mm: number, ss: number, ms = 0) {
-  const localAsUTC = new Date(Date.UTC(y, m - 1, d, hh, mm, ss, ms));
-  const offsetMin = getTimeZoneOffsetMinutes(timeZone, localAsUTC);
-  return new Date(localAsUTC.getTime() - offsetMin * 60000);
-}
-
-function createdAtFilterLA(from?: string | null, to?: string | null) {
-  const createdAt: { gte?: Date; lte?: Date } = {};
-
-  if (from && isYYYYMMDD(from)) {
-    const [yy, mm, dd] = from.split("-").map(Number);
-    createdAt.gte = zonedDateTimeToUtc(TIME_ZONE, yy, mm, dd, 0, 0, 0, 0);
-  }
-
-  if (to && isYYYYMMDD(to)) {
-    const [yy, mm, dd] = to.split("-").map(Number);
-    createdAt.lte = zonedDateTimeToUtc(TIME_ZONE, yy, mm, dd, 23, 59, 59, 999);
-  }
-
-  return Object.keys(createdAt).length ? createdAt : undefined;
-}
+import { isAdminAuthenticated } from "@/lib/adminAuth";
 
 function csvEscape(value: unknown) {
-  const s = value === null || value === undefined ? "" : String(value);
-  if (/[",\n]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  const s = value == null ? "" : String(value);
+  // Quote if contains comma, quote, newline
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
   return s;
 }
 
-export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticatedRequest(req)) {
-    return new Response("Unauthorized", { status: 401 });
+function iso(d: Date) {
+  try {
+    return d.toISOString();
+  } catch {
+    return "";
   }
+}
 
-  const url = new URL(req.url);
-  const q = (url.searchParams.get("q") ?? "").trim();
-  const status = (url.searchParams.get("status") ?? "ALL").toUpperCase();
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
-
-  const where: any = {};
-
-  const ca = createdAtFilterLA(from, to);
-  if (ca) where.createdAt = ca;
-
-  if (status !== "ALL") where.status = status;
-
-  if (q) {
-    where.OR = [
-      { leadId: { contains: q, mode: "insensitive" } },
-      { fullName: { contains: q, mode: "insensitive" } },
-      { email: { contains: q, mode: "insensitive" } },
-      { phoneDigits: { contains: q } },
-      { service: { contains: q, mode: "insensitive" } },
-    ];
+export async function GET() {
+  const isAuthed = await isAdminAuthenticated();
+  if (!isAuthed) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const leads = await prisma.lead.findMany({
-    where,
+    where: { archivedAt: null },
     orderBy: { createdAt: "desc" },
-    take: 5000,
     select: {
-      leadId: true,
       createdAt: true,
+      leadId: true,
       fullName: true,
       phoneDigits: true,
       email: true,
+      address: true,
+      city: true,
       service: true,
       details: true,
       status: true,
@@ -112,13 +45,14 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const header = [
+  const headers = [
+    "createdAt",
     "leadId",
-    "createdAt_UTC",
-    "createdAt_SantaCruz",
     "fullName",
     "phoneDigits",
     "email",
+    "address",
+    "city",
     "service",
     "details",
     "status",
@@ -126,33 +60,37 @@ export async function GET(req: NextRequest) {
     "adminNotes",
   ];
 
-  const rows = leads.map((l) => [
-    l.leadId,
-    l.createdAt?.toISOString?.() ?? "",
-    new Date(l.createdAt).toLocaleString("en-US", { timeZone: TIME_ZONE }),
-    l.fullName,
-    l.phoneDigits,
-    l.email,
-    l.service,
-    l.details ?? "",
-    l.status,
-    l.contactedAt ? new Date(l.contactedAt).toISOString() : "",
-    l.adminNotes ?? "",
-  ]);
+  const lines: string[] = [];
+  lines.push(headers.join(","));
 
-  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
+  for (const l of leads) {
+    const row = [
+      iso(l.createdAt),
+      l.leadId,
+      l.fullName,
+      l.phoneDigits,
+      l.email,
+      l.address,
+      l.city,
+      l.service,
+      l.details ?? "",
+      l.status,
+      l.contactedAt ? iso(l.contactedAt) : "",
+      l.adminNotes ?? "",
+    ].map(csvEscape);
 
-  const filenameParts = ["leads"];
-  if (status !== "ALL") filenameParts.push(status.toLowerCase());
-  if (from) filenameParts.push(`from-${from}`);
-  if (to) filenameParts.push(`to-${to}`);
+    lines.push(row.join(","));
+  }
 
-  return new Response(csv, {
+  const csv = lines.join("\n");
+  const filename = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  return new NextResponse(csv, {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filenameParts.join("_")}.csv"`,
-      "Cache-Control": "no-store",
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="${filename}"`,
+      "cache-control": "no-store",
     },
   });
 }

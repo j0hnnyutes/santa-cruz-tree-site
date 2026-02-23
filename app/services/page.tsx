@@ -1,32 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
-import AccentCardLink from "@/components/AccentCardLink";
-
-const siteUrl = "https://santacruztreepros.com";
-const siteName = "Santa Cruz Tree Pros";
-const pagePath = "/services";
-const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
   title: "Tree Services in Santa Cruz, CA | Santa Cruz Tree Pros",
   description:
-    "Explore tree services in Santa Cruz, CA: tree removal, tree trimming, stump grinding, emergency tree service, and arborist consulting.",
-  alternates: { canonical: pageUrl },
-  openGraph: {
-    title: "Tree Services in Santa Cruz, CA | Santa Cruz Tree Pros",
-    description:
-      "Tree removal, trimming, stump grinding, emergency response, and arborist consulting across Santa Cruz County.",
-    url: pageUrl,
-    type: "website",
-    siteName,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tree Services in Santa Cruz, CA | Santa Cruz Tree Pros",
-    description:
-      "Tree removal, trimming, stump grinding, emergency response, and arborist consulting across Santa Cruz County.",
-  },
-  robots: { index: true, follow: true },
+    "Professional tree removal, trimming, stump grinding, emergency service, and arborist consulting across Santa Cruz County.",
 };
 
 const services = [
@@ -60,44 +39,35 @@ const services = [
     description:
       "Professional evaluations for tree health and risk—clear recommendations for pruning, monitoring, treatment, or removal.",
   },
-] as const;
+];
 
-function jsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: "Tree Services",
-    itemListElement: services.map((s, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: s.title,
-      url: `${siteUrl}${s.href}`,
-    })),
-  };
-}
-
-export default function ServicesIndexPage() {
-  const ld = jsonLd();
-
+export default function ServicesPage() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-semibold">Tree Services in Santa Cruz</h1>
-        <p className="text-[var(--muted)] leading-7">
-          Santa Cruz properties face coastal winds, salt air exposure, winter storms, and in many areas, slope and
-          erosion concerns. We provide professional tree services tailored to local conditions—focused on safety,
+    <main className="site-container py-14 space-y-12">
+      <header className="space-y-4 max-w-3xl">
+        <h1 className="text-4xl font-semibold tracking-tight">
+          Tree Services in Santa Cruz
+        </h1>
+        <p className="text-lg text-[var(--muted)] leading-relaxed">
+          Santa Cruz properties face coastal winds, salt air exposure, winter storms, and slope-related risks.
+          We provide professional tree services tailored to local conditions—focused on safety,
           long-term tree health, and protecting your home and landscape.
-        </p>
-        <p className="text-[var(--muted)] leading-7">
-          Choose a service below to learn more, see FAQs, and request an estimate.
         </p>
       </header>
 
       <section>
-        <ul className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {services.map((s) => (
-            <li key={s.href}>
-              <AccentCardLink href={s.href} title={s.title} description={s.description} />
+            <li key={s.href} className="h-full">
+              <Link href={s.href} className="surface-card block h-full p-6">
+                <h3 className="text-xl font-semibold mb-3">{s.title}</h3>
+                <p className="text-[var(--muted)] leading-relaxed">
+                  {s.description}
+                </p>
+                <div className="mt-6 text-sm font-semibold text-[var(--brand-accent)]">
+                  Learn more →
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
@@ -106,10 +76,7 @@ export default function ServicesIndexPage() {
       <ServiceCta
         heading="Request a Free Estimate"
         body="Tell us what you need and we’ll recommend the safest, most practical plan for your property in Santa Cruz."
-        secondaryHref="tel:+1XXXXXXXXXX"
       />
-
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
     </main>
   );
 }
