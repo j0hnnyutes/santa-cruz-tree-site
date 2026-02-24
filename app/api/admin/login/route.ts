@@ -1,78 +1,139 @@
-// app/api/admin/login/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { createHmac } from "crypto";
+import { newCsrfToken } from "@/lib/adminCsrf";
 
-const COOKIE_NAME = "admin_session";
+const ADMIN_SESSION_COOKIE = "admin_session";
+const ADMIN_CSRF_COOKIE = "admin_csrf";
 
-function toStr(v: unknown) {
-  return typeof v === "string" ? v : v == null ? "" : String(v);
-}
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-function safeNext(v: unknown) {
-  const s = toStr(v);
-  return s.startsWith("/") ? s : "/admin/leads";
-}
+// In-memory attempt tracker
+const attempts = new Map<string, { count: number; firstAttempt: number }>();
 
-function preview(s: string) {
-  const t = s ?? "";
-  if (!t) return null;
-  const start = t.slice(0, 2);
-  const end = t.slice(-2);
-  return `${start}***${end}`;
-}
-
-export async function POST(request: Request) {
-  let body: any = {};
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
+function getIp(req: NextRequest) {
+  // Works behind proxies + localhost
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
   }
 
-  const password = toStr(body.password).trim();
-  const next = safeNext(body.next);
+  // fallback
+  return "unknown";
+}
 
-  // ✅ Trim env too
-  const expected = (process.env.ADMIN_PASSWORD || "").trim();
+function base64url(input: Buffer) {
+  return input
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
 
-  if (!expected) {
+function signSession(secret: string, payload: object) {
+  const payloadStr = JSON.stringify(payload);
+  const payloadB64 = base64url(Buffer.from(payloadStr));
+
+  const sig = createHmac("sha256", secret)
+    .update(payloadB64)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  return `${payloadB64}.${sig}`;
+}
+
+function getAttemptState(ip: string) {
+  const now = Date.now();
+  const entry = attempts.get(ip);
+
+  if (!entry) return { locked: false, entry: null };
+
+  if (now - entry.firstAttempt > WINDOW_MS) {
+    attempts.delete(ip);
+    return { locked: false, entry: null };
+  }
+
+  return { locked: entry.count >= MAX_ATTEMPTS, entry };
+}
+
+export async function POST(req: NextRequest) {
+  const ip = getIp(req);
+
+  let body: any = {};
+  try {
+    body = await req.json();
+  } catch {}
+
+  const password = String(body.password || "");
+  const next =
+    typeof body.next === "string" && body.next.startsWith("/")
+      ? body.next
+      : "/admin/leads";
+
+  const hash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
+  const secret = (process.env.ADMIN_SESSION_SECRET || "").trim();
+
+  if (!hash || !secret) {
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Admin password is not configured. Set ADMIN_PASSWORD in your .env.local and restart npm run dev.",
-      },
+      { ok: false, error: "Admin not configured." },
       { status: 500 }
     );
   }
 
-  if (!password || password !== expected) {
-    // ✅ Dev-only diagnostics (won't reveal the full password)
-    const devDebug =
-      process.env.NODE_ENV !== "production"
-        ? {
-            expectedLen: expected.length,
-            expectedPreview: preview(expected),
-            providedLen: password.length,
-            providedPreview: preview(password),
-          }
-        : undefined;
+  const { locked } = getAttemptState(ip);
+
+  const isValid = await bcrypt.compare(password, hash);
+
+  if (!isValid) {
+    if (locked) {
+      return NextResponse.json(
+        { ok: false, error: "Too many attempts. Try again later." },
+        { status: 429 }
+      );
+    }
+
+    const now = Date.now();
+    const entry = attempts.get(ip);
+    if (!entry) {
+      attempts.set(ip, { count: 1, firstAttempt: now });
+    } else {
+      entry.count += 1;
+    }
 
     return NextResponse.json(
-      { ok: false, error: "Invalid password.", debug: devDebug },
+      { ok: false, error: "Invalid password." },
       { status: 401 }
     );
   }
 
+  // Successful login resets attempts
+  attempts.delete(ip);
+
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24h
+  const sessionToken = signSession(secret, { exp });
+  const csrfToken = newCsrfToken();
+
   const res = NextResponse.json({ ok: true, next }, { status: 200 });
 
   res.cookies.set({
-    name: COOKIE_NAME,
-    value: "1",
+    name: ADMIN_SESSION_COOKIE,
+    value: sessionToken,
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 14, // 14 days
+  });
+
+  res.cookies.set({
+    name: ADMIN_CSRF_COOKIE,
+    value: csrfToken,
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
   });
 
   return res;

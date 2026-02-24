@@ -1,51 +1,61 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/admin/leads/bulk/route.ts
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { verifyAdminCsrf } from "@/lib/adminCsrf";
 
-export const runtime = "nodejs";
+function toStr(v: unknown) {
+  return typeof v === "string" ? v : v == null ? "" : String(v);
+}
 
-export async function POST(req: NextRequest) {
-  const isAuthed = await isAdminAuthenticated();
+export async function POST(request: NextRequest) {
+  const csrf = verifyAdminCsrf(request);
+  if (!csrf.ok) {
+    return NextResponse.json(
+      { ok: false, error: csrf.error },
+      { status: csrf.status }
+    );
+  }
 
-  if (!isAuthed) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+
+  const leadIds = Array.isArray(body.leadIds) ? body.leadIds : [];
+  const action = toStr(body.action).trim().toUpperCase();
+
+  if (!leadIds.length) {
+    return NextResponse.json(
+      { ok: false, error: "No leads selected." },
+      { status: 400 }
+    );
+  }
+
+  if (action !== "ARCHIVE") {
+    return NextResponse.json(
+      { ok: false, error: "Invalid bulk action." },
+      { status: 400 }
+    );
   }
 
   try {
-    const body = await req.json();
-    const { leadIds, status } = body;
-
-    if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return NextResponse.json(
-        { ok: false, error: "No lead IDs provided" },
-        { status: 400 }
-      );
-    }
-
-    if (!["NEW", "CONTACTED", "CLOSED"].includes(status)) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid status value" },
-        { status: 400 }
-      );
-    }
+    const now = new Date();
 
     const result = await prisma.lead.updateMany({
-      where: {
-        leadId: { in: leadIds },
-      },
-      data: {
-        status,
-      },
+      where: { leadId: { in: leadIds } },
+      data: { archivedAt: now, status: "ARCHIVED" as any },
     });
 
-    return NextResponse.json({
-      ok: true,
-      updatedCount: result.count,
-    });
-  } catch (err) {
-    console.error("Bulk update error:", err);
     return NextResponse.json(
-      { ok: false, error: "Server error" },
+      { ok: true, updated: result.count },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("POST /api/admin/leads/bulk error:", err);
+    return NextResponse.json(
+      { ok: false, error: "Server error performing bulk action." },
       { status: 500 }
     );
   }

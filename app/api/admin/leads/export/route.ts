@@ -3,21 +3,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 
-function csvEscape(value: unknown) {
-  const s = value == null ? "" : String(value);
-  // Quote if contains comma, quote, newline
-  if (/[",\n\r]/.test(s)) {
+function csvEscape(v: unknown) {
+  const s = String(v ?? "");
+  if (s.includes('"') || s.includes(",") || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
 }
 
-function iso(d: Date) {
-  try {
-    return d.toISOString();
-  } catch {
-    return "";
-  }
+function formatISO(dt: Date) {
+  // keep it simple + stable for spreadsheets
+  return dt.toISOString();
 }
 
 export async function GET() {
@@ -27,37 +23,38 @@ export async function GET() {
   }
 
   const leads = await prisma.lead.findMany({
-    where: { archivedAt: null },
     orderBy: { createdAt: "desc" },
     select: {
-      createdAt: true,
       leadId: true,
+      createdAt: true,
       fullName: true,
       phoneDigits: true,
       email: true,
       address: true,
       city: true,
       service: true,
-      details: true,
       status: true,
       contactedAt: true,
+      archivedAt: true,
       adminNotes: true,
+      details: true,
     },
   });
 
   const headers = [
-    "createdAt",
     "leadId",
+    "createdAt",
     "fullName",
     "phoneDigits",
     "email",
     "address",
     "city",
     "service",
-    "details",
     "status",
     "contactedAt",
+    "archivedAt",
     "adminNotes",
+    "details",
   ];
 
   const lines: string[] = [];
@@ -65,31 +62,31 @@ export async function GET() {
 
   for (const l of leads) {
     const row = [
-      iso(l.createdAt),
       l.leadId,
+      formatISO(l.createdAt),
       l.fullName,
       l.phoneDigits,
       l.email,
       l.address,
       l.city,
       l.service,
-      l.details ?? "",
       l.status,
-      l.contactedAt ? iso(l.contactedAt) : "",
+      l.contactedAt ? formatISO(l.contactedAt) : "",
+      l.archivedAt ? formatISO(l.archivedAt) : "",
       l.adminNotes ?? "",
+      l.details ?? "",
     ].map(csvEscape);
 
     lines.push(row.join(","));
   }
 
   const csv = lines.join("\n");
-  const filename = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
 
   return new NextResponse(csv, {
     status: 200,
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="${filename}"`,
+      "content-disposition": `attachment; filename="leads.csv"`,
       "cache-control": "no-store",
     },
   });

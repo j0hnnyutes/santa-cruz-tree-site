@@ -61,8 +61,6 @@ function normalizeServiceLabel(s: string) {
   if (up === "EMERGENCY_TREE_SERVICE") return "Emergency Tree Service";
   if (up === "ARBORIST_CONSULTING") return "Arborist Consulting";
 
-  // If it's already human readable, keep it
-  // Otherwise convert SNAKE_CASE -> Title Case
   if (!v.includes("_")) return v;
 
   return v
@@ -73,17 +71,54 @@ function normalizeServiceLabel(s: string) {
     .join(" ");
 }
 
+/**
+ * Read a cookie in the browser. (admin_csrf is NOT httpOnly, so we can read it.)
+ */
+function getCookie(name: string) {
+  if (typeof document === "undefined") return "";
+  const parts = document.cookie.split(";").map((p) => p.trim());
+  for (const p of parts) {
+    if (p.startsWith(name + "=")) {
+      return decodeURIComponent(p.slice(name.length + 1));
+    }
+  }
+  return "";
+}
+
 async function postJSON<T>(url: string, body: any): Promise<T> {
+  const isAdminApi = url.startsWith("/api/admin/");
+  const csrf = isAdminApi ? getCookie("admin_csrf") : "";
+
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+
+  // Send CSRF token using multiple header keys (covers common implementations)
+  if (isAdminApi && csrf) {
+    headers["x-admin-csrf"] = csrf;
+    headers["x-admin-csrf-token"] = csrf;
+    headers["x-csrf-token"] = csrf;
+  }
+
   const res = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
+    // IMPORTANT: force cookies for admin_session + admin_csrf
+    credentials: "include",
+    cache: "no-store",
     body: JSON.stringify(body),
   });
+
   const json = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    const msg = json?.error || "Something went wrong.";
+    const msg =
+      json?.error ||
+      (typeof json === "string" ? json : null) ||
+      `Request failed (${res.status})`;
     throw new Error(msg);
   }
+
   return json as T;
 }
 
@@ -227,7 +262,6 @@ export default function AdminLeadsTableClient({
         action: "ARCHIVE",
       });
 
-      // Remove from view (client-side "archivedAt null" mimic)
       setAllLeads((prev) => prev.filter((l) => !ids.includes(l.leadId)));
       setSelected({});
       showToast({
@@ -241,11 +275,9 @@ export default function AdminLeadsTableClient({
 
   return (
     <div className="space-y-6">
-      {/* Filter Card Wrapper (relative so toast centers to this card width) */}
       <div ref={filterCardRef} className="relative">
-        {/* Toast (centered above the filter card, no layout pushdown) */}
         {toast ? (
-          <div className="pointer-events-none absolute -top-4 left-0 w-full flex justify-center z-10">
+          <div className="pointer-events-none absolute -top-12 left-0 w-full flex justify-center z-10">
             <div
               className={[
                 "px-2 py-1 text-sm font-semibold",
@@ -257,7 +289,6 @@ export default function AdminLeadsTableClient({
           </div>
         ) : null}
 
-        {/* FILTER CARD — NO HOVER EFFECTS */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-12 items-end">
             <div className="lg:col-span-6">
@@ -296,7 +327,7 @@ export default function AdminLeadsTableClient({
                 type="date"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm text-[var(--text)] text-black opacity-100 outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               />
             </div>
 
@@ -308,7 +339,7 @@ export default function AdminLeadsTableClient({
                 type="date"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm text-[var(--text)] text-black opacity-100 outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               />
             </div>
           </div>
@@ -356,7 +387,6 @@ export default function AdminLeadsTableClient({
         </div>
       </div>
 
-      {/* LEADS TABLE CARD — NO HOVER EFFECTS */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full text-sm">
@@ -405,9 +435,7 @@ export default function AdminLeadsTableClient({
                     {formatPhoneUS10(l.phoneDigits)}
                   </td>
                   <td className="px-4 py-3">{l.email}</td>
-                  <td className="px-4 py-3">
-                    {normalizeServiceLabel(l.service)}
-                  </td>
+                  <td className="px-4 py-3">{normalizeServiceLabel(l.service)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{l.status}</td>
                 </tr>
               ))}
@@ -426,7 +454,6 @@ export default function AdminLeadsTableClient({
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="text-sm text-[var(--muted)]">
             Page{" "}
