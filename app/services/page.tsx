@@ -44,7 +44,7 @@ const services = [
 export default function ServicesPage() {
   return (
     <main className="site-container py-14 space-y-12">
-      <header className="space-y-4 max-w-3xl">
+      <header className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">
           Tree Services in Santa Cruz
         </h1>
@@ -64,7 +64,7 @@ export default function ServicesPage() {
                 <p className="text-[var(--muted)] leading-relaxed">
                   {s.description}
                 </p>
-                <div className="mt-6 text-sm font-semibold text-[var(--brand-accent)]">
+                <div className="mt-6 text-base font-semibold text-[var(--brand-accent)]">
                   Learn more &rarr;
                 </div>
               </Link>

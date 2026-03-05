@@ -101,7 +101,7 @@ export function PrimaryButtonLink({
     <Link
       href={href}
       className={[
-        "inline-flex h-11 items-center justify-center rounded-lg bg-[var(--brand-green)] px-5 text-sm font-semibold text-white",
+        "inline-flex h-11 items-center justify-center rounded-lg bg-[var(--brand-green)] px-5 text-lg font-semibold text-white",
         "hover:bg-[var(--brand-green-dark)] transition-colors",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]",
         className,
@@ -125,7 +125,7 @@ export function SecondaryButtonLink({
     <Link
       href={href}
       className={[
-        "inline-flex h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-white px-5 text-sm font-semibold text-[var(--text)]",
+        "inline-flex h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-white px-5 text-lg font-semibold text-[var(--text)]",
         "hover:bg-[var(--surface-hover)] hover:border-[var(--border-hover)] transition-colors",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]",
         className,

@@ -87,7 +87,7 @@ export default function EmergencyTreeServicePage() {
   const ld = jsonLd();
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-8">
       <header className="space-y-4">
         <h1 className="text-3xl font-bold">Emergency Tree Service in Santa Cruz</h1>
         <p className="text-[var(--muted)] leading-7">
@@ -102,7 +102,7 @@ export default function EmergencyTreeServicePage() {
       </header>
 
       {/* Hero image */}
-      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+      <div className="relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
           src="/assets/emergency-tree-removal.webp"
           alt="Emergency tree removal after storm damage in Santa Cruz"

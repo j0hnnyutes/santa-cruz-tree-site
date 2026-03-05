@@ -27,7 +27,7 @@ export default function ServiceCta({
       <div className="mt-6">
         <Link
           href={primaryHref}
-          className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
+          className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-lg font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
         >
           {primaryLabel}
         </Link>

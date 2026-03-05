@@ -55,9 +55,15 @@ export default function Footer() {
           <p className="text-sm text-white/40">
             &copy; {year} Santa Cruz Tree Pros. All rights reserved.
           </p>
-          <p className="text-sm text-white/30">
-            Licensed &amp; Insured · Santa Cruz County, CA
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy-policy" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-sm text-white/20">·</span>
+            <p className="text-sm text-white/30">
+              Licensed &amp; Insured · Santa Cruz County, CA
+            </p>
+          </div>
         </div>
       </div>
     </footer>

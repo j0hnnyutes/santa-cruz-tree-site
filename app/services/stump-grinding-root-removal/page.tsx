@@ -104,7 +104,7 @@ export default function StumpGrindingPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-8">
       <header className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">
           Stump Grinding in Santa Cruz, CA
@@ -117,7 +117,7 @@ export default function StumpGrindingPage() {
       </header>
 
       {/* Hero image */}
-      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+      <div className="relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
           src="/assets/stump-removal.webp"
           alt="Stump grinding and removal in Santa Cruz"

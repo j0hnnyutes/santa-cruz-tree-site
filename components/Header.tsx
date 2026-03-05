@@ -44,7 +44,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-white/90 hover:text-white transition-colors"
+                className="text-lg font-medium text-white/90 hover:text-white transition-colors"
               >
                 {item.label}
               </Link>
@@ -55,7 +55,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <Link
               href="/free-estimate"
-              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition-colors"
+              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-lg font-semibold text-[var(--brand-green)] hover:bg-white/90 transition-colors"
             >
               Get Free Estimate
             </Link>
@@ -94,7 +94,7 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition"
+                  className="rounded-lg px-3 py-2.5 text-base font-medium text-white/90 hover:bg-white/10 hover:text-white transition"
                 >
                   {item.label}
                 </Link>
@@ -102,7 +102,7 @@ export default function Header() {
               <Link
                 href="/free-estimate"
                 onClick={() => setOpen(false)}
-                className="mt-2 rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-[var(--brand-green)]"
+                className="mt-2 rounded-lg bg-white px-3 py-2.5 text-center text-base font-semibold text-[var(--brand-green)]"
               >
                 Get Free Estimate
               </Link>

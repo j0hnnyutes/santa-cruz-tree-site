@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 
 const cities = [
@@ -62,7 +63,7 @@ const cities = [
 export default function ServiceAreasPage() {
   return (
     <main className="site-container py-14 space-y-12">
-      <header className="space-y-4 max-w-3xl">
+      <header className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">Service Areas</h1>
         <p className="text-lg text-[var(--muted)] leading-relaxed">
           We serve Santa Cruz County and nearby communities. Choose your city to
@@ -71,25 +72,40 @@ export default function ServiceAreasPage() {
         </p>
       </header>
 
-      <section>
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-          {cities.map((c) => (
-            <li key={c.slug} className="h-full">
-              <Link
-                className="surface-card block h-full p-6"
-                href={`/service-areas/${c.slug}`}
-              >
-                <h3 className="text-xl font-semibold">{c.name}, CA</h3>
-                <p className="mt-2 text-[var(--muted)] leading-relaxed">
-                  {c.blurb}
-                </p>
-                <div className="mt-6 text-sm font-semibold text-[var(--brand-accent)]">
-                  View city page &rarr;
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      {/* Nature background behind cards */}
+      <section className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src="/assets/tree-mulching.webp"
+            alt=""
+            fill
+            className="object-cover"
+            sizes="100vw"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-white/60" />
+        </div>
+
+        <div className="relative px-6 py-8 sm:px-8">
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+            {cities.map((c) => (
+              <li key={c.slug} className="h-full">
+                <Link
+                  className="surface-card flex flex-col h-full p-6 transition-colors duration-200 hover:bg-[var(--brand-accent-light)] hover:border-[var(--brand-accent)]"
+                  href={`/service-areas/${c.slug}`}
+                >
+                  <h3 className="text-xl font-semibold">{c.name}, CA</h3>
+                  <p className="mt-2 text-[var(--muted)] leading-relaxed flex-1">
+                    {c.blurb}
+                  </p>
+                  <div className="mt-6 text-base font-semibold text-[var(--brand-accent)]">
+                    View city page &rarr;
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <ServiceCta

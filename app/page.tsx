@@ -99,7 +99,7 @@ function ServiceCard({
           {title}
         </h3>
         <p className="mt-2 text-[var(--muted)] leading-relaxed">{desc}</p>
-        <div className="mt-4 text-sm font-semibold text-[var(--brand-accent)]">
+        <div className="mt-4 text-base font-semibold text-[var(--brand-accent)]">
           Learn more &rarr;
         </div>
       </Card>
@@ -126,7 +126,7 @@ export default function HomePage() {
           ))}
         </div>
         <div className="mt-5">
-          <Link href="/services" className="text-sm font-semibold text-[var(--brand-accent)] hover:text-[var(--brand-green)] transition-colors">
+          <Link href="/services" className="text-base font-semibold text-[var(--brand-accent)] hover:text-[var(--brand-green)] transition-colors">
             View all services &rarr;
           </Link>
         </div>
@@ -224,7 +224,7 @@ export default function HomePage() {
           <div className="mt-5">
             <Link
               href="/service-areas"
-              className="text-sm font-semibold text-[var(--brand-accent)] hover:text-[var(--brand-green)] transition-colors"
+              className="text-base font-semibold text-[var(--brand-accent)] hover:text-[var(--brand-green)] transition-colors"
             >
               View all service areas &rarr;
             </Link>
@@ -258,7 +258,7 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/free-estimate"
-              className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
+              className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-lg font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
             >
               Request an Estimate
             </Link>
