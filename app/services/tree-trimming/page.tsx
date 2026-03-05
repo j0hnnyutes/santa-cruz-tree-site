@@ -26,7 +26,9 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [{ url: `${siteUrl}/assets/chainsaw-2.webp`, width: 1200, alt: "Tree trimming with a chainsaw in Santa Cruz" }],
   },
+  twitter: { card: "summary_large_image", title: "Tree Trimming & Pruning in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Tree trimming and pruning to improve safety, structure, clearance, and tree health in Santa Cruz County—ideal for coastal winds and winter storms." },
   robots: { index: true, follow: true },
 };
 
@@ -113,12 +115,14 @@ export default function TreeTrimmingPage() {
       {/* Hero image */}
       <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
-          src="/assets/chainsaw 2.webp"
+          src="/assets/chainsaw-2.webp"
           alt="Tree trimming with a chainsaw in Santa Cruz"
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1100px"
           priority
+          placeholder="blur"
+          blurDataURL="data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAAAQAgCdASoKAAoABUB8JaACdAEWUQQkUyWAAPl06y2DkzqlKndbZi5vZ7DMvfNdywJMb7CeFRA3STYpF9XUJ9xZI5Wkul1BWwc4eAAA"
         />
       </div>
 

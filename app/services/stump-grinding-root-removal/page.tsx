@@ -26,7 +26,9 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [{ url: `${siteUrl}/assets/stump-removal.webp`, width: 1200, alt: "Stump grinding and removal in Santa Cruz" }],
   },
+  twitter: { card: "summary_large_image", title: "Stump Grinding in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Stump grinding to remove stumps below grade, reduce hazards, and prep for landscaping across Santa Cruz County. Optional chip haul-away." },
   robots: { index: true, follow: true },
 };
 
@@ -117,12 +119,14 @@ export default function StumpGrindingPage() {
       {/* Hero image */}
       <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
-          src="/assets/stump removal.webp"
+          src="/assets/stump-removal.webp"
           alt="Stump grinding and removal in Santa Cruz"
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1100px"
           priority
+          placeholder="blur"
+          blurDataURL="data:image/webp;base64,UklGRlQAAABXRUJQVlA4IEgAAADwAQCdASoKAAoABUB8JbACdAD57kC4CAAA/tHzdkCpQ9JYkR764cFDxy8K46sTaHy+GKrt/U86PvvDcxVmFhhco///9jC8AAA="
         />
       </div>
 

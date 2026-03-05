@@ -26,7 +26,9 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [{ url: `${siteUrl}/assets/tree-removal-with-crane.webp`, width: 1200, alt: "Professional tree removal using a crane in Santa Cruz" }],
   },
+  twitter: { card: "summary_large_image", title: "Tree Removal in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Safe, controlled tree removal for hazardous, dead, storm-damaged, or unwanted trees in Santa Cruz County. Free estimates and thorough cleanup." },
   robots: { index: true, follow: true },
 };
 
@@ -114,12 +116,14 @@ export default function TreeRemovalPage() {
       {/* Hero image */}
       <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
-          src="/assets/tree removal with crane.webp"
+          src="/assets/tree-removal-with-crane.webp"
           alt="Professional tree removal crew using a crane in Santa Cruz"
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1100px"
           priority
+          placeholder="blur"
+          blurDataURL="data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAAAwAgCdASoKAAoABUB8JZACdAEDpK18IexYAAD5b5he4FUUjH/S4QacHmliy1XIr+JA/lTWt+YR/t3gN9AAAA=="
         />
       </div>
 

@@ -13,6 +13,19 @@ export const metadata = {
   title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
   description:
     "Premium tree services in Santa Cruz County — safe removals, expert pruning, and stump grinding with clean, professional job sites.",
+  openGraph: {
+    title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
+    description: "Premium tree services in Santa Cruz County — safe removals, expert pruning, and stump grinding with clean, professional job sites.",
+    url: "https://santacruztreepros.com",
+    type: "website",
+    siteName: "Santa Cruz Tree Pros",
+    images: [{ url: "https://santacruztreepros.com/assets/tree-removal-with-crane.webp", width: 1200, alt: "Professional tree removal services in Santa Cruz, CA" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
+    description: "Premium tree services in Santa Cruz County — safe removals, expert pruning, and stump grinding with clean, professional job sites.",
+  },
 };
 
 const TRUST_ITEMS = [

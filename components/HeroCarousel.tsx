@@ -16,6 +16,13 @@ const DEFAULT_IMAGES = [
   "/images/hero/slide-4.jpg",
 ];
 
+const DEFAULT_ALTS = [
+  "Professional tree removal service in Santa Cruz, CA",
+  "Expert tree trimming and pruning in Santa Cruz County",
+  "Emergency tree service and storm damage cleanup in Santa Cruz",
+  "Stump grinding and tree care services in Santa Cruz, CA",
+];
+
 export default function HeroCarousel({
   heightPx = 480,
   images,
@@ -60,7 +67,7 @@ export default function HeroCarousel({
           >
             <Image
               src={src}
-              alt=""
+              alt={DEFAULT_ALTS[i] ?? "Santa Cruz Tree Pros — professional tree services"}
               fill
               priority={i === 0}
               sizes="100vw"

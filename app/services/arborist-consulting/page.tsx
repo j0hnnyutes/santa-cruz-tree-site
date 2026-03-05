@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [{ url: `${siteUrl}/assets/tree-moving.webp`, width: 1200, alt: "Arborist consulting and tree evaluation in Santa Cruz" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -103,12 +104,14 @@ export default function ArboristConsultingPage() {
       {/* Hero image */}
       <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
-          src="/assets/tree moving.webp"
+          src="/assets/tree-moving.webp"
           alt="Arborist evaluating a tree in Santa Cruz"
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1100px"
           priority
+          placeholder="blur"
+          blurDataURL="data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAAAQAgCdASoKAAoABUB8JagCdADcWtpWP+AAAPwbVOnpkPA72X9JplALA3J4FRdIXEroiCERT92nktCt1UdNJMwKsAA="
         />
       </div>
 

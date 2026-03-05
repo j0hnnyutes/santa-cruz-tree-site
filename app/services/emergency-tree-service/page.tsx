@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [{ url: `${siteUrl}/assets/emergency-tree-removal.webp`, width: 1200, alt: "Emergency tree removal after storm damage in Santa Cruz" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -103,12 +104,14 @@ export default function EmergencyTreeServicePage() {
       {/* Hero image */}
       <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
         <Image
-          src="/assets/emergency tree removal.webp"
+          src="/assets/emergency-tree-removal.webp"
           alt="Emergency tree removal after storm damage in Santa Cruz"
           fill
           className="object-cover"
           sizes="(max-width: 768px) 100vw, 1100px"
           priority
+          placeholder="blur"
+          blurDataURL="data:image/webp;base64,UklGRkgAAABXRUJQVlA4IDwAAADwAQCdASoKAAoABUB8JQBOgBuVkl5gmgAA/jq4R0h/62S/2+Y+RGkad0TUDjfbPOyik+EF3k3WZLIAAAA="
         />
       </div>
 
