@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import {
   ChevronDown,
@@ -112,6 +113,18 @@ export default function StumpGrindingPage() {
           or hardscape.
         </p>
       </header>
+
+      {/* Hero image */}
+      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+        <Image
+          src="/assets/stump removal.webp"
+          alt="Stump grinding and removal in Santa Cruz"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 1100px"
+          priority
+        />
+      </div>
 
       {/* General info */}
       <section className="space-y-6">

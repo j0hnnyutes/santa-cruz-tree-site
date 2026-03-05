@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import { FaqBlock } from "@/components/ServicePageKit";
 
@@ -86,17 +87,30 @@ export default function ArboristConsultingPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <h1 className="text-3xl font-bold">Arborist Consulting in Santa Cruz</h1>
+      <header className="space-y-4">
+        <h1 className="text-3xl font-bold">Arborist Consulting in Santa Cruz</h1>
+        <p className="text-[var(--muted)] leading-7">
+          Santa Cruz trees often deal with coastal winds, salt air exposure, slope-related soil movement, and seasonal
+          storm cycles that can affect stability over time. Arborist consulting helps you make informed decisions when
+          you’re unsure whether pruning, monitoring, treatment, or removal is the best next step.
+        </p>
+        <p className="text-[var(--muted)] leading-7">
+          A professional evaluation can reduce long-term risk, protect valuable landscape assets, and support planning
+          for permits or construction near root zones—without defaulting to removal.
+        </p>
+      </header>
 
-      <p className="mt-4 text-base leading-7">
-        Santa Cruz trees often deal with coastal winds, salt air exposure, slope-related soil movement, and seasonal
-        storm cycles that can affect stability over time. Arborist consulting helps you make informed decisions when
-        you’re unsure whether pruning, monitoring, treatment, or removal is the best next step.
-      </p>
-      <p className="mt-3 text-base leading-7">
-        A professional evaluation can reduce long-term risk, protect valuable landscape assets, and support planning
-        for permits or construction near root zones—without defaulting to removal.
-      </p>
+      {/* Hero image */}
+      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+        <Image
+          src="/assets/tree moving.webp"
+          alt="Arborist evaluating a tree in Santa Cruz"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 1100px"
+          priority
+        />
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">When to Schedule an Evaluation</h2>

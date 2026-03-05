@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import { FaqBlock } from "@/components/ServicePageKit";
 
@@ -86,17 +87,30 @@ export default function EmergencyTreeServicePage() {
 
   return (
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <h1 className="text-3xl font-bold">Emergency Tree Service in Santa Cruz</h1>
+      <header className="space-y-4">
+        <h1 className="text-3xl font-bold">Emergency Tree Service in Santa Cruz</h1>
+        <p className="text-[var(--muted)] leading-7">
+          Winter storms, coastal winds, and saturated soils can trigger sudden failures across Santa Cruz County—especially
+          on slopes and in exposed coastal areas. Emergency tree service prioritizes rapid assessment, stabilization of
+          hazards, and controlled removal to prevent further property damage.
+        </p>
+        <p className="text-[var(--muted)] leading-7">
+          Safety comes first. We focus on managing immediate risk, protecting structures, and clearing critical access
+          (driveways, walkways, and entry points) as efficiently as conditions allow.
+        </p>
+      </header>
 
-      <p className="mt-4 text-base leading-7">
-        Winter storms, coastal winds, and saturated soils can trigger sudden failures across Santa Cruz County—especially
-        on slopes and in exposed coastal areas. Emergency tree service prioritizes rapid assessment, stabilization of
-        hazards, and controlled removal to prevent further property damage.
-      </p>
-      <p className="mt-3 text-base leading-7">
-        Safety comes first. We focus on managing immediate risk, protecting structures, and clearing critical access
-        (driveways, walkways, and entry points) as efficiently as conditions allow.
-      </p>
+      {/* Hero image */}
+      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+        <Image
+          src="/assets/emergency tree removal.webp"
+          alt="Emergency tree removal after storm damage in Santa Cruz"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 1100px"
+          priority
+        />
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-bold">Emergency Situations</h2>

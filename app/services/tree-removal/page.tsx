@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import {
   ChevronDown,
@@ -109,6 +110,18 @@ export default function TreeRemovalPage() {
           with thorough cleanup.
         </p>
       </header>
+
+      {/* Hero image */}
+      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+        <Image
+          src="/assets/tree removal with crane.webp"
+          alt="Professional tree removal crew using a crane in Santa Cruz"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 1100px"
+          priority
+        />
+      </div>
 
       {/* General info */}
       <section className="space-y-6">

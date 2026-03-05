@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import {
   ChevronDown,
@@ -108,6 +109,18 @@ export default function TreeTrimmingPage() {
           pruning to your tree species, location, and goals.
         </p>
       </header>
+
+      {/* Hero image */}
+      <div className="-mt-8 relative w-full overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/7]">
+        <Image
+          src="/assets/chainsaw 2.webp"
+          alt="Tree trimming with a chainsaw in Santa Cruz"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 1100px"
+          priority
+        />
+      </div>
 
       {/* General info */}
       <section className="space-y-6">
