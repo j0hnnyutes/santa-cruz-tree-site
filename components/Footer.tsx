@@ -4,64 +4,62 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-16">
-      {/* Top border stripe */}
-      <div className="h-[5px] w-full bg-[var(--header-stripe)]" />
+    <footer className="mt-16 bg-[var(--header-bg)]">
+      <div className="site-container py-12">
+        {/* Main grid */}
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
 
-      <div className="bg-[var(--header-bg)] text-[var(--text)]">
-        <div className="site-container py-10">
-          <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-3">
-              <div className="text-lg font-semibold">Santa Cruz Tree Pros</div>
-              <p className="max-w-md text-sm leading-6 text-[var(--muted)]">
-                Professional tree removal, trimming, stump grinding, emergency response, and arborist consulting across Santa Cruz County.
-              </p>
+          {/* Brand column */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="text-lg font-bold text-white tracking-tight">
+              Santa Cruz Tree Pros
             </div>
-
-            <div className="grid grid-cols-2 gap-10 text-sm">
-              <div className="space-y-2">
-                <div className="font-semibold">Company</div>
-                <ul className="space-y-1">
-                  <li>
-                    <Link className="font-medium text-[var(--brand-accent)] hover:text-[var(--brand-green)]" href="/services">
-                      Services
-                    </Link>
-                  </li>
-                  <li>
-                    <Link className="font-medium text-[var(--brand-accent)] hover:text-[var(--brand-green)]" href="/service-areas">
-                      Service Areas
-                    </Link>
-                  </li>
-                  <li>
-                    <Link className="font-medium text-[var(--brand-accent)] hover:text-[var(--brand-green)]" href="/contact">
-                      Contact
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="space-y-2">
-                <div className="font-semibold">Get a Quote</div>
-                <ul className="space-y-1">
-                  <li>
-                    <Link className="font-medium text-[var(--brand-accent)] hover:text-[var(--brand-green)]" href="/contact">
-                      Request an Estimate
-                    </Link>
-                  </li>
-                  <li className="text-[var(--muted)]">Santa Cruz County, CA</li>
-                </ul>
-              </div>
+            <p className="text-sm leading-6 text-white/60 max-w-sm">
+              Licensed and insured tree care across Santa Cruz County. Safe removals, expert trimming, stump grinding, and emergency response.
+            </p>
+            <div className="text-sm text-white/50">
+              Santa Cruz County, CA
             </div>
           </div>
 
-          <div className="mt-8 border-t border-[var(--border)] pt-6 text-sm text-[var(--muted)]">
-            © {year} Santa Cruz Tree Pros. All rights reserved.
+          {/* Services column */}
+          <div className="space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/40">
+              Services
+            </div>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/services/tree-removal" className="text-white/70 hover:text-white transition-colors">Tree Removal</Link></li>
+              <li><Link href="/services/tree-trimming" className="text-white/70 hover:text-white transition-colors">Tree Trimming</Link></li>
+              <li><Link href="/services/stump-grinding-root-removal" className="text-white/70 hover:text-white transition-colors">Stump Grinding</Link></li>
+              <li><Link href="/services/emergency-tree-service" className="text-white/70 hover:text-white transition-colors">Emergency Service</Link></li>
+              <li><Link href="/services/arborist-consulting" className="text-white/70 hover:text-white transition-colors">Arborist Consulting</Link></li>
+            </ul>
           </div>
+
+          {/* Company column */}
+          <div className="space-y-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/40">
+              Company
+            </div>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/service-areas" className="text-white/70 hover:text-white transition-colors">Service Areas</Link></li>
+              <li><Link href="/free-estimate" className="text-white/70 hover:text-white transition-colors">Free Estimate</Link></li>
+            </ul>
+
+          </div>
+
+        </div>
+
+        {/* Bottom bar */}
+        <div className="mt-10 border-t border-white/10 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-white/40">
+            &copy; {year} Santa Cruz Tree Pros. All rights reserved.
+          </p>
+          <p className="text-sm text-white/30">
+            Licensed &amp; Insured · Santa Cruz County, CA
+          </p>
         </div>
       </div>
-
-      {/* Bottom border stripe */}
-      <div className="h-[5px] w-full bg-[var(--header-stripe)]" />
     </footer>
   );
 }

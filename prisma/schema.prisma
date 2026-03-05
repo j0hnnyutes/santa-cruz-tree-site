@@ -17,20 +17,33 @@ enum LeadStatus {
 }
 
 model Lead {
-  leadId       String     @id
-  createdAt    DateTime   @default(now())
+  leadId       String      @id
+  createdAt    DateTime    @default(now())
   fullName     String
   phoneDigits  String
   email        String
 
-  // ✅ REQUIRED IN DB + safe defaults so existing rows can migrate
-  address      String     @default("UNKNOWN")
-  city         String     @default("UNKNOWN")
+  address      String      @default("UNKNOWN")
+  city         String      @default("UNKNOWN")
 
   service      String
   details      String?
-  status       LeadStatus @default(NEW)
+  status       LeadStatus  @default(NEW)
   contactedAt  DateTime?
   adminNotes   String?
   archivedAt   DateTime?
+
+  // Audit trail
+  events       LeadEvent[]
+}
+
+model LeadEvent {
+  id        Int      @id @default(autoincrement())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [leadId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  action    String   // e.g. "CREATED", "STATUS_CHANGE", "NOTES_UPDATED", "DUPLICATE_FLAGGED"
+  detail    String?  // e.g. "NEW → CONTACTED", old notes value, etc.
+
+  @@index([leadId, createdAt])
 }

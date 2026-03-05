@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
+import {
+  ChevronDown,
+  FaqBlock,
+  RelatedServicesBlock,
+  InfoCard,
+  BulletListCard,
+} from "@/components/ServicePageKit";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -68,67 +74,6 @@ const relatedServices = [
   },
 ] as const;
 
-function ChevronDown() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180"
-      aria-hidden="true"
-    >
-      <path
-        d="M5.5 7.5l4.5 4.5 4.5-4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FaqBlock({ items }: { items: readonly { q: string; a: string }[] }) {
-  return (
-    <div className="space-y-3">
-      {items.map((f) => (
-        <details
-          key={f.q}
-          className="group rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
-            <span>{f.q}</span>
-            <ChevronDown />
-          </summary>
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{f.a}</p>
-        </details>
-      ))}
-    </div>
-  );
-}
-
-function RelatedServicesBlock() {
-  return (
-    <section className="space-y-4">
-      <h2 className="text-2xl font-semibold">Related Services</h2>
-      <ul className="grid gap-4 sm:grid-cols-3">
-        {relatedServices.map((s) => (
-          <li
-            key={s.href}
-            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
-          >
-            <Link
-              href={s.href}
-              className="font-semibold text-[var(--text)] hover:text-[var(--brand-accent)] transition"
-            >
-              {s.title} →
-            </Link>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.desc}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 export default function TreeTrimmingPage() {
   const ldService = {
@@ -152,9 +97,9 @@ export default function TreeTrimmingPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] py-10 space-y-12">
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
       <header className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight">
           Tree Trimming &amp; Pruning in Santa Cruz, CA
         </h1>
         <p className="text-[var(--muted)] leading-7">
@@ -166,62 +111,50 @@ export default function TreeTrimmingPage() {
 
       {/* General info */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-semibold">How Pruning Helps</h2>
+        <h2 className="text-2xl font-bold">How Pruning Helps</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Safety & risk reduction</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Removing deadwood and addressing weak attachments can lower the chance of failures—especially
-              in windy coastal corridors and during winter storms.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Clearance & access</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Improve clearance over roofs, driveways, walkways, and views while keeping the tree’s natural
-              shape and long-term structure in mind.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Health & longevity</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Targeted cuts can reduce stress and support healthier growth without over-thinning.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">A practical plan</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              We recommend a pruning approach and cadence based on species, age, and exposure—so you avoid
-              unnecessary work while staying ahead of hazards.
-            </p>
-          </div>
+          <InfoCard title="Safety & risk reduction">
+            Removing deadwood and addressing weak attachments can lower the chance of failures—especially
+            in windy coastal corridors and during winter storms.
+          </InfoCard>
+          <InfoCard title="Clearance & access">
+            Improve clearance over roofs, driveways, walkways, and views while keeping the tree’s natural
+            shape and long-term structure in mind.
+          </InfoCard>
+          <InfoCard title="Health & longevity">
+            Targeted cuts can reduce stress and support healthier growth without over-thinning.
+          </InfoCard>
+          <InfoCard title="A practical plan">
+            We recommend a pruning approach and cadence based on species, age, and exposure—so you avoid
+            unnecessary work while staying ahead of hazards.
+          </InfoCard>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="font-semibold">Common trimming goals</div>
-          <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
-            <li>• Deadwood and hazard reduction</li>
-            <li>• Canopy balancing for wind exposure</li>
-            <li>• Roof and utility clearance</li>
-            <li>• Structure for young trees</li>
-            <li>• Better views and sunlight management</li>
-            <li>• A cleaner, well-kept look</li>
-          </ul>
-        </div>
+        <BulletListCard
+          title="Common trimming goals"
+          items={[
+            "Deadwood and hazard reduction",
+            "Canopy balancing for wind exposure",
+            "Roof and utility clearance",
+            "Structure for young trees",
+            "Better views and sunlight management",
+            "A cleaner, well-kept look",
+          ]}
+        />
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Tree Trimming FAQs</h2>
+        <h2 className="text-2xl font-bold">Tree Trimming FAQs</h2>
         <FaqBlock items={faqs} />
       </section>
 
-      <RelatedServicesBlock />
+      <RelatedServicesBlock services={relatedServices} />
 
       <ServiceCta
         heading="Request a Free Estimate"
         body="We’ll evaluate your trees and recommend the right pruning approach for safety, structure, and coastal conditions."
-        primaryHref="/contact"
+        primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
         secondaryHref="tel:+1XXXXXXXXXX"
         secondaryLabel="Call Now"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ServiceCta from "@/components/ServiceCta";
+import { FaqBlock } from "@/components/ServicePageKit";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -84,8 +85,8 @@ export default function ArboristConsultingPage() {
   const ld = jsonLd();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Arborist Consulting in Santa Cruz</h1>
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
+      <h1 className="text-3xl font-bold">Arborist Consulting in Santa Cruz</h1>
 
       <p className="mt-4 text-base leading-7">
         Santa Cruz trees often deal with coastal winds, salt air exposure, slope-related soil movement, and seasonal
@@ -97,8 +98,8 @@ export default function ArboristConsultingPage() {
         for permits or construction near root zones—without defaulting to removal.
       </p>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">When to Schedule an Evaluation</h2>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">When to Schedule an Evaluation</h2>
         <ul className="mt-3 list-disc pl-6 space-y-2">
           <li>Visible decline (thinning canopy, dieback, unusual leaf drop)</li>
           <li>Structural cracks, splits, or weak unions</li>
@@ -108,8 +109,8 @@ export default function ArboristConsultingPage() {
         </ul>
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Consulting May Include</h2>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">Consulting May Include</h2>
         <ul className="mt-3 list-disc pl-6 space-y-2">
           <li>Health assessment</li>
           <li>Structural risk evaluation</li>
@@ -119,16 +120,9 @@ export default function ArboristConsultingPage() {
         </ul>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">FAQs</h2>
-        <div className="mt-4 space-y-4">
-          {faqs.map((f) => (
-            <details key={f.q} className="rounded-lg border p-4">
-              <summary className="cursor-pointer font-medium">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6">{f.a}</p>
-            </details>
-          ))}
-        </div>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">FAQs</h2>
+        <FaqBlock items={faqs} />
       </section>
 
       <ServiceCta

@@ -27,14 +27,26 @@ export default async function AdminLeadsPage() {
       city: true,
       service: true,
       status: true,
+      events: {
+        where: { action: { in: ["CREATED", "CREATED_DUPLICATE"] } },
+        select: { detail: true },
+        take: 1,
+      },
     },
+  });
+
+  // Parse photo count from the CREATED event detail string ("... · 2 photos")
+  const leadsWithPhotos = leads.map((l) => {
+    const detail = l.events[0]?.detail ?? "";
+    const match = detail.match(/·\s*(\d+)\s*photo/);
+    return { ...l, photoCount: match ? parseInt(match[1], 10) : 0 };
   });
 
   return (
     <main className="site-container py-10 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)]">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">
             Leads
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -45,14 +57,14 @@ export default async function AdminLeadsPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/api/admin/leads/export"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--brand-green)] px-4 text-sm font-semibold !text-white hover:bg-[var(--brand-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--brand-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
           >
             Export CSV
           </Link>
         </div>
       </div>
 
-      <AdminLeadsTableClient initialLeads={leads as any} />
+      <AdminLeadsTableClient initialLeads={leadsWithPhotos as any} />
     </main>
   );
 }

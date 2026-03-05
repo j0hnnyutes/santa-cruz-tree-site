@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
+import {
+  ChevronDown,
+  FaqBlock,
+  RelatedServicesBlock,
+  InfoCard,
+  BulletListCard,
+} from "@/components/ServicePageKit";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -72,67 +78,6 @@ const relatedServices = [
   },
 ] as const;
 
-function ChevronDown() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180"
-      aria-hidden="true"
-    >
-      <path
-        d="M5.5 7.5l4.5 4.5 4.5-4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FaqBlock({ items }: { items: readonly { q: string; a: string }[] }) {
-  return (
-    <div className="space-y-3">
-      {items.map((f) => (
-        <details
-          key={f.q}
-          className="group rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
-            <span>{f.q}</span>
-            <ChevronDown />
-          </summary>
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{f.a}</p>
-        </details>
-      ))}
-    </div>
-  );
-}
-
-function RelatedServicesBlock() {
-  return (
-    <section className="space-y-4">
-      <h2 className="text-2xl font-semibold">Related Services</h2>
-      <ul className="grid gap-4 sm:grid-cols-3">
-        {relatedServices.map((s) => (
-          <li
-            key={s.href}
-            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
-          >
-            <Link
-              href={s.href}
-              className="font-semibold text-[var(--text)] hover:text-[var(--brand-accent)] transition"
-            >
-              {s.title} →
-            </Link>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.desc}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 export default function StumpGrindingPage() {
   const ldService = {
@@ -156,9 +101,9 @@ export default function StumpGrindingPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] py-10 space-y-12">
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
       <header className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight">
           Stump Grinding in Santa Cruz, CA
         </h1>
         <p className="text-[var(--muted)] leading-7">
@@ -170,61 +115,49 @@ export default function StumpGrindingPage() {
 
       {/* General info */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-semibold">What Stump Grinding Includes</h2>
+        <h2 className="text-2xl font-bold">What Stump Grinding Includes</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Site check & access</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              We confirm access width, slope, and obstacles (fences, gates, irrigation). Tight access is common in
-              Santa Cruz neighborhoods, so planning avoids surprises.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Grinding below grade</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              We grind below the surface so the area can be backfilled and leveled. If you want to replant in the
-              same spot, deeper grinding and soil amendment is often recommended.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Chips: keep or haul away</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Grindings can be used as mulch, or we can haul them away if you prefer a cleaner finish for turf or
-              hardscape prep.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Better use of the space</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Reduce trip hazards, open up planting beds, and make mowing/maintenance easier—especially after
-              removals.
-            </p>
-          </div>
+          <InfoCard title="Site check & access">
+            We confirm access width, slope, and obstacles (fences, gates, irrigation). Tight access is common in
+            Santa Cruz neighborhoods, so planning avoids surprises.
+          </InfoCard>
+          <InfoCard title="Grinding below grade">
+            We grind below the surface so the area can be backfilled and leveled. If you want to replant in the
+            same spot, deeper grinding and soil amendment is often recommended.
+          </InfoCard>
+          <InfoCard title="Chips: keep or haul away">
+            Grindings can be used as mulch, or we can haul them away if you prefer a cleaner finish for turf or
+            hardscape prep.
+          </InfoCard>
+          <InfoCard title="Better use of the space">
+            Reduce trip hazards, open up planting beds, and make mowing/maintenance easier—especially after
+            removals.
+          </InfoCard>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="font-semibold">Helpful prep before we arrive</div>
-          <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
-            <li>• Mark sprinklers/irrigation lines if known</li>
-            <li>• Clear rocks/decor around the stump</li>
-            <li>• Ensure gate access is unlocked</li>
-            <li>• Tell us your plan (turf, planting, hardscape)</li>
-          </ul>
-        </div>
+        <BulletListCard
+          title="Helpful prep before we arrive"
+          items={[
+            "Mark sprinklers/irrigation lines if known",
+            "Clear rocks/decor around the stump",
+            "Ensure gate access is unlocked",
+            "Tell us your plan (turf, planting, hardscape)",
+          ]}
+        />
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Stump Grinding FAQs</h2>
+        <h2 className="text-2xl font-bold">Stump Grinding FAQs</h2>
         <FaqBlock items={faqs} />
       </section>
 
-      <RelatedServicesBlock />
+      <RelatedServicesBlock services={relatedServices} />
 
       <ServiceCta
         heading="Request a Free Estimate"
         body="Tell us how many stumps you have and what you plan to do with the space. We’ll recommend the right depth and cleanup option."
-        primaryHref="/contact"
+        primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
         secondaryHref="tel:+1XXXXXXXXXX"
         secondaryLabel="Call Now"

@@ -45,7 +45,7 @@ export default function ServicesPage() {
   return (
     <main className="site-container py-14 space-y-12">
       <header className="space-y-4 max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight">
+        <h1 className="text-4xl font-bold tracking-tight">
           Tree Services in Santa Cruz
         </h1>
         <p className="text-lg text-[var(--muted)] leading-relaxed">
@@ -56,7 +56,7 @@ export default function ServicesPage() {
       </header>
 
       <section>
-        <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {services.map((s) => (
             <li key={s.href} className="h-full">
               <Link href={s.href} className="surface-card block h-full p-6">
@@ -65,7 +65,7 @@ export default function ServicesPage() {
                   {s.description}
                 </p>
                 <div className="mt-6 text-sm font-semibold text-[var(--brand-accent)]">
-                  Learn more →
+                  Learn more &rarr;
                 </div>
               </Link>
             </li>
@@ -75,7 +75,7 @@ export default function ServicesPage() {
 
       <ServiceCta
         heading="Request a Free Estimate"
-        body="Tell us what you need and we’ll recommend the safest, most practical plan for your property in Santa Cruz."
+        body="Tell us what you need and we'll recommend the safest, most practical plan for your property in Santa Cruz."
       />
     </main>
   );

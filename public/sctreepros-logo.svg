@@ -5,8 +5,6 @@
       <stop offset="100%" stop-color="#464610"/>
     </linearGradient>
   </defs>
-  <rect width="720" height="200" fill="#F0E8D8"/>
-
   <!-- Tallest center redwood -->
   <path d="M95,196 L95,14 L74,56 L87,56 L66,92 L81,92 L60,126 L78,126 L68,152 L95,152" fill="url(#treed3nb)"/>
   <path d="M95,196 L95,14 L116,56 L103,56 L124,92 L109,92 L130,126 L112,126 L122,152 L95,152" fill="#525418"/>

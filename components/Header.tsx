@@ -5,14 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 
 type NavItem = { label: string; href: string };
 
-const HEADER_H = 105;
-
 export default function Header() {
   const nav: NavItem[] = useMemo(
     () => [
       { label: "Services", href: "/services" },
       { label: "Service Areas", href: "/service-areas" },
-      { label: "Contact", href: "/contact" },
+      { label: "Free Estimate", href: "/free-estimate" },
     ],
     []
   );
@@ -28,89 +26,90 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50">
-      <div className="h-[5px] w-full bg-[var(--header-stripe)]" />
+    <header className="sticky top-0 z-50 bg-[var(--header-bg)] shadow-md">
+      <div className="site-container">
+        <div className="flex items-center justify-between h-[69px] sm:h-[77px]">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <img
+              src="/sctreepros-logo.svg"
+              alt="Santa Cruz Tree Pros"
+              className="h-[58px] sm:h-[68px] w-auto object-contain brightness-0 invert"
+            />
+          </Link>
 
-      <div className="bg-[var(--header-bg)] text-[var(--text)]">
-        <div className="site-container">
-          <div className="flex items-center justify-between" style={{ height: `${HEADER_H}px` }}>
-            <Link href="/" className="flex items-center">
-              <img
-                src="/sctreepros-logo.svg"
-                alt="Santa Cruz Tree Pros"
-                style={{ height: `${HEADER_H}px` }}
-                className="w-auto object-contain"
-              />
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-8 md:flex">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-white/90 hover:text-white transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* CTA + mobile menu button */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/free-estimate"
+              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition-colors"
+            >
+              Get Free Estimate
             </Link>
 
-            <nav className="hidden items-center md:flex">
-              {nav.map((item, idx) => (
-                <div key={item.href} className="flex items-center">
-                  <Link
-                    href={item.href}
-                    className="font-semibold text-[var(--text)] hover:text-[var(--brand-green)] transition"
-                  >
-                    {item.label}
-                  </Link>
-                  {idx < nav.length - 1 && (
-                    <span className="mx-4 select-none font-semibold text-[var(--brand-green)]">|</span>
-                  )}
-                </div>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <Link href="/contact" className="btn-primary">
-                Request an Estimate
-              </Link>
-
-              <button
-                type="button"
-                className="md:hidden inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-[var(--text)] shadow-sm hover:bg-[var(--surface-hover)]"
-                aria-label="Open menu"
-                aria-expanded={open}
-                onClick={() => setOpen((v) => !v)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M4 6h16M4 12h16M4 18h16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            </div>
+            <button
+              type="button"
+              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-white/90 hover:text-white hover:bg-white/10 transition"
+              aria-label="Open menu"
+              aria-expanded={open}
+              onClick={() => setOpen((v) => !v)}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d={open ? "M6 6l12 12M6 18L18 6" : "M4 6h16M4 12h16M4 18h16"}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
           </div>
+        </div>
 
-          <div
-            className={[
-              "md:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-out",
-              open ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
-            ].join(" ")}
-          >
-            <div className="pb-5">
-              <div className="rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-soft)]">
-                <div className="flex flex-col p-3">
-                  {nav.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className="rounded-xl px-4 py-3 font-semibold text-[var(--text)] hover:bg-[var(--surface-hover)]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+        {/* Mobile dropdown */}
+        <div
+          className={[
+            "md:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-out",
+            open ? "max-h-80 opacity-100" : "max-h-0 opacity-0",
+          ].join(" ")}
+        >
+          <div className="pb-4">
+            <div className="mobile-nav flex flex-col gap-1">
+              {nav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Link
+                href="/free-estimate"
+                onClick={() => setOpen(false)}
+                className="mt-2 rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-[var(--brand-green)]"
+              >
+                Get Free Estimate
+              </Link>
             </div>
           </div>
         </div>
       </div>
-
-      <div className="h-[5px] w-full bg-[var(--header-stripe)]" />
     </header>
   );
 }

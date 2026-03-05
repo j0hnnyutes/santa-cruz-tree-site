@@ -12,42 +12,44 @@ type ServiceCtaProps = {
 export default function ServiceCta({
   heading = "Request an Estimate",
   body = "Start with a quick on-site assessment. We'll review your goals and provide clear recommendations.",
-  primaryHref = "/contact",
+  primaryHref = "/free-estimate",
   primaryLabel = "Request an Estimate",
   secondaryHref = "tel:+1XXXXXXXXXX",
   secondaryLabel = "Call Now",
 }: ServiceCtaProps) {
   return (
-    <section className="relative mt-12 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-7 shadow-[var(--shadow-soft)] sm:px-8 sm:py-8">
-      {/* Top accent bar */}
-      <div aria-hidden="true" className="absolute left-0 top-0 h-[6px] w-full bg-[var(--brand-green)] opacity-90" />
-
+    <section className="mt-12 rounded-xl bg-[var(--brand-green)] px-6 py-8 sm:px-8 sm:py-10">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)]">{heading}</h2>
-        <p className="text-sm leading-7 text-[var(--muted)]">{body}</p>
+        <h2 className="text-2xl font-bold tracking-tight text-white">{heading}</h2>
+        <p className="leading-7 text-white/80">{body}</p>
       </div>
 
-      <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-start">
-        <Link href={primaryHref} className="btn-primary">
+      <div className="mt-6">
+        <Link
+          href={primaryHref}
+          className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
+        >
           {primaryLabel}
         </Link>
-
-        <a href={secondaryHref} className="btn-secondary">
-          {secondaryLabel}
-        </a>
       </div>
 
-      <ul className="mt-6 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
+      <ul className="mt-6 grid gap-2 text-white/70 sm:grid-cols-3">
         <li className="flex items-start gap-2">
-          <span aria-hidden="true">•</span>
+          <svg className="h-4 w-4 mt-0.5 shrink-0 text-white/60" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
           <span>On-site evaluation</span>
         </li>
         <li className="flex items-start gap-2">
-          <span aria-hidden="true">•</span>
+          <svg className="h-4 w-4 mt-0.5 shrink-0 text-white/60" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
           <span>Transparent scope of work</span>
         </li>
         <li className="flex items-start gap-2">
-          <span aria-hidden="true">•</span>
+          <svg className="h-4 w-4 mt-0.5 shrink-0 text-white/60" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
           <span>Safety-first execution</span>
         </li>
       </ul>

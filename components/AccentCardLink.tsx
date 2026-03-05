@@ -15,17 +15,17 @@ export default function AccentCardLink({
     <Link
       href={href}
       className={[
-        "group block h-full rounded-2xl border border-[var(--border)] bg-[var(--surface)]",
-        "shadow-md transition",
-        "hover:-translate-y-1 hover:shadow-xl hover:border-[var(--brand-accent)]",
-        "focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]/30",
+        "group block h-full rounded-xl border border-[var(--border)] bg-[var(--surface)]",
+        "shadow-[var(--shadow-soft)] transition-all duration-200",
+        "hover:-translate-y-1 hover:shadow-[var(--shadow-hover)] hover:border-[var(--brand-accent)]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]",
       ].join(" ")}
     >
-      {/* Thick top accent bar */}
-      <div className="h-3 w-full rounded-t-2xl bg-[var(--card-bar)] transition-colors group-hover:bg-[var(--card-bar-hover)]" />
+      {/* Top accent bar */}
+      <div className="h-1.5 w-full rounded-t-xl bg-[var(--card-bar)] transition-colors group-hover:bg-[var(--card-bar-hover)]" />
 
       <div className="flex h-full flex-col p-6">
-        <div className="text-lg font-semibold text-[var(--text)] underline decoration-black/20 underline-offset-4 group-hover:decoration-[var(--brand-accent)]">
+        <div className="text-lg font-semibold text-[var(--text)] group-hover:text-[var(--brand-green)] transition-colors">
           {title}
         </div>
 
@@ -35,7 +35,6 @@ export default function AccentCardLink({
           </p>
         ) : null}
 
-        {/* Ensures equal-height cards */}
         <div className="mt-auto" />
       </div>
     </Link>

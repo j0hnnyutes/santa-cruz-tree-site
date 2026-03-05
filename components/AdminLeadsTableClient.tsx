@@ -13,6 +13,7 @@ type LeadRow = {
   email: string;
   service: string;
   status: LeadStatus;
+  photoCount?: number;
 };
 
 type Toast = {
@@ -289,28 +290,28 @@ export default function AdminLeadsTableClient({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-soft)]">
           <div className="grid gap-3 lg:grid-cols-12 items-end">
             <div className="lg:col-span-6">
-              <label className="block text-xs font-semibold text-[var(--text)]">
+              <label className="block text-xs font-medium text-[var(--muted)] uppercase tracking-wide">
                 Search
               </label>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Name, email, phone, service…"
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               />
             </div>
 
             <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--text)]">
+              <label className="block text-xs font-medium text-[var(--muted)] uppercase tracking-wide">
                 Status
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as any)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               >
                 <option value="ALL">All</option>
                 <option value="NEW">NEW</option>
@@ -320,26 +321,26 @@ export default function AdminLeadsTableClient({
             </div>
 
             <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--text)]">
+              <label className="block text-xs font-medium text-[var(--muted)] uppercase tracking-wide">
                 Start
               </label>
               <input
                 type="date"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               />
             </div>
 
             <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--text)]">
+              <label className="block text-xs font-medium text-[var(--muted)] uppercase tracking-wide">
                 End
               </label>
               <input
                 type="date"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
+                className="mt-1 h-10 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-sm outline-none transition-colors focus:border-[var(--brand-accent)] focus:ring-2 focus:ring-[var(--brand-accent)]/20"
               />
             </div>
           </div>
@@ -357,28 +358,28 @@ export default function AdminLeadsTableClient({
               <button
                 onClick={() => bulkSetStatus("CONTACTED")}
                 disabled={selectedIds.length === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-neutral-700 px-4 text-sm font-semibold text-white disabled:opacity-40"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--brand-green)] px-3.5 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Mark Contacted
               </button>
               <button
                 onClick={() => bulkSetStatus("CLOSED")}
                 disabled={selectedIds.length === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-neutral-700 px-4 text-sm font-semibold text-white disabled:opacity-40"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--brand-green)] px-3.5 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Close
               </button>
               <button
                 onClick={() => bulkArchive()}
                 disabled={selectedIds.length === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text)] disabled:opacity-40"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white px-3.5 text-sm font-semibold text-[var(--text)] hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Archive
               </button>
               <button
                 onClick={() => bulkSetStatus("NEW")}
                 disabled={selectedIds.length === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text)] disabled:opacity-40"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white px-3.5 text-sm font-semibold text-[var(--text)] hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Reset to New
               </button>
@@ -387,58 +388,85 @@ export default function AdminLeadsTableClient({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-[var(--border)] bg-white shadow-[var(--shadow-soft)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full text-sm">
-            <thead className="bg-white">
-              <tr className="border-b border-[var(--border)]">
+            <thead>
+              <tr className="border-b border-[var(--border)] bg-neutral-50">
                 <th className="w-10 px-4 py-3 text-left">
                   <input
                     type="checkbox"
                     checked={allOnPageSelected}
                     onChange={(e) => toggleAllOnPage(e.target.checked)}
+                    className="rounded"
                   />
                 </th>
-                <th className="px-4 py-3 text-left font-semibold">Date</th>
-                <th className="px-4 py-3 text-left font-semibold">Name</th>
-                <th className="px-4 py-3 text-left font-semibold">Phone</th>
-                <th className="px-4 py-3 text-left font-semibold">Email</th>
-                <th className="px-4 py-3 text-left font-semibold">Service</th>
-                <th className="px-4 py-3 text-left font-semibold">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Phone</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Service</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wide">Status</th>
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((l) => (
-                <tr
-                  key={l.leadId}
-                  className="border-b border-[var(--border)] last:border-b-0"
-                >
-                  <td className="w-10 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={!!selected[l.leadId]}
-                      onChange={(e) => toggleOne(l.leadId, e.target.checked)}
-                    />
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatDateShort(l.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/leads/${l.leadId}`}
-                      className="font-semibold text-[var(--brand-accent)] hover:underline"
-                    >
-                      {l.fullName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {formatPhoneUS10(l.phoneDigits)}
-                  </td>
-                  <td className="px-4 py-3">{l.email}</td>
-                  <td className="px-4 py-3">{normalizeServiceLabel(l.service)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{l.status}</td>
-                </tr>
-              ))}
+              {pageItems.map((l) => {
+                const statusColor: Record<string, string> = {
+                  NEW: "bg-blue-100 text-blue-800",
+                  CONTACTED: "bg-amber-100 text-amber-800",
+                  CLOSED: "bg-emerald-100 text-emerald-800",
+                  ARCHIVED: "bg-neutral-100 text-neutral-600",
+                };
+                return (
+                  <tr
+                    key={l.leadId}
+                    className="border-b border-[var(--border)] last:border-b-0 hover:bg-neutral-50 transition-colors"
+                  >
+                    <td className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={!!selected[l.leadId]}
+                        onChange={(e) => toggleOne(l.leadId, e.target.checked)}
+                        className="rounded"
+                      />
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-neutral-500">
+                      {formatDateShort(l.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/leads/${l.leadId}`}
+                          className="font-semibold text-[var(--brand-green)] hover:text-[var(--brand-green-dark)] hover:underline"
+                        >
+                          {l.fullName}
+                        </Link>
+                        {(l.photoCount ?? 0) > 0 && (
+                          <span
+                            title={`${l.photoCount} photo${l.photoCount === 1 ? "" : "s"} attached`}
+                            className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700"
+                          >
+                            <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-2.22-2.219a.75.75 0 00-1.06 0l-1.91 1.909.47.47a.75.75 0 11-1.06 1.06L6.53 8.091a.75.75 0 00-1.06 0l-2.97 2.97zM12 7a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                            </svg>
+                            {l.photoCount}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-mono text-xs">
+                      {formatPhoneUS10(l.phoneDigits)}
+                    </td>
+                    <td className="px-4 py-3 text-neutral-600">{l.email}</td>
+                    <td className="px-4 py-3 text-neutral-600">{normalizeServiceLabel(l.service)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[l.status] || "bg-neutral-100 text-neutral-600"}`}>
+                        {l.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {pageItems.length === 0 ? (
                 <tr>
@@ -454,7 +482,7 @@ export default function AdminLeadsTableClient({
           </table>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
           <div className="text-sm text-[var(--muted)]">
             Page{" "}
             <span className="font-semibold text-[var(--text)]">{page}</span> of{" "}
@@ -463,32 +491,32 @@ export default function AdminLeadsTableClient({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage(1)}
               disabled={page <= 1}
-              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+              className="h-8 rounded-lg border border-[var(--border)] bg-white px-3 text-sm font-medium hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               First
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+              className="h-8 rounded-lg border border-[var(--border)] bg-white px-3 text-sm font-medium hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Prev
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+              className="h-8 rounded-lg border border-[var(--border)] bg-white px-3 text-sm font-medium hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={page >= totalPages}
-              className="h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40"
+              className="h-8 rounded-lg border border-[var(--border)] bg-white px-3 text-sm font-medium hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Last
             </button>

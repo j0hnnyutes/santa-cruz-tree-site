@@ -44,18 +44,34 @@ export async function POST(request: NextRequest) {
   try {
     const now = new Date();
 
+    // Get current statuses for audit trail
+    const currentLeads = await prisma.lead.findMany({
+      where: { leadId: { in: leadIds } },
+      select: { leadId: true, status: true },
+    });
+
+    // Update statuses
     const result = await prisma.lead.updateMany({
       where: { leadId: { in: leadIds } },
       data: {
         status: status as any,
-
-        // If marking CONTACTED, set contactedAt to now (otherwise clear when returning to NEW).
         contactedAt: status === "CONTACTED" ? now : status === "NEW" ? null : undefined,
-
-        // ARCHIVED status uses archivedAt; otherwise clear it.
         archivedAt: status === "ARCHIVED" ? now : null,
       },
     });
+
+    // Log status change events
+    const events = currentLeads
+      .filter((l) => l.status !== status) // only log actual changes
+      .map((l) => ({
+        leadId: l.leadId,
+        action: "STATUS_CHANGE",
+        detail: `${l.status} → ${status}`,
+      }));
+
+    if (events.length > 0) {
+      await prisma.leadEvent.createMany({ data: events });
+    }
 
     return NextResponse.json(
       { ok: true, updated: result.count },

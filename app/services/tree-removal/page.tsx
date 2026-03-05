@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
+import {
+  ChevronDown,
+  FaqBlock,
+  RelatedServicesBlock,
+  InfoCard,
+  BulletListCard,
+} from "@/components/ServicePageKit";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -68,67 +74,6 @@ const relatedServices = [
   },
 ] as const;
 
-function ChevronDown() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180"
-      aria-hidden="true"
-    >
-      <path
-        d="M5.5 7.5l4.5 4.5 4.5-4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FaqBlock({ items }: { items: readonly { q: string; a: string }[] }) {
-  return (
-    <div className="space-y-3">
-      {items.map((f) => (
-        <details
-          key={f.q}
-          className="group rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
-            <span>{f.q}</span>
-            <ChevronDown />
-          </summary>
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{f.a}</p>
-        </details>
-      ))}
-    </div>
-  );
-}
-
-function RelatedServicesBlock() {
-  return (
-    <section className="space-y-4">
-      <h2 className="text-2xl font-semibold">Related Services</h2>
-      <ul className="grid gap-4 sm:grid-cols-3">
-        {relatedServices.map((s) => (
-          <li
-            key={s.href}
-            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm"
-          >
-            <Link
-              href={s.href}
-              className="font-semibold text-[var(--text)] hover:text-[var(--brand-accent)] transition"
-            >
-              {s.title} →
-            </Link>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.desc}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 export default function TreeRemovalPage() {
   // IMPORTANT: output JSON-LD as separate scripts (not an array) to avoid your runtime error
@@ -153,9 +98,9 @@ export default function TreeRemovalPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1100px] py-10 space-y-12">
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
       <header className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight">
           Tree Removal in Santa Cruz, CA
         </h1>
         <p className="text-[var(--muted)] leading-7">
@@ -167,63 +112,51 @@ export default function TreeRemovalPage() {
 
       {/* General info */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-semibold">What to Expect</h2>
+        <h2 className="text-2xl font-bold">What to Expect</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Safety-first planning</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              We assess lean, decay, canopy load, and proximity to roofs and lines. For tight spaces,
-              we use controlled rigging and sectional removal to reduce risk.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Property protection</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Expect clear drop zones, surface protection where needed, and a plan that accounts for Santa Cruz
-              access challenges like slopes, narrow driveways, and landscaping constraints.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Cleanup included</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              We haul branches and debris and leave the site tidy. If you want chips for mulch or rounds for firewood,
-              we can typically leave them on-site by request.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-            <div className="font-semibold">Pricing factors</div>
-            <p className="mt-2 text-sm text-[var(--muted)] leading-6">
-              Cost is driven by size, access, hazard level, rigging complexity, and whether you want stump grinding.
-              We’ll provide a clear scope and total price during your estimate.
-            </p>
-          </div>
+          <InfoCard title="Safety-first planning">
+            We assess lean, decay, canopy load, and proximity to roofs and lines. For tight spaces,
+            we use controlled rigging and sectional removal to reduce risk.
+          </InfoCard>
+          <InfoCard title="Property protection">
+            Expect clear drop zones, surface protection where needed, and a plan that accounts for Santa Cruz
+            access challenges like slopes, narrow driveways, and landscaping constraints.
+          </InfoCard>
+          <InfoCard title="Cleanup included">
+            We haul branches and debris and leave the site tidy. If you want chips for mulch or rounds for firewood,
+            we can typically leave them on-site by request.
+          </InfoCard>
+          <InfoCard title="Pricing factors">
+            Cost is driven by size, access, hazard level, rigging complexity, and whether you want stump grinding.
+            We’ll provide a clear scope and total price during your estimate.
+          </InfoCard>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="font-semibold">Common reasons for removal</div>
-          <ul className="mt-3 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
-            <li>• Dead/dying trees or significant decay</li>
-            <li>• Storm damage or repeated limb failure</li>
-            <li>• Unsafe lean or compromised root plate</li>
-            <li>• Conflicts with structures/utilities</li>
-            <li>• Overcrowding or landscape redesign</li>
-            <li>• High wind exposure near the coast</li>
-          </ul>
-        </div>
+        <BulletListCard
+          title="Common reasons for removal"
+          items={[
+            "Dead/dying trees or significant decay",
+            "Storm damage or repeated limb failure",
+            "Unsafe lean or compromised root plate",
+            "Conflicts with structures/utilities",
+            "Overcrowding or landscape redesign",
+            "High wind exposure near the coast",
+          ]}
+        />
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Tree Removal FAQs</h2>
+        <h2 className="text-2xl font-bold">Tree Removal FAQs</h2>
         <FaqBlock items={faqs} />
       </section>
 
-      <RelatedServicesBlock />
+      <RelatedServicesBlock services={relatedServices} />
 
       <ServiceCta
         heading="Request a Free Estimate"
         body="Tell us about the tree and your property. We’ll recommend the safest, most practical plan for Santa Cruz conditions."
-        primaryHref="/contact"
+        primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
         secondaryHref="tel:+1XXXXXXXXXX"
         secondaryLabel="Call Now"

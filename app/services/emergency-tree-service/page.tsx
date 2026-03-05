@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ServiceCta from "@/components/ServiceCta";
+import { FaqBlock } from "@/components/ServicePageKit";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -84,8 +85,8 @@ export default function EmergencyTreeServicePage() {
   const ld = jsonLd();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Emergency Tree Service in Santa Cruz</h1>
+    <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
+      <h1 className="text-3xl font-bold">Emergency Tree Service in Santa Cruz</h1>
 
       <p className="mt-4 text-base leading-7">
         Winter storms, coastal winds, and saturated soils can trigger sudden failures across Santa Cruz County—especially
@@ -97,8 +98,8 @@ export default function EmergencyTreeServicePage() {
         (driveways, walkways, and entry points) as efficiently as conditions allow.
       </p>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Emergency Situations</h2>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">Emergency Situations</h2>
         <ul className="mt-3 list-disc pl-6 space-y-2">
           <li>Fallen trees on homes, garages, or fences</li>
           <li>Split or hanging limbs posing immediate risk</li>
@@ -108,19 +109,12 @@ export default function EmergencyTreeServicePage() {
         </ul>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">FAQs</h2>
-        <div className="mt-4 space-y-4">
-          {faqs.map((f) => (
-            <details key={f.q} className="rounded-lg border p-4">
-              <summary className="cursor-pointer font-medium">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6">{f.a}</p>
-            </details>
-          ))}
-        </div>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">FAQs</h2>
+        <FaqBlock items={faqs} />
       </section>
 
-      <p className="mt-8 text-sm leading-6">
+      <p className="mt-8 leading-7">
         <strong>Safety note:</strong> If a tree is in contact with power lines, keep your distance and contact the
         utility provider.
       </p>
