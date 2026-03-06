@@ -4,19 +4,50 @@
  * Run this from your project root if you're locked out of the admin panel:
  *   node scripts/reset-password.mjs
  *
- * This script hashes your new password and writes it directly to the database,
- * bypassing the web interface entirely.
+ * This script hashes your new password and writes it directly to Neon PostgreSQL
+ * via Prisma, bypassing the web interface entirely.
+ *
+ * Requirements: Run from the project root where .env exists.
  */
 
 import { createInterface } from "readline";
 import { createRequire } from "module";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "..");
+
+// Load environment variables from .env
+function loadEnv() {
+  const envFiles = [".env.local", ".env"];
+  for (const file of envFiles) {
+    const path = resolve(projectRoot, file);
+    if (existsSync(path)) {
+      const content = readFileSync(path, "utf8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx === -1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        // Strip surrounding quotes
+        if ((val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  }
+}
+
+loadEnv();
 
 // Load bcryptjs
 let bcrypt;
@@ -24,61 +55,6 @@ try {
   bcrypt = require("bcryptjs");
 } catch {
   console.error("❌ bcryptjs not found. Run: npm install");
-  process.exit(1);
-}
-
-// Load better-sqlite3 or fall back to Database URL parsing
-let db;
-try {
-  // Try to find the DB path from .env / .env.local
-  const envFiles = [".env.local", ".env"];
-  let dbPath = null;
-
-  for (const envFile of envFiles) {
-    const envPath = resolve(projectRoot, envFile);
-    if (existsSync(envPath)) {
-      const { readFileSync } = await import("fs");
-      const content = readFileSync(envPath, "utf8");
-      const match = content.match(/DATABASE_URL\s*=\s*["']?file:(.+?)["']?\s*$/m);
-      if (match) {
-        dbPath = resolve(projectRoot, match[1].trim());
-        break;
-      }
-    }
-  }
-
-  if (!dbPath) {
-    dbPath = resolve(projectRoot, "prisma/dev.db");
-  }
-
-  if (!existsSync(dbPath)) {
-    console.error(`❌ Database not found at: ${dbPath}`);
-    console.error("   Make sure you've run the dev server at least once.");
-    process.exit(1);
-  }
-
-  // Use node:sqlite (Node 22+) or better-sqlite3
-  try {
-    const { DatabaseSync } = await import("node:sqlite");
-    db = new DatabaseSync(dbPath);
-    db._useBetterSqlite = false;
-  } catch {
-    try {
-      const Database = require("better-sqlite3");
-      db = new Database(dbPath);
-      db._useBetterSqlite = true;
-    } catch {
-      // Fall back to manual file path reporting
-      db = null;
-      console.log(`📁 Database path: ${dbPath}`);
-    }
-  }
-
-  if (db) {
-    console.log(`✅ Connected to database`);
-  }
-} catch (err) {
-  console.error("❌ Error connecting to database:", err.message);
   process.exit(1);
 }
 
@@ -92,9 +68,7 @@ function hiddenQuestion(prompt) {
   return new Promise((resolve) => {
     process.stdout.write(prompt);
     const stdin = process.stdin;
-    const oldRawMode = stdin.isRaw;
 
-    // Try to hide input
     let input = "";
     if (stdin.isTTY) {
       stdin.setRawMode(true);
@@ -124,15 +98,33 @@ function hiddenQuestion(prompt) {
 
       stdin.on("data", onData);
     } else {
-      // Non-TTY (piped input): just read normally
       resolve(question(prompt));
     }
   });
 }
 
+async function connectPrisma() {
+  try {
+    // Dynamically import Prisma client
+    const { PrismaClient } = await import("@prisma/client");
+    const prisma = new PrismaClient();
+    await prisma.$connect();
+    return prisma;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function main() {
   console.log("\n🔐 Santa Cruz Tree Pros — Admin Password Reset\n");
-  console.log("This will update the admin password in the database.\n");
+  console.log("This will update the admin password in Neon PostgreSQL.\n");
+
+  if (!process.env.DATABASE_URL) {
+    console.error("❌ DATABASE_URL not found in .env");
+    console.error("   Make sure you have a .env file with DATABASE_URL set.");
+    rl.close();
+    process.exit(1);
+  }
 
   const newPassword = await hiddenQuestion("New password: ");
 
@@ -153,42 +145,43 @@ async function main() {
   console.log("\n⏳ Hashing password…");
   const hash = await bcrypt.hash(newPassword, 12);
 
-  if (db) {
+  console.log("⏳ Connecting to database…");
+  const prisma = await connectPrisma();
+
+  if (prisma) {
     try {
       const now = new Date().toISOString();
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "AdminConfig" (key, value, "updatedAt")
+         VALUES ('password_hash', $1, $2)
+         ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, "updatedAt" = EXCLUDED."updatedAt"`,
+        hash,
+        now
+      );
 
-      if (db._useBetterSqlite) {
-        // better-sqlite3
-        db.prepare(`
-          INSERT INTO AdminConfig (key, value, updatedAt)
-          VALUES ('password_hash', ?, ?)
-          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt
-        `).run(hash, now);
-      } else {
-        // node:sqlite
-        db.exec(`
-          INSERT INTO AdminConfig (key, value, updatedAt)
-          VALUES ('password_hash', '${hash.replace(/'/g, "''")}', '${now}')
-          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt
-        `);
-      }
+      await prisma.$disconnect();
 
-      console.log("✅ Password updated successfully in database!");
-      console.log("\nYou can now log in at /admin with your new password.\n");
+      console.log("\n✅ Password updated successfully in Neon database!");
+      console.log("   You can now log in at /admin with your new password.");
+      console.log("   No redeployment needed — the new password takes effect immediately.\n");
     } catch (err) {
-      console.error("❌ Database update failed:", err.message);
-      console.log("\n📋 Manual fallback — add this to your .env.local:");
-      console.log(`ADMIN_PASSWORD_HASH="${hash}"\n`);
+      console.error("\n❌ Database update failed:", err.message);
+      await prisma.$disconnect();
+      printManualFallback(hash);
     }
   } else {
-    // No DB access — output hash for manual entry
-    console.log("\n✅ Password hashed. Since direct DB access isn't available,");
-    console.log("add this to your .env.local (or Vercel environment variables):");
-    console.log(`\nADMIN_PASSWORD_HASH="${hash}"\n`);
-    console.log("Then redeploy or restart your dev server.\n");
+    console.error("\n⚠️  Could not connect to Prisma/database.");
+    printManualFallback(hash);
   }
 
   rl.close();
+}
+
+function printManualFallback(hash) {
+  console.log("\n📋 Manual fallback — set this in Vercel environment variables:");
+  console.log("   Variable name:  ADMIN_PASSWORD_HASH");
+  console.log(`   Value:          ${hash}`);
+  console.log("\n   Then trigger a new deployment in Vercel.\n");
 }
 
 main().catch((err) => {

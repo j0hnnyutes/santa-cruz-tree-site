@@ -10,7 +10,7 @@ type AdminConfigRow = { key: string; value: string };
 async function getAdminConfigValue(key: string): Promise<string | null> {
   try {
     const rows = await prisma.$queryRaw<AdminConfigRow[]>(
-      Prisma.sql`SELECT key, value FROM AdminConfig WHERE key = ${key} LIMIT 1`
+      Prisma.sql`SELECT key, value FROM "AdminConfig" WHERE key = ${key} LIMIT 1`
     );
     return rows[0]?.value ?? null;
   } catch {

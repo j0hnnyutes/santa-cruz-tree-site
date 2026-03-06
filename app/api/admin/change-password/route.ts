@@ -10,7 +10,7 @@ type AdminConfigRow = { key: string; value: string };
 
 async function getAdminConfigValue(key: string): Promise<string | null> {
   const rows = await prisma.$queryRaw<AdminConfigRow[]>(
-    Prisma.sql`SELECT key, value FROM AdminConfig WHERE key = ${key} LIMIT 1`
+    Prisma.sql`SELECT key, value FROM "AdminConfig" WHERE key = ${key} LIMIT 1`
   );
   return rows[0]?.value ?? null;
 }
@@ -18,9 +18,9 @@ async function getAdminConfigValue(key: string): Promise<string | null> {
 async function upsertAdminConfig(key: string, value: string): Promise<void> {
   const now = new Date().toISOString();
   await prisma.$executeRaw(
-    Prisma.sql`INSERT INTO AdminConfig (key, value, updatedAt)
+    Prisma.sql`INSERT INTO "AdminConfig" (key, value, "updatedAt")
                VALUES (${key}, ${value}, ${now})
-               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt`
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value, "updatedAt" = excluded."updatedAt"`
   );
 }
 
