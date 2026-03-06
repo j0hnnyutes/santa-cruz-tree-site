@@ -209,12 +209,16 @@ export default function FreeEstimatePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Get a Free Estimate</h1>
           <p className="mt-2 text-[var(--muted)]">
-            Tell us what you need and we&apos;ll follow up with next steps and a clear scope of work.
+            Thank you for your interest in SC Tree Pros! To provide you with an accurate quote tailored to your
+            specific needs, please take a moment to complete the form below, provide specific details, and include
+            any relevant photos if possible. This will help us understand your requirements and ensure a prompt
+            response. Please provide as much detail as possible so we can accurately assess your needs. We will
+            review your information and contact you shortly. Thank you for choosing SC Tree Pros!
           </p>
         </div>
 
         {/* Form card */}
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-soft)] sm:p-8">
+        <div className="rounded-xl bg-white p-6 sm:p-8" style={{ border: "1px solid var(--border)", borderTopWidth: "3px", borderTopColor: "var(--brand-green)", boxShadow: "0 4px 24px rgba(27,94,53,0.12)" }}>
           {banner ? (
             <div
               className={[
@@ -434,7 +438,7 @@ export default function FreeEstimatePage() {
         </div>
 
         {/* What happens next */}
-        <div className="mt-8 rounded-xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-soft)]">
+        <div className="mt-8 rounded-xl bg-white p-6" style={{ borderTop: "3px solid var(--brand-green)", border: "1px solid var(--border)", borderTopWidth: "3px", borderTopColor: "var(--brand-green)", boxShadow: "0 4px 24px rgba(27,94,53,0.12)" }}>
           <h2 className="text-xl font-semibold text-[var(--text)]">What happens next</h2>
           <ul className="mt-3 grid gap-2.5 text-[var(--muted)] sm:grid-cols-2">
             {[
@@ -443,8 +447,8 @@ export default function FreeEstimatePage() {
               "We provide a clear scope + estimate",
               "We schedule a time that works for you",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <svg className="h-4 w-4 shrink-0 text-[var(--brand-accent)]" viewBox="0 0 20 20" fill="currentColor">
+              <li key={item} className="flex items-start gap-2">
+                <svg className="h-4 w-4 shrink-0 mt-0.5 text-[var(--brand-accent)]" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
                 <span>{item}</span>
