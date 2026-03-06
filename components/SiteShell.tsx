@@ -9,10 +9,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     <>
       <Header />
 
-      {/* Constrained site content */}
-      <div className="mx-auto w-full max-w-[1400px] px-3 sm:px-6">
-        {children}
-      </div>
+      {children}
 
       <Footer />
       <StickyEstimateButton />

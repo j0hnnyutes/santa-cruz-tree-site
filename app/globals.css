@@ -74,15 +74,15 @@ p a:hover {
   color: var(--brand-green);
 }
 
-/* Header nav links stay white; CTA button keeps its own green text */
+/* Header nav links — dark text on white header; CTA button keeps its own styles */
 header nav a,
 header .mobile-nav a {
-  color: #ffffff !important;
+  color: #1a1a2e !important;
 }
 
 header nav a:hover,
 header .mobile-nav a:hover {
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--brand-green) !important;
 }
 
 /* Footer links stay white, not brand-accent green */
@@ -240,4 +240,25 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 
 input[type="date"] {
   appearance: none;
+}
+
+/* ── Homepage section hover effects ── */
+.service-photo-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.13) !important;
+}
+.service-photo-card:hover .service-photo-card-img {
+  transform: scale(1.05);
+}
+.why-card-hover:hover {
+  border-color: var(--brand-accent) !important;
+  box-shadow: 0 4px 20px rgba(34,145,90,0.1) !important;
+}
+.city-pill-link:hover {
+  border-color: var(--brand-green) !important;
+  color: var(--brand-green) !important;
+}
+.faq-card-hover:hover {
+  box-shadow: 0 8px 28px rgba(27,94,53,0.12) !important;
+  transform: translateY(-2px);
 }

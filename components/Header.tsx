@@ -26,25 +26,29 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--header-bg)] shadow-md">
+    <header className="sticky top-0 z-50 bg-white shadow-md">
+      {/* Thin green accent bar at top */}
+      <div className="h-[3px] bg-[var(--brand-green)]" />
+
       <div className="site-container">
-        <div className="flex items-center justify-between h-[69px] sm:h-[77px]">
+        <div className="flex items-center justify-between h-[109px] sm:h-[119px]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <img
               src="/sctreepros-logo.svg"
               alt="Santa Cruz Tree Pros"
-              className="h-[58px] sm:h-[68px] w-auto object-contain brightness-0 invert"
+              className="h-[97px] sm:h-[109px] w-auto object-contain"
             />
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="max-md:hidden flex items-center gap-8">
             {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-lg font-medium text-white/90 hover:text-white transition-colors"
+                style={{ color: '#1a1a2e' }}
+                className="text-lg font-medium hover:text-[var(--brand-green)] transition-colors"
               >
                 {item.label}
               </Link>
@@ -55,14 +59,14 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <Link
               href="/free-estimate"
-              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-lg font-semibold text-[var(--brand-green)] hover:bg-white/90 transition-colors"
+              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[var(--brand-green)] px-4 py-2 text-lg font-semibold text-white hover:bg-[var(--brand-green-dark,#154d2b)] transition-colors"
             >
               Get Free Estimate
             </Link>
 
             <button
               type="button"
-              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-white/90 hover:text-white hover:bg-white/10 transition"
+              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-[var(--muted)] hover:text-[var(--brand-green)] hover:bg-[#f3f4f6] transition"
               aria-label="Open menu"
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
@@ -94,7 +98,7 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-base font-medium text-white/90 hover:bg-white/10 hover:text-white transition"
+                  className="rounded-lg px-3 py-2.5 text-base font-medium text-[#1a1a2e] hover:bg-[#f3f4f6] hover:text-[var(--brand-green)] transition"
                 >
                   {item.label}
                 </Link>
@@ -102,7 +106,7 @@ export default function Header() {
               <Link
                 href="/free-estimate"
                 onClick={() => setOpen(false)}
-                className="mt-2 rounded-lg bg-white px-3 py-2.5 text-center text-base font-semibold text-[var(--brand-green)]"
+                className="mt-2 rounded-lg bg-[var(--brand-green)] px-3 py-2.5 text-center text-base font-semibold text-white"
               >
                 Get Free Estimate
               </Link>
