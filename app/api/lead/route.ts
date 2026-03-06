@@ -284,21 +284,16 @@ export async function POST(request: Request) {
 
   const { fields, photoAttachments } = await parseRequest(request);
 
-  // Validate Turnstile token
+  // Validate Turnstile token — fail open so mobile users whose CAPTCHA
+  // widget errors (Cloudflare error 110200) can still submit the form.
   const turnstileToken = fields.turnstileToken ?? "";
-  if (!turnstileToken) {
-    return NextResponse.json(
-      { ok: false, errors: { turnstile: "CAPTCHA verification required." } },
-      { status: 400 }
-    );
-  }
-
-  const turnstileValid = await verifyTurnstile(turnstileToken);
-  if (!turnstileValid) {
-    return NextResponse.json(
-      { ok: false, errors: { turnstile: "CAPTCHA verification failed. Please try again." } },
-      { status: 400 }
-    );
+  if (turnstileToken) {
+    const turnstileValid = await verifyTurnstile(turnstileToken);
+    if (!turnstileValid) {
+      console.warn("Turnstile verification failed — processing lead anyway.");
+    }
+  } else {
+    console.warn("No Turnstile token provided — processing lead without CAPTCHA.");
   }
 
   // Parse & validate fields

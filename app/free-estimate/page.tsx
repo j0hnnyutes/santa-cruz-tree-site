@@ -73,6 +73,7 @@ export default function FreeEstimatePage() {
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const [tsToken, setTsToken] = useState<string>("");
+  const [tsError, setTsError] = useState(false);
   const [tsKeyMissing, setTsKeyMissing] = useState(false);
 
   useEffect(() => {
@@ -122,9 +123,9 @@ export default function FreeEstimatePage() {
     if (!address.trim()) e.address = "Address is required.";
     if (!city.trim()) e.city = "City is required.";
     if (!service) e.service = "Service is required.";
-    if (!tsToken) e.turnstile = "Please complete the CAPTCHA.";
+    if (!tsToken && !tsError) e.turnstile = "Please complete the CAPTCHA.";
     return e;
-  }, [fullName, phone, email, address, city, service, tsToken]);
+  }, [fullName, phone, email, address, city, service, tsToken, tsError]);
 
   function scrollToFirstInvalid(nextErrors: Errors) {
     const order = ["fullName", "phone", "email", "address", "city", "service", "turnstile"] as const;
@@ -424,7 +425,7 @@ export default function FreeEstimatePage() {
                   });
                 }}
                 onExpire={() => setTsToken("")}
-                onError={() => setTsToken("")}
+                onError={() => { setTsToken(""); setTsError(true); }}
               />
               {errors.turnstile ? <div className="mt-2 text-sm text-red-600">{errors.turnstile}</div> : null}
             </div>
