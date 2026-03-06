@@ -101,13 +101,13 @@ export default function ServiceAreaMap() {
     if (!document.querySelector('link[href*="leaflet"]')) {
       const css = document.createElement("link");
       css.rel = "stylesheet";
-      css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
       document.head.appendChild(css);
     }
 
     // Inject Leaflet JS then init
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
     script.onload = runInit;
     document.head.appendChild(script);
   }, []);

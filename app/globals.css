@@ -262,3 +262,116 @@ input[type="date"] {
   box-shadow: 0 8px 28px rgba(27,94,53,0.12) !important;
   transform: translateY(-2px);
 }
+
+/* ── Mobile CTA button in header dropdown — keep text white ── */
+header .mobile-nav a.mobile-cta-btn,
+header .mobile-nav a.mobile-cta-btn:hover {
+  color: #ffffff !important;
+}
+
+/* ── Homepage responsive grids ── */
+.hp-credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.hp-services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.hp-why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.hp-how-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+.hp-how-line {
+  display: block;
+  position: absolute;
+  top: 60px;
+  left: calc(12.5% + 12px);
+  right: calc(12.5% + 12px);
+  height: 2px;
+  background: rgba(134,239,172,0.25);
+  z-index: 0;
+}
+.hp-map-grid {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 56px;
+  align-items: center;
+}
+.hp-map-box {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  height: 460px;
+}
+.hp-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .hp-services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-why-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-how-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  .hp-how-line {
+    display: none;
+  }
+  .hp-map-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .hp-map-box {
+    height: 340px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hp-credentials-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-services-grid {
+    grid-template-columns: 1fr;
+  }
+  .hp-why-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hp-how-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .hp-faq-grid {
+    grid-template-columns: 1fr;
+  }
+  .hp-map-box {
+    height: 280px;
+  }
+}
+
+@media (max-width: 400px) {
+  .hp-credentials-grid {
+    grid-template-columns: 1fr;
+  }
+  .hp-why-grid {
+    grid-template-columns: 1fr;
+  }
+  .hp-how-grid {
+    grid-template-columns: 1fr;
+  }
+}

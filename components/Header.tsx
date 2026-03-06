@@ -106,7 +106,7 @@ export default function Header() {
               <Link
                 href="/free-estimate"
                 onClick={() => setOpen(false)}
-                className="mt-2 rounded-lg bg-[var(--brand-green)] px-3 py-2.5 text-center text-base font-semibold text-white"
+                className="mobile-cta-btn mt-2 rounded-lg bg-[var(--brand-green)] px-3 py-2.5 text-center text-base font-semibold text-white"
               >
                 Get Free Estimate
               </Link>

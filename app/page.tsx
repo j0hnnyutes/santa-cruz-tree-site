@@ -89,7 +89,7 @@ const WHY_ITEMS = [
 ];
 
 const HOW_STEPS = [
-  { num: "1", icon: "📞", title: "Contact Us", desc: "Call us or fill out our quick online form. We'll get back to you within a few hours to discuss your needs." },
+  { num: "1", icon: "📝", title: "Fill Out Our Form", desc: "Fill out our quick online form. We'll get back to you within a few hours to discuss your needs." },
   { num: "2", icon: "📋", title: "Free On-Site Estimate", desc: "We come to your property, assess the job in person, and provide a detailed written quote — no obligation." },
   { num: "3", icon: "📅", title: "Schedule Your Service", desc: "Pick a date that works for you. We handle all permits and logistics so you don't have to worry about a thing." },
   { num: "4", icon: "✅", title: "Sit Back & Relax", desc: "Our crew completes the job safely and efficiently, then leaves your property completely clean. Guaranteed." },
@@ -230,7 +230,7 @@ export default function HomePage() {
       {/* ── 2. CREDENTIALS STRIP ── */}
       <div style={{ background: "var(--brand-green-dark)" }}>
         <div className="site-container">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
+          <div className="hp-credentials-grid">
             {CREDENTIALS.map((c, i) => (
               <div key={c.title} style={{
                 padding: "24px 20px",
@@ -281,7 +281,7 @@ export default function HomePage() {
           </div>
 
           {/* Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div className="hp-services-grid">
             {SERVICES.map((s) => (
               <Link key={s.href + s.title} href={s.href} style={{ textDecoration: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{
@@ -339,7 +339,7 @@ export default function HomePage() {
               We combine local expertise, certified skill, and old-fashioned reliability to deliver results that speak for themselves.
             </p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+          <div className="hp-why-grid">
             {WHY_ITEMS.map((w) => (
               <div key={w.title} className="why-card-hover" style={{
                 background: "#fff",
@@ -380,13 +380,8 @@ export default function HomePage() {
           {/* Steps with connecting line */}
           <div style={{ position: "relative" }}>
             {/* Connecting line */}
-            <div style={{
-              position: "absolute", top: 60,
-              left: "calc(12.5% + 12px)", right: "calc(12.5% + 12px)",
-              height: 2, background: "rgba(134,239,172,0.25)",
-              zIndex: 0,
-            }} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, position: "relative", zIndex: 1 }}>
+            <div className="hp-how-line" />
+            <div className="hp-how-grid">
               {HOW_STEPS.map((s) => (
                 <div key={s.num} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "0 20px" }}>
                   <div style={{
@@ -411,7 +406,7 @@ export default function HomePage() {
       {/* ── 6. SERVICE AREA MAP ── */}
       <section style={{ background: "var(--bg-soft)", padding: "60px 0" }}>
         <div className="site-container">
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: 56, alignItems: "center" }}>
+          <div className="hp-map-grid">
             {/* Left: text + pills */}
             <div>
               <SectionTag>Where We Work</SectionTag>
@@ -446,11 +441,7 @@ export default function HomePage() {
             </div>
 
             {/* Right: map */}
-            <div style={{
-              borderRadius: 16, overflow: "hidden",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-              height: 460,
-            }}>
+            <div className="hp-map-box">
               <ServiceAreaMapWrapper />
             </div>
           </div>
@@ -472,7 +463,7 @@ export default function HomePage() {
           </div>
 
           {/* FAQ grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
+          <div className="hp-faq-grid">
             {FAQS.map((f) => (
               <div key={f.q} style={{
                 background: "#eef7f2",
