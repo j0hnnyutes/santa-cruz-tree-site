@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { useMemo, useRef, useState } from "react";
 
 type Errors = Record<string, string>;
 
@@ -72,13 +71,6 @@ export default function FreeEstimatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  const [tsToken, setTsToken] = useState<string>("");
-  const [tsError, setTsError] = useState(false);
-  const [tsKeyMissing, setTsKeyMissing] = useState(false);
-
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) setTsKeyMissing(true);
-  }, []);
 
   function handleFiles(incoming: File[]) {
     const errs: string[] = [];
@@ -123,12 +115,11 @@ export default function FreeEstimatePage() {
     if (!address.trim()) e.address = "Address is required.";
     if (!city.trim()) e.city = "City is required.";
     if (!service) e.service = "Service is required.";
-    if (!tsToken && !tsError) e.turnstile = "Please complete the CAPTCHA.";
     return e;
-  }, [fullName, phone, email, address, city, service, tsToken, tsError]);
+  }, [fullName, phone, email, address, city, service]);
 
   function scrollToFirstInvalid(nextErrors: Errors) {
-    const order = ["fullName", "phone", "email", "address", "city", "service", "turnstile"] as const;
+    const order = ["fullName", "phone", "email", "address", "city", "service"] as const;
     const firstKey = order.find((k) => nextErrors[k]);
     if (!firstKey) return;
     const el = document.querySelector(`[data-field="${firstKey}"]`) as HTMLElement | null;
@@ -158,7 +149,6 @@ export default function FreeEstimatePage() {
       fd.append("city", city.trim());
       fd.append("service", service);
       fd.append("details", details.trim());
-      fd.append("turnstileToken", tsToken);
       for (const photo of photos) {
         fd.append("photos", photo);
       }
@@ -175,7 +165,6 @@ export default function FreeEstimatePage() {
 
       setBanner({ kind: "ok", text: "Submitted! We'll follow up shortly." });
       setErrors({});
-      setTsToken("");
       setFullName("");
       setPhone("");
       setEmail("");
@@ -220,13 +209,6 @@ export default function FreeEstimatePage() {
               ].join(" ")}
             >
               {banner.text}
-            </div>
-          ) : null}
-
-          {tsKeyMissing ? (
-            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Missing <span className="font-mono text-xs">NEXT_PUBLIC_TURNSTILE_SITE_KEY</span> in{" "}
-              <span className="font-mono text-xs">.env.local</span>.
             </div>
           ) : null}
 
@@ -412,23 +394,6 @@ export default function FreeEstimatePage() {
 
             <p className="text-xs text-[var(--muted)]">* Required fields</p>
 
-            <div data-field="turnstile">
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY as string}
-                options={{ theme: "light" }}
-                onSuccess={(token) => {
-                  setTsToken(token);
-                  setErrors((prev) => {
-                    const copy = { ...prev };
-                    delete copy.turnstile;
-                    return copy;
-                  });
-                }}
-                onExpire={() => setTsToken("")}
-                onError={() => { setTsToken(""); setTsError(true); }}
-              />
-              {errors.turnstile ? <div className="mt-2 text-sm text-red-600">{errors.turnstile}</div> : null}
-            </div>
           </form>
         </div>
 
