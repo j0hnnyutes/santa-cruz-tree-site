@@ -91,3 +91,10 @@ model FormEvent {
   @@index([eventType, createdAt])
   @@index([sessionId, createdAt])
 }
+
+// Key-value store for admin configuration (e.g. password hash override)
+model AdminConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

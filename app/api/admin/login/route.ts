@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createHmac } from "crypto";
 import { newCsrfToken } from "@/lib/adminCsrf";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type AdminConfigRow = { key: string; value: string };
+
+async function getAdminConfigValue(key: string): Promise<string | null> {
+  try {
+    const rows = await prisma.$queryRaw<AdminConfigRow[]>(
+      Prisma.sql`SELECT key, value FROM AdminConfig WHERE key = ${key} LIMIT 1`
+    );
+    return rows[0]?.value ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const ADMIN_SESSION_COOKIE = "admin_session";
 const ADMIN_CSRF_COOKIE = "admin_csrf";
@@ -73,7 +88,9 @@ export async function POST(req: NextRequest) {
       ? body.next
       : "/admin/leads";
 
-  const hash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
+  // Check DB for password hash override first, then fall back to env var
+  const dbHash = await getAdminConfigValue("password_hash");
+  const hash = (dbHash || process.env.ADMIN_PASSWORD_HASH || "").trim();
   const secret = (process.env.ADMIN_SESSION_SECRET || "").trim();
 
   if (!hash || !secret) {
