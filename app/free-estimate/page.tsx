@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 type Errors = Record<string, string>;
 
@@ -71,6 +72,18 @@ export default function FreeEstimatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
+  const [tsToken, setTsToken] = useState("");
+  // isMobile starts true (SSR-safe default) so Turnstile is never rendered
+  // until we confirm the device is desktop.
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   function handleFiles(incoming: File[]) {
     const errs: string[] = [];
@@ -115,11 +128,12 @@ export default function FreeEstimatePage() {
     if (!address.trim()) e.address = "Address is required.";
     if (!city.trim()) e.city = "City is required.";
     if (!service) e.service = "Service is required.";
+    if (!isMobile && !tsToken) e.turnstile = "Please complete the CAPTCHA.";
     return e;
-  }, [fullName, phone, email, address, city, service]);
+  }, [fullName, phone, email, address, city, service, isMobile, tsToken]);
 
   function scrollToFirstInvalid(nextErrors: Errors) {
-    const order = ["fullName", "phone", "email", "address", "city", "service"] as const;
+    const order = ["fullName", "phone", "email", "address", "city", "service", "turnstile"] as const;
     const firstKey = order.find((k) => nextErrors[k]);
     if (!firstKey) return;
     const el = document.querySelector(`[data-field="${firstKey}"]`) as HTMLElement | null;
@@ -149,6 +163,7 @@ export default function FreeEstimatePage() {
       fd.append("city", city.trim());
       fd.append("service", service);
       fd.append("details", details.trim());
+      fd.append("turnstileToken", tsToken);
       for (const photo of photos) {
         fd.append("photos", photo);
       }
@@ -165,6 +180,7 @@ export default function FreeEstimatePage() {
 
       setBanner({ kind: "ok", text: "Submitted! We'll follow up shortly." });
       setErrors({});
+      setTsToken("");
       setFullName("");
       setPhone("");
       setEmail("");
@@ -393,6 +409,26 @@ export default function FreeEstimatePage() {
             </button>
 
             <p className="text-xs text-[var(--muted)]">* Required fields</p>
+
+            {/* Turnstile — desktop only. On mobile the script triggers a
+                Cloudflare challenge error (110200) before React can handle it. */}
+            {!isMobile && (
+              <div data-field="turnstile">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY as string}
+                  options={{ theme: "light" }}
+                  onSuccess={(token) => {
+                    setTsToken(token);
+                    setErrors((prev) => { const c = { ...prev }; delete c.turnstile; return c; });
+                  }}
+                  onExpire={() => setTsToken("")}
+                  onError={() => setTsToken("")}
+                />
+                {errors.turnstile && (
+                  <div className="mt-2 text-sm text-red-600">{errors.turnstile}</div>
+                )}
+              </div>
+            )}
 
           </form>
         </div>
