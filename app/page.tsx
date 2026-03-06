@@ -1,6 +1,6 @@
 // app/page.tsx
 import Link from "next/link";
-import ServiceAreaSVGMap from "@/components/ServiceAreaSVGMap";
+import ServiceAreaMapWrapper from "@/components/ServiceAreaMapWrapper";
 
 export const metadata = {
   title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
@@ -440,9 +440,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: static SVG map */}
+            {/* Right: map */}
             <div className="hp-map-box">
-              <ServiceAreaSVGMap />
+              <ServiceAreaMapWrapper />
             </div>
           </div>
         </div>
