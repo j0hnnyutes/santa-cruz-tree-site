@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import AdminLeadsTableClient from "@/components/AdminLeadsTableClient";
+import AdminNav from "@/components/AdminNav";
 
 export const metadata = {
   title: "Leads",
@@ -43,28 +44,31 @@ export default async function AdminLeadsPage() {
   });
 
   return (
-    <main className="site-container py-10 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">
-            Leads
-          </h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Click a lead to view full details.
-          </p>
+    <>
+      <AdminNav />
+      <main className="site-container py-10 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">
+              Leads
+            </h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Click a lead to view full details.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/api/admin/leads/export"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--brand-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
+            >
+              Export CSV
+            </Link>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/api/admin/leads/export"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--brand-green)] px-5 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
-          >
-            Export CSV
-          </Link>
-        </div>
-      </div>
-
-      <AdminLeadsTableClient initialLeads={leadsWithPhotos as any} />
-    </main>
+        <AdminLeadsTableClient initialLeads={leadsWithPhotos as any} />
+      </main>
+    </>
   );
 }

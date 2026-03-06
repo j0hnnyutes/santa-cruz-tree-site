@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { useFormEventTracker } from "@/lib/formEventTracker";
 
 type Errors = Record<string, string>;
 
@@ -55,8 +57,13 @@ function isAcceptedType(file: File) {
 }
 
 export default function FreeEstimatePage() {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const submittedRef = useRef(false);
+
+  const { trackStart, trackFieldError, trackAbandoned, trackSubmitted } =
+    useFormEventTracker();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -78,11 +85,23 @@ export default function FreeEstimatePage() {
   const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
+    trackStart();
     const mq = window.matchMedia("(max-width: 768px)");
     setIsMobile(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+
+    const handleBeforeUnload = () => {
+      if (!submittedRef.current) {
+        trackAbandoned();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      mq.removeEventListener("change", handler);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, []);
 
   function handleFiles(incoming: File[]) {
@@ -149,6 +168,8 @@ export default function FreeEstimatePage() {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
+      const firstKey = Object.keys(nextErrors)[0];
+      trackFieldError(firstKey);
       scrollToFirstInvalid(nextErrors);
       return;
     }
@@ -178,19 +199,9 @@ export default function FreeEstimatePage() {
         return;
       }
 
-      setBanner({ kind: "ok", text: "Submitted! We'll follow up shortly." });
-      setErrors({});
-      setTsToken("");
-      setFullName("");
-      setPhone("");
-      setEmail("");
-      setAddress("");
-      setCity("");
-      setService("");
-      setDetails("");
-      setPhotos([]);
-      setPhotoErrors([]);
-      formRef.current?.reset();
+      submittedRef.current = true;
+      trackSubmitted();
+      router.push("/thank-you");
     } catch {
       setBanner({ kind: "err", text: "Something went wrong. Please try again." });
     } finally {

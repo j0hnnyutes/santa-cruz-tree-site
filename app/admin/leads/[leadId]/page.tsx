@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import AdminNotesEditor from "@/components/AdminNotesEditor";
+import AdminNav from "@/components/AdminNav";
 import { readdir } from "fs/promises";
 import path from "path";
 
@@ -80,12 +81,15 @@ export default async function LeadDetailPage({
 
   if (!lead) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <a className="text-sm underline" href="/admin/leads">
-          &larr; Back to leads
-        </a>
-        <h1 className="mt-4 text-2xl font-semibold">Lead not found</h1>
-      </main>
+      <>
+        <AdminNav />
+        <main className="mx-auto max-w-3xl px-6 py-10">
+          <a className="text-sm underline" href="/admin/leads">
+            &larr; Back to leads
+          </a>
+          <h1 className="mt-4 text-2xl font-semibold">Lead not found</h1>
+        </main>
+      </>
     );
   }
 
@@ -109,10 +113,12 @@ export default async function LeadDetailPage({
   const statusColor = STATUS_COLORS[lead.status] || "bg-neutral-100 text-neutral-600";
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
-      <a className="text-sm underline text-neutral-500 hover:text-neutral-800" href="/admin/leads">
-        &larr; Back to leads
-      </a>
+    <>
+      <AdminNav />
+      <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+        <a className="text-sm underline text-neutral-500 hover:text-neutral-800" href="/admin/leads">
+          &larr; Back to leads
+        </a>
 
       {/* Lead header */}
       <div className="rounded-xl border border-neutral-200 bg-white p-6">
@@ -253,6 +259,7 @@ export default async function LeadDetailPage({
           </div>
         </div>
       ) : null}
-    </main>
+      </main>
+    </>
   );
 }

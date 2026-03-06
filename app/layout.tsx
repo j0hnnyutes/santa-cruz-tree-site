@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import SiteShell from "@/components/SiteShell";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import SiteAnalytics from "@/components/SiteAnalytics";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://santacruztreepros.com"),
@@ -16,7 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen bg-[var(--bg-soft)] text-[var(--text)] antialiased">
-        <SiteShell>{children}</SiteShell>
+        <ErrorBoundary>
+          <SiteShell>{children}</SiteShell>
+          <SiteAnalytics />
+        </ErrorBoundary>
       </body>
     </html>
   );

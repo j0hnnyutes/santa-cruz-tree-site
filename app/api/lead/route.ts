@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
+import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
@@ -408,6 +409,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, leadId: lead.leadId }, { status: 200 });
   } catch (err) {
     console.error("POST /api/lead error:", err);
+    logError(request, {
+      severity: "error",
+      type: "server_api",
+      message: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/lead",
+    });
     return NextResponse.json(
       { ok: false, error: "Server error creating lead." },
       { status: 500 }

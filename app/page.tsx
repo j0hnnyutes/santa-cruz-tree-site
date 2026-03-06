@@ -91,7 +91,7 @@ const WHY_ITEMS = [
 const HOW_STEPS = [
   { num: "1", icon: "📝", title: "Fill Out Our Form", desc: "Fill out our quick online form. We'll get back to you within a few hours to discuss your needs." },
   { num: "2", icon: "📋", title: "Free On-Site Estimate", desc: "We come to your property, assess the job in person, and provide a detailed written quote — no obligation." },
-  { num: "3", icon: "📅", title: "Schedule Your Service", desc: "Pick a date that works for you. We handle all permits and logistics so you don't have to worry about a thing." },
+  { num: "3", icon: "📅", title: "Schedule Your Service", desc: "Pick a date that works for you. We handle all the logistics so you don't have to worry about a thing." },
   { num: "4", icon: "✅", title: "Sit Back & Relax", desc: "Our crew completes the job safely and efficiently, then leaves your property completely clean. Guaranteed." },
 ];
 
@@ -545,8 +545,8 @@ export default function HomePage() {
 
       {/* ── 8. CTA BAND ── */}
       <section style={{
-        background: "linear-gradient(105deg, var(--brand-green-dark) 0%, var(--brand-green) 100%)",
-        padding: "72px 24px",
+        background: "var(--header-bg)",
+        padding: "72px 24px 96px",
         textAlign: "center",
         position: "relative",
         overflow: "hidden",

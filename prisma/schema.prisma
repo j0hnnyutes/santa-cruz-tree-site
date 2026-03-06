@@ -47,3 +47,47 @@ model LeadEvent {
 
   @@index([leadId, createdAt])
 }
+
+model ErrorLog {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  severity   String   // "error" | "warning" | "critical"
+  type       String   // "client_js" | "server_api" | "form_validation" | "rate_limit" | "auth" | etc.
+  message    String
+  stack      String?
+  path       String?
+  ip         String?
+  userAgent  String?
+  metadata   String?  // JSON string
+
+  @@index([createdAt])
+  @@index([severity, createdAt])
+  @@index([type, createdAt])
+}
+
+model PageView {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  path      String
+  referrer  String?
+  ip        String?
+  userAgent String?
+  sessionId String?
+  duration  Int?     // milliseconds on page
+
+  @@index([createdAt])
+  @@index([path, createdAt])
+  @@index([sessionId, createdAt])
+}
+
+model FormEvent {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  sessionId String?
+  eventType String   // "STARTED" | "FIELD_ERROR" | "ABANDONED" | "SUBMITTED"
+  fieldName String?
+  metadata  String?  // JSON string
+
+  @@index([eventType, createdAt])
+  @@index([sessionId, createdAt])
+}

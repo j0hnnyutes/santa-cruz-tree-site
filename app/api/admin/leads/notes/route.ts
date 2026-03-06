@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAdminCsrf } from "@/lib/adminCsrf";
+import { logError } from "@/lib/logError";
 
 export async function POST(request: NextRequest) {
   const csrf = verifyAdminCsrf(request);
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     console.error("POST /api/admin/leads/notes error:", err);
+    logError(request, {
+      severity: "error",
+      type: "server_api",
+      message: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/admin/leads/notes",
+    });
     return NextResponse.json(
       { ok: false, error: "Server error saving notes." },
       { status: 500 }

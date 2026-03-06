@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAdminCsrf } from "@/lib/adminCsrf";
+import { logError } from "@/lib/logError";
 
 function toStr(v: unknown) {
   return typeof v === "string" ? v : v == null ? "" : String(v);
@@ -79,6 +80,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     console.error("POST /api/admin/leads/set-status error:", err);
+    logError(request, {
+      severity: "error",
+      type: "server_api",
+      message: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/admin/leads/set-status",
+    });
     return NextResponse.json(
       { ok: false, error: "Server error updating status." },
       { status: 500 }
