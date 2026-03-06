@@ -1,6 +1,5 @@
 // app/page.tsx
 import Link from "next/link";
-import ServiceAreaMapWrapper from "@/components/ServiceAreaMapWrapper";
 
 export const metadata = {
   title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
@@ -157,12 +156,12 @@ export default function HomePage() {
     <main>
 
       {/* ── 1. HERO ── */}
-      <section style={{ position: "relative", minHeight: "88vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
+      <section style={{ position: "relative", minHeight: "93vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
         {/* Background image */}
         <img
           src="/assets/tree-removal-with-crane.webp"
           alt="Professional tree removal in Santa Cruz County"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%" }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 55%" }}
         />
         {/* Gradient overlay */}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, rgba(10,30,15,0.82) 0%, rgba(10,30,15,0.55) 60%, rgba(10,30,15,0.2) 100%)" }} />
@@ -440,9 +439,66 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: map */}
-            <div className="hp-map-box">
-              <ServiceAreaMapWrapper />
+            {/* Right: coverage card */}
+            <div className="hp-map-box" style={{
+              background: "linear-gradient(145deg, var(--brand-green-dark) 0%, var(--brand-green) 100%)",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "48px 40px", textAlign: "center", gap: 0,
+            }}>
+              {/* Big icon */}
+              <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 20 }}>🌲</div>
+
+              <div style={{
+                color: "#86efad", fontSize: 12, fontWeight: 700,
+                letterSpacing: "0.12em", textTransform: "uppercase",
+                marginBottom: 12,
+              }}>
+                Service Coverage
+              </div>
+
+              <h3 style={{
+                color: "#fff", fontSize: "clamp(22px, 2.5vw, 30px)",
+                fontWeight: 800, lineHeight: 1.2, marginBottom: 8,
+              }}>
+                All of Santa Cruz County
+              </h3>
+              <p style={{
+                color: "rgba(255,255,255,0.65)", fontSize: 15,
+                lineHeight: 1.6, marginBottom: 32, maxWidth: 320,
+              }}>
+                Coast to mountains — from Monterey to Boulder Creek, we come to you.
+              </p>
+
+              {/* City grid */}
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr",
+                gap: "10px 20px", width: "100%", maxWidth: 340,
+              }}>
+                {CITIES.map((city) => (
+                  <div key={city} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 500,
+                  }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: "#86efad", flexShrink: 0,
+                    }} />
+                    {city}
+                  </div>
+                ))}
+              </div>
+
+              <Link href="/service-areas" style={{
+                marginTop: 32,
+                display: "inline-flex", alignItems: "center",
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff", fontSize: 14, fontWeight: 600,
+                padding: "10px 22px", borderRadius: 8, textDecoration: "none",
+              }}>
+                View All Service Areas →
+              </Link>
             </div>
           </div>
         </div>
