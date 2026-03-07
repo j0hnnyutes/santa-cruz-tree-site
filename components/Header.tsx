@@ -31,13 +31,13 @@ export default function Header() {
       <div className="h-[3px] bg-[var(--brand-green)]" />
 
       <div className="site-container">
-        <div className="flex items-center justify-between h-[109px] sm:h-[119px]">
+        <div className="flex items-center justify-between h-[68px] sm:h-[76px]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <img
               src="/sctreepros-logo.svg"
               alt="Santa Cruz Tree Pros"
-              className="h-[97px] sm:h-[109px] w-auto object-contain"
+              className="h-[58px] sm:h-[66px] w-auto object-contain"
             />
           </Link>
 
@@ -48,7 +48,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 style={{ color: '#1a1a2e' }}
-                className="text-lg font-medium hover:text-[var(--brand-green)] transition-colors"
+                className="text-sm font-medium hover:text-[var(--brand-green)] transition-colors"
               >
                 {item.label}
               </Link>
@@ -59,7 +59,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <Link
               href="/free-estimate"
-              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[var(--brand-green)] px-4 py-2 text-lg font-semibold text-white hover:bg-[var(--brand-green-dark,#154d2b)] transition-colors"
+              className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[var(--brand-green)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-green-dark,#154d2b)] transition-colors"
             >
               Get Free Estimate
             </Link>

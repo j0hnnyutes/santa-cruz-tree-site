@@ -220,7 +220,7 @@ export default function FreeEstimatePage() {
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Get a Free Estimate</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Get a Free Estimate</h1>
           <p className="mt-2 text-[var(--muted)]">
             Thank you for your interest in SC Tree Pros! To provide you with an accurate quote tailored to your
             specific needs, please take a moment to complete the form below, provide specific details, and include
@@ -250,7 +250,7 @@ export default function FreeEstimatePage() {
             {/* Row 1: Name + Phone */}
             <div className="grid gap-5 sm:grid-cols-2">
               <label data-field="fullName" className="block">
-                <span className="text-lg font-medium text-[var(--text)]">Full Name *</span>
+                <span className="text-sm font-medium text-[var(--text)]">Full Name *</span>
                 <input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -261,7 +261,7 @@ export default function FreeEstimatePage() {
               </label>
 
               <label data-field="phone" className="block">
-                <span className="text-lg font-medium text-[var(--text)]">Phone *</span>
+                <span className="text-sm font-medium text-[var(--text)]">Phone *</span>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(formatPhoneUS(e.target.value))}
@@ -276,7 +276,7 @@ export default function FreeEstimatePage() {
 
             {/* Row 2: Email — full width */}
             <label data-field="email" className="block">
-              <span className="text-lg font-medium text-[var(--text)]">Email *</span>
+              <span className="text-sm font-medium text-[var(--text)]">Email *</span>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -289,7 +289,7 @@ export default function FreeEstimatePage() {
 
             {/* Row 3: Address — full width */}
             <label data-field="address" className="block">
-              <span className="text-lg font-medium text-[var(--text)]">Address *</span>
+              <span className="text-sm font-medium text-[var(--text)]">Address *</span>
               <input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
@@ -303,7 +303,7 @@ export default function FreeEstimatePage() {
             {/* Row 4: City + Service */}
             <div className="grid gap-5 sm:grid-cols-2">
               <label data-field="city" className="block">
-                <span className="text-lg font-medium text-[var(--text)]">City *</span>
+                <span className="text-sm font-medium text-[var(--text)]">City *</span>
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
@@ -314,7 +314,7 @@ export default function FreeEstimatePage() {
               </label>
 
               <label data-field="service" className="block">
-                <span className="text-lg font-medium text-[var(--text)]">Service Needed *</span>
+                <span className="text-sm font-medium text-[var(--text)]">Service Needed *</span>
                 <select
                   value={service}
                   onChange={(e) => setService(e.target.value as any)}
@@ -331,7 +331,7 @@ export default function FreeEstimatePage() {
 
             {/* Details */}
             <label className="block">
-              <span className="text-lg font-medium text-[var(--text)]">Details (optional)</span>
+              <span className="text-sm font-medium text-[var(--text)]">Details (optional)</span>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
@@ -343,7 +343,7 @@ export default function FreeEstimatePage() {
 
             {/* Photo upload */}
             <div>
-              <span className="text-lg font-medium text-[var(--text)]">Photos (optional)</span>
+              <span className="text-sm font-medium text-[var(--text)]">Photos (optional)</span>
               <p className="mt-0.5 text-xs text-[var(--muted)]">
                 Up to {MAX_PHOTOS} photos &middot; {MAX_MB} MB each &middot; JPG, PNG, HEIC, WebP, or TIFF
               </p>
