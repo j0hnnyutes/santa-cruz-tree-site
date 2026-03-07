@@ -552,10 +552,10 @@ export default function HomePage() {
         overflow: "hidden",
       }}>
         <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
-          <h2 style={{ fontSize: "clamp(28px, 3.5vw, 44px)", fontWeight: 800, color: "#fff", marginBottom: 14, letterSpacing: "-0.02em" }}>
+          <h2 style={{ fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 800, color: "#fff", marginBottom: 14, letterSpacing: "-0.02em" }}>
             Ready to Get Started?
           </h2>
-          <p style={{ fontSize: 18, color: "rgba(255,255,255,0.78)", marginBottom: 36, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.78)", marginBottom: 28, lineHeight: 1.6 }}>
             Get a free, no-obligation estimate from Santa Cruz&apos;s most trusted tree care team. We respond within 24 hours.
           </p>
           <Link
@@ -563,8 +563,8 @@ export default function HomePage() {
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               background: "#fff", color: "var(--brand-green)",
-              padding: "15px 36px", borderRadius: 8,
-              fontSize: 18, fontWeight: 700, textDecoration: "none",
+              padding: "10px 22px", borderRadius: 8,
+              fontSize: 15, fontWeight: 700, textDecoration: "none",
             }}
           >
             Get Your Free Estimate
