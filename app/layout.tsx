@@ -1,11 +1,16 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import SiteShell from "@/components/SiteShell";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SiteAnalytics from "@/components/SiteAnalytics";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://santacruztreepros.com"),
