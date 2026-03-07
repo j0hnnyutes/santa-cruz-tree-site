@@ -30,7 +30,7 @@ export function FaqBlock({ items }: { items: readonly { q: string; a: string }[]
           key={f.q}
           className="group rounded-xl border border-[var(--border)] bg-white p-5 shadow-sm"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-xl font-semibold text-[var(--text)]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-[var(--text)]">
             <span>{f.q}</span>
             <ChevronDown />
           </summary>
@@ -80,7 +80,7 @@ export function InfoCard({
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-6 shadow-sm">
-      <div className="text-xl font-semibold text-[var(--text)]">{title}</div>
+      <div className="text-base font-semibold text-[var(--text)]">{title}</div>
       <p className="mt-2 text-[var(--muted)] leading-6">{children}</p>
     </div>
   );
@@ -96,7 +96,7 @@ export function BulletListCard({
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-6 shadow-sm">
-      <div className="text-xl font-semibold text-[var(--text)]">{title}</div>
+      <div className="text-base font-semibold text-[var(--text)]">{title}</div>
       <ul className="mt-3 grid gap-2 text-[var(--muted)] sm:grid-cols-2">
         {items.map((item) => (
           <li key={item} className="flex items-start gap-2">

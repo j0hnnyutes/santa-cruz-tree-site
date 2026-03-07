@@ -499,7 +499,7 @@ export default function HomePage() {
                       </svg>
                     </div>
                     <h3 style={{
-                      fontSize: 19, fontWeight: 700, color: "var(--text)",
+                      fontSize: 15, fontWeight: 700, color: "var(--text)",
                       lineHeight: 1.35, margin: 0, paddingTop: 6,
                     }}>
                       {f.q}
