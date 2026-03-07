@@ -20,14 +20,14 @@ export default function ServiceCta({
   return (
     <section className="mt-12 rounded-xl bg-[var(--brand-green)] px-6 py-8 sm:px-8 sm:py-10">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight text-white">{heading}</h2>
+        <h2 className="text-xl font-bold tracking-tight text-white">{heading}</h2>
         <p className="leading-7 text-white/80">{body}</p>
       </div>
 
       <div className="mt-6">
         <Link
           href={primaryHref}
-          className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-lg font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
+          className="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-green)] hover:bg-white/90 transition shadow-sm"
         >
           {primaryLabel}
         </Link>
