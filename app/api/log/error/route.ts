@@ -22,7 +22,17 @@ export async function POST(request: Request) {
       body = {};
     }
 
-    const { severity, type, message, stack, path } = body;
+    const { severity, type, message, stack, path, metadata } = body;
+
+    // Safely serialise any client-supplied metadata
+    let metadataStr: string | null = null;
+    if (metadata !== undefined && metadata !== null) {
+      try {
+        metadataStr = JSON.stringify(metadata);
+      } catch {
+        metadataStr = null;
+      }
+    }
 
     // Write to database (fire-and-forget)
     (prisma as any).errorLog
@@ -35,7 +45,7 @@ export async function POST(request: Request) {
           path: path || null,
           ip: getClientIp(request),
           userAgent: request.headers.get("user-agent"),
-          metadata: null,
+          metadata: metadataStr,
         },
       })
       .catch((err: unknown) => console.error("Failed to log error:", err));

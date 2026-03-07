@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/logError";
 
 export async function GET(request: Request) {
   const isAuthed = await isAdminAuthenticated();
@@ -144,6 +145,13 @@ export async function GET(request: Request) {
     );
   } catch (err: unknown) {
     console.error("GET /api/admin/stats error:", err);
+    logError(request, {
+      severity: "error",
+      type: "server_api",
+      message: err instanceof Error ? err.message : "Server error fetching stats",
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/admin/stats",
+    });
     return NextResponse.json(
       { ok: false, error: "Server error fetching stats" },
       { status: 500 }

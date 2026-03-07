@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { logError } from "@/lib/logError";
 import { Prisma } from "@prisma/client";
 
 const MIN_LENGTH = 10;
@@ -77,6 +78,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, message: "Password updated successfully." });
   } catch (err: any) {
     console.error("[change-password] Unexpected error:", err);
+    logError(req, {
+      severity: "error",
+      type: "server_api",
+      message: err instanceof Error ? err.message : "Unexpected error in change-password",
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/admin/change-password",
+    });
     return NextResponse.json(
       { ok: false, error: "Internal server error. Please try again." },
       { status: 500 }

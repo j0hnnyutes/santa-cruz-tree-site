@@ -5,6 +5,7 @@ import Script from "next/script";
 import SiteShell from "@/components/SiteShell";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SiteAnalytics from "@/components/SiteAnalytics";
+import GlobalErrorTracker from "@/components/GlobalErrorTracker";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         )}
+        <GlobalErrorTracker />
         <ErrorBoundary>
           <SiteShell>{children}</SiteShell>
           <SiteAnalytics />
