@@ -5,6 +5,130 @@
 
 ---
 
+## Build History
+
+A chronological record of what was built and when. "Phase 1" was completed via ChatGPT prior to handoff. "Phase 2+" was completed via Claude (Cowork).
+
+### Phase 1 — Initial Build (ChatGPT)
+
+**Project setup & infrastructure**
+- Next.js 16 App Router project scaffolded with TypeScript, Tailwind CSS v4
+- Prisma ORM configured against Neon serverless PostgreSQL
+- Deployed to Vercel with environment variables wired up
+- `robots.ts` for auto-generated robots.txt
+- `sitemap.ts` for auto-generated XML sitemap (initial version)
+- Brand color system, CSS variables, `site-container` layout utility, responsive grid helpers
+- Apple icon and favicon
+
+**Frontend — public site**
+- Full homepage: hero, credentials bar, services photo grid, "Why Choose Us", "How It Works" 4-step process, interactive SVG service area map, FAQ grid, CTA band
+- 5 service pages (tree removal, trimming, stump grinding, emergency, arborist consulting) — shared `ServicePageKit` component with hero, description sections, related services, FAQ block, `ServiceCta`
+- 11 service area pages (Santa Cruz, Capitola, Soquel, Aptos, Watsonville, Scotts Valley, Live Oak, Felton, Boulder Creek, Ben Lomond, Monterey)
+- `/services` index page
+- `/service-areas` index page with interactive SVG county map
+- `/contact` page
+- `/privacy-policy` page
+- `/thank-you` page (post-form confirmation)
+- Sticky header: logo, desktop nav (Services, Service Areas, Free Estimate), mobile hamburger with animated open/close, Escape key to close, "Get Free Estimate" CTA button
+- Footer: brand column, services links, company links, privacy policy, copyright
+- `StickyEstimateButton` — floating CTA that appears on scroll
+- `HeroCarousel` — image carousel component
+- `ServiceAreaMap` / `ServiceAreaMapWrapper` / `ServiceAreaSVGMap` — interactive SVG county map with city labels
+- `ServiceCta` — shared "Request a Free Estimate" + "Call Now" CTA component used across all service/area pages
+- `AccentCardLink` — reusable accent-bordered link card
+- `ErrorBoundary` — client-side React error boundary
+- `SiteAnalytics` — analytics tracking component
+
+**Free Estimate form (`/free-estimate`)**
+- Fields: Full Name, Phone, Email, Address, City, Service (dropdown), Additional Details
+- Cloudflare Turnstile CAPTCHA integration (client + server-side verification)
+- Client-side field validation with per-field inline error messages
+- Ordered focus on first error field
+- Async submit to `/api/lead` with success/error states
+
+**Backend & database**
+- PostgreSQL schema via Prisma: `Lead`, `LeadEvent` (audit trail), `ErrorLog` models
+- `LeadStatus` enum: NEW, CONTACTED, CLOSED, ARCHIVED
+- `/api/lead` — full lead submission pipeline: validation → Turnstile verification → duplicate check → DB write → LeadEvent audit record → email notification
+- `/api/log` — client-side error ingestion endpoint
+- Email notification via Resend: HTML template with all lead fields, click-to-call phone link
+- HTTP-only session cookie admin auth with `bcryptjs` password hashing
+- `/api/admin/login` and `/api/admin/logout`
+- `/api/admin/leads` — paginated, searchable, filterable lead list
+- `/api/admin/leads/export` — CSV export
+- `/api/admin/leads/set-status` — lead status update
+- `/api/admin/analytics` — traffic and lead analytics
+- `/api/admin/analytics/stats` — dashboard summary stats
+- `/api/admin/errors` — error log API
+- `/api/admin/change-password` — password update
+- `/api/admin/debug-env` — environment diagnostics (dev)
+
+**Admin dashboard**
+- `/admin/leads` — paginated leads table: search, status filter, sort, duplicate flag, status badges, CSV export button
+- `/admin/leads/[leadId]` — lead detail: full info, status controls, auto-saving notes editor, full audit trail, click-to-call
+- `/admin/analytics` — lead volume over time, device breakdown, top services, top cities
+- `/admin/errors` — error log viewer with severity/type filters
+- `/admin/settings` — password change
+- `/admin/dashboard` — summary dashboard
+- `AdminNav`, `AdminLeadsTableClient`, `AdminAnalyticsClient`, `AdminErrorsClient`, `AdminNotesEditor` components
+
+**SEO (initial)**
+- Per-page `<title>` and `<meta description>` on all public pages
+- OpenGraph tags on all pages
+- Initial sitemap covering homepage, free-estimate, services, service areas, 5 service pages, 11 city pages
+
+---
+
+### Phase 2 — Polish & SEO (Claude)
+
+**Bug fixes**
+- Fixed lead email: changed `sendLeadNotification()` to `await sendLeadNotification()` (was fire-and-forget, caused emails to not send on Vercel's serverless functions)
+- Verified duplicate lead detection working correctly via direct DB query
+
+**Cross-browser rendering fix**
+- Diagnosed Safari vs Chrome size difference: Safari's CoreText renders `system-ui` (SF Pro) visually larger than Chrome
+- Switched from `system-ui` to Inter via `next/font/google` — self-hosted at build time, zero FOUT, consistent across all browsers
+
+**Site-wide sizing pass**
+- Base font: `16px → 15px`
+- Header height tuned: final `h-[104px] sm:h-[112px]`
+- Nav link text: final `text-[1rem]`
+- Hero H1: `clamp(38px,5.5vw,68px) → clamp(28px,4vw,50px)`
+- Hero body/buttons reduced
+- All section H2s: `clamp(26px,3.5vw,40px) → clamp(20px,2.5vw,30px)`
+- All section subtext: `17px → 15px`
+- ServiceCta: heading `text-2xl → text-xl`, button `text-lg → text-sm`
+- FAQ questions on service pages: `text-xl → text-base`
+- Homepage FAQ questions: `19px → 14px`
+
+**Sitemap additions**
+- Added `/contact` (priority 0.6) and `/privacy-policy` (priority 0.3)
+
+**SEO — structured data**
+- Added `LocalBusiness` + `HomeAndConstructionBusiness` JSON-LD to homepage (address, geo, hours, area served 11 cities, offer catalog 5 services)
+
+---
+
+### Phase 3 — Blog (Claude)
+
+- `lib/markdown.ts` — zero-dependency pure-TypeScript markdown → HTML renderer
+- `lib/blog.ts` — frontmatter parser and post reader using Node.js `fs` (no external packages)
+- `/blog` listing page — category-color-coded cards, read time, publish date, CSS hover effects
+- `/blog/[slug]` article pages — dark hero, breadcrumb, category tag, metadata, formatted body, inline CTA block
+- Blog added to header nav (desktop + mobile) and footer
+- Blog + all article URLs added to sitemap (with per-article `lastModified` from frontmatter date)
+- `blog-body` CSS typography system (headings, paragraphs, lists, links, blockquotes, hr)
+- 12 SEO-optimized articles at launch (see article table in [Blog section](#blog))
+- `BlogPosting` JSON-LD structured data on every article page
+- `article:published_time` in OpenGraph on article pages
+- Twitter Card metadata on blog listing and article pages
+- Canonical URLs on all blog pages
+- Mobile-responsive hero padding via `clamp()` on both blog pages
+- `FEATURES.md` — this document (auto-maintained going forward)
+- `LAUNCH_CHECKLIST.md` — pre-launch and post-launch task tracker
+
+---
+
 ## Table of Contents
 1. [Tech Stack](#tech-stack)
 2. [Pages & Routes](#pages--routes)
