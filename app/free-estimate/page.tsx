@@ -149,9 +149,9 @@ export default function FreeEstimatePage() {
     if (!address.trim()) e.address = "Address is required.";
     if (!city.trim()) e.city = "City is required.";
     if (!service) e.service = "Service is required.";
-    // Turnstile temporarily disabled
+    // Invisible Turnstile — no user action required, token arrives automatically
     return e;
-  }, [fullName, phone, email, address, city, service, isMobile, tsToken]);
+  }, [fullName, phone, email, address, city, service]);
 
   function scrollToFirstInvalid(nextErrors: Errors) {
     const order = ["fullName", "phone", "email", "address", "city", "service", "turnstile"] as const;
@@ -427,9 +427,16 @@ export default function FreeEstimatePage() {
 
             <p className="text-xs text-[var(--muted)]">* Required fields</p>
 
-            {/* Turnstile — desktop only. On mobile the script triggers a
-                Cloudflare challenge error (110200) before React can handle it. */}
-            {/* Turnstile temporarily disabled — re-enable once sitekey issue is resolved */}
+            {/* Invisible Turnstile — no UI, works on all devices */}
+            {TURNSTILE_SITE_KEY && (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                options={{ size: "invisible" }}
+                onSuccess={(token) => setTsToken(token)}
+                onExpire={() => setTsToken("")}
+                onError={() => setTsToken("")}
+              />
+            )}
 
           </form>
         </div>
