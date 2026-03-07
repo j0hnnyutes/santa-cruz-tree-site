@@ -499,7 +499,7 @@ export default function HomePage() {
                       </svg>
                     </div>
                     <h3 style={{
-                      fontSize: 15, fontWeight: 700, color: "var(--text)",
+                      fontSize: 14, fontWeight: 700, color: "var(--text)",
                       lineHeight: 1.35, margin: 0, paddingTop: 6,
                     }}>
                       {f.q}
@@ -516,7 +516,7 @@ export default function HomePage() {
 
                   {/* Answer */}
                   <p style={{
-                    fontSize: 16, color: "#3d4a3e", lineHeight: 1.75,
+                    fontSize: 15, color: "#3d4a3e", lineHeight: 1.75,
                     margin: "0 0 0 52px",
                   }}>
                     {f.a}
