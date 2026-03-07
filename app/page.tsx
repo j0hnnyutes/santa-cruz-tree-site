@@ -263,10 +263,10 @@ export default function HomePage() {
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 40, gap: 24, flexWrap: "wrap" }}>
             <div>
               <SectionTag>What We Do</SectionTag>
-              <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 12 }}>
+              <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 12 }}>
                 Professional Tree Services<br />for Santa Cruz County
               </h2>
-              <p style={{ fontSize: 17, color: "var(--muted)", maxWidth: 520, lineHeight: 1.6 }}>
+              <p style={{ fontSize: 15, color: "var(--muted)", maxWidth: 520, lineHeight: 1.6 }}>
                 From routine trimming to complex removals — our certified arborists handle it all safely and efficiently.
               </p>
             </div>
@@ -332,10 +332,10 @@ export default function HomePage() {
         <div className="site-container">
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <SectionTag>Why Santa Cruz Tree Pros</SectionTag>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
+            <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
               The Right Team for the Job
             </h2>
-            <p style={{ fontSize: 17, color: "var(--muted)", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: "var(--muted)", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
               We combine local expertise, certified skill, and old-fashioned reliability to deliver results that speak for themselves.
             </p>
           </div>
@@ -369,10 +369,10 @@ export default function HomePage() {
         <div className="site-container">
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <SectionTagDark>Simple Process</SectionTagDark>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14, color: "#fff" }}>
+            <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14, color: "#fff" }}>
               Getting Started is Easy
             </h2>
-            <p style={{ fontSize: 17, color: "rgba(255,255,255,0.65)", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
               From your first call to a clean yard — here&apos;s exactly what to expect when you work with us.
             </p>
           </div>
@@ -410,10 +410,10 @@ export default function HomePage() {
             {/* Left: text + pills */}
             <div>
               <SectionTag>Where We Work</SectionTag>
-              <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
+              <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
                 Proudly Serving<br />Santa Cruz County
               </h2>
-              <p style={{ fontSize: 17, color: "var(--muted)", lineHeight: 1.6, marginBottom: 28 }}>
+              <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.6, marginBottom: 28 }}>
                 From the coast to the mountains — if you&apos;re in Santa Cruz County, we&apos;ve got you covered.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -454,10 +454,10 @@ export default function HomePage() {
           {/* Section header */}
           <div style={{ textAlign: "center", marginBottom: 52 }}>
             <SectionTag>Common Questions</SectionTag>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
+            <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 14 }}>
               Frequently Asked Questions
             </h2>
-            <p style={{ fontSize: 17, color: "var(--muted)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: "var(--muted)", maxWidth: 500, margin: "0 auto", lineHeight: 1.6 }}>
               Everything you need to know before booking. Still have questions? We&apos;re happy to help.
             </p>
           </div>
