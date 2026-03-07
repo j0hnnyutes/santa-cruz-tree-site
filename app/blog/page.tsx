@@ -6,6 +6,7 @@ export const metadata = {
   title: "Tree Care Blog | Santa Cruz Tree Pros",
   description:
     "Expert tree care advice, local guides, and seasonal tips for Santa Cruz County homeowners. Learn when to trim, when to remove, and how to protect your trees.",
+  alternates: { canonical: "https://santacruztreepros.com/blog" },
   openGraph: {
     title: "Tree Care Blog | Santa Cruz Tree Pros",
     description:
@@ -13,6 +14,12 @@ export const metadata = {
     url: "https://santacruztreepros.com/blog",
     type: "website",
     siteName: "Santa Cruz Tree Pros",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tree Care Blog | Santa Cruz Tree Pros",
+    description:
+      "Expert tree care advice, local guides, and seasonal tips for Santa Cruz County homeowners.",
   },
 };
 
@@ -38,7 +45,7 @@ export default function BlogPage() {
       <section
         style={{
           background: "linear-gradient(135deg, var(--brand-dark,#0a1e0f) 0%, #0f2d17 100%)",
-          padding: "72px 0 64px",
+          padding: "clamp(40px, 7vw, 72px) 0 clamp(36px, 6vw, 64px)",
         }}
       >
         <div className="site-container" style={{ textAlign: "center" }}>

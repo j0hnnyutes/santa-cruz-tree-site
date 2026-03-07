@@ -16,15 +16,23 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const post = getPost(slug);
   if (!post) return {};
+  const url = `https://santacruztreepros.com/blog/${slug}`;
   return {
     title: `${post.title} | Santa Cruz Tree Pros`,
     description: post.description,
+    alternates: { canonical: url },
     openGraph: {
       title: post.title,
       description: post.description,
-      url: `https://santacruztreepros.com/blog/${slug}`,
+      url,
       type: "article",
       siteName: "Santa Cruz Tree Pros",
+      publishedTime: post.date,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
     },
   };
 }
@@ -35,14 +43,44 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
 
   const bodyHtml = markdownToHtml(post.content);
+  const url = `https://santacruztreepros.com/blog/${slug}`;
+
+  const blogPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    author: {
+      "@type": "Organization",
+      name: "Santa Cruz Tree Pros",
+      url: "https://santacruztreepros.com",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Santa Cruz Tree Pros",
+      url: "https://santacruztreepros.com",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://santacruztreepros.com/sctreepros-logo.svg",
+      },
+    },
+  };
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+      />
+
       {/* ── Article Hero ── */}
       <section
         style={{
           background: "linear-gradient(135deg, var(--brand-dark,#0a1e0f) 0%, #0f2d17 100%)",
-          padding: "64px 0 56px",
+          padding: "clamp(36px, 6vw, 64px) 0 clamp(32px, 5vw, 56px)",
         }}
       >
         <div className="site-container" style={{ maxWidth: 780 }}>
