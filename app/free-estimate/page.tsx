@@ -149,7 +149,7 @@ export default function FreeEstimatePage() {
     if (!address.trim()) e.address = "Address is required.";
     if (!city.trim()) e.city = "City is required.";
     if (!service) e.service = "Service is required.";
-    if (!isMobile && !tsToken) e.turnstile = "Please complete the CAPTCHA.";
+    // Turnstile temporarily disabled
     return e;
   }, [fullName, phone, email, address, city, service, isMobile, tsToken]);
 
@@ -429,23 +429,7 @@ export default function FreeEstimatePage() {
 
             {/* Turnstile — desktop only. On mobile the script triggers a
                 Cloudflare challenge error (110200) before React can handle it. */}
-            {!isMobile && TURNSTILE_SITE_KEY && (
-              <div data-field="turnstile">
-                <Turnstile
-                  siteKey={TURNSTILE_SITE_KEY}
-                  options={{ theme: "light" }}
-                  onSuccess={(token) => {
-                    setTsToken(token);
-                    setErrors((prev) => { const c = { ...prev }; delete c.turnstile; return c; });
-                  }}
-                  onExpire={() => setTsToken("")}
-                  onError={() => setTsToken("")}
-                />
-                {errors.turnstile && (
-                  <div className="mt-2 text-sm text-red-600">{errors.turnstile}</div>
-                )}
-              </div>
-            )}
+            {/* Turnstile temporarily disabled — re-enable once sitekey issue is resolved */}
 
           </form>
         </div>
