@@ -391,8 +391,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send email notification with photos (fire-and-forget)
-    sendLeadNotification({
+    // Await email so Vercel doesn't shut down the function before it sends
+    await sendLeadNotification({
       fullName,
       email,
       phoneDigits,
