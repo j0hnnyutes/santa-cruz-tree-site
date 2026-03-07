@@ -10,6 +10,7 @@ export default function Header() {
     () => [
       { label: "Services", href: "/services" },
       { label: "Service Areas", href: "/service-areas" },
+      { label: "Blog", href: "/blog" },
       { label: "Free Estimate", href: "/free-estimate" },
     ],
     []
