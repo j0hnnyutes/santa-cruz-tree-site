@@ -101,7 +101,7 @@ export async function GET(request: Request) {
 
     const started = funnelCounts.STARTED || 0;
     const submitted = funnelCounts.SUBMITTED || 0;
-    const conversionRate = started > 0 ? (submitted / started) * 100 : 0;
+    const conversionRate = started > 0 ? Math.round((submitted / started) * 1000) / 10 : null;
 
     // Top pages
     const topPagesRaw = await (prisma as any).pageView.groupBy({
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
           fieldError: funnelCounts.FIELD_ERROR,
           abandoned: funnelCounts.ABANDONED,
           submitted,
-          conversionRate: Math.round(conversionRate * 10) / 10,
+          conversionRate,
         },
         topPages,
       },

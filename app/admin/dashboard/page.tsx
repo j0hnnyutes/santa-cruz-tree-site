@@ -1,6 +1,7 @@
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
 
 export const metadata = {
@@ -25,7 +26,7 @@ interface StatsData {
     fieldError: number;
     abandoned: number;
     submitted: number;
-    conversionRate: number;
+    conversionRate: number | null;
   };
   topPages: Array<{ path: string; views: number; avgDuration: number }>;
 }
@@ -62,7 +63,21 @@ export default async function DashboardPage() {
     console.error("Failed to fetch stats:", err);
   }
 
-  const conversionPercent = statsData.formFunnel.conversionRate.toFixed(1);
+  const started = statsData.formFunnel.started;
+  const submitted = statsData.formFunnel.submitted;
+  const conversionRate = statsData.formFunnel.conversionRate;
+  const conversionDisplay =
+    conversionRate !== null && conversionRate !== undefined
+      ? `${conversionRate.toFixed(1)}%`
+      : submitted > 0
+      ? "N/A"
+      : "—";
+  const conversionTrend =
+    started > 0
+      ? `${submitted}/${started} submitted`
+      : submitted > 0
+      ? `${submitted} submitted, tracking starting`
+      : "No form activity yet";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#0a0a0a" }}>
@@ -93,8 +108,8 @@ export default async function DashboardPage() {
           />
           <StatCard
             label="Form Conversion"
-            value={`${conversionPercent}%`}
-            trend={`${statsData.formFunnel.submitted}/${statsData.formFunnel.started} submitted`}
+            value={conversionDisplay}
+            trend={conversionTrend}
           />
         </div>
 
@@ -103,7 +118,11 @@ export default async function DashboardPage() {
           className="rounded-lg p-6"
           style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
         >
-          <h2 className="mb-6 text-xl font-semibold text-white">Form Funnel (30d)</h2>
+          <h2 className="mb-2 text-xl font-semibold text-white">Form Funnel (30d)</h2>
+          <p className="mb-5 text-sm text-gray-400">
+            Tracks estimate form interactions. &ldquo;Field Errors&rdquo; = validation errors on submit attempt
+            (separate from server-side errors below).
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <FunnelBox label="Started" count={statsData.formFunnel.started} />
             <div className="text-white">→</div>
@@ -158,7 +177,12 @@ export default async function DashboardPage() {
           className="rounded-lg p-6"
           style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
         >
-          <h2 className="mb-6 text-xl font-semibold text-white">Recent Errors</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">Recent Errors</h2>
+            <Link href="/admin/errors" className="text-sm font-medium" style={{ color: "var(--brand-green)" }}>
+              View all errors →
+            </Link>
+          </div>
           {statsData.errors.recent.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
