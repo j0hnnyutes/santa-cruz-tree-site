@@ -150,11 +150,73 @@ function SectionTagDark({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── STRUCTURED DATA ──────────────────────────────────────────────────────────
+
+const LOCAL_BUSINESS_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": ["LocalBusiness", "HomeAndConstructionBusiness"],
+  name: "Santa Cruz Tree Pros",
+  url: "https://santacruztreepros.com",
+  telephone: "+1XXXXXXXXXX", // TODO: replace with real number
+  description:
+    "Tree removal, tree trimming, stump grinding, emergency tree service, and arborist consulting in Santa Cruz County, CA.",
+  priceRange: "$$",
+  image: "https://santacruztreepros.com/assets/tree-removal-with-crane.webp",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Santa Cruz",
+    addressRegion: "CA",
+    postalCode: "95060",
+    addressCountry: "US",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: 36.9741,
+    longitude: -122.0308,
+  },
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      opens: "07:00",
+      closes: "18:00",
+    },
+  ],
+  areaServed: [
+    { "@type": "City", name: "Santa Cruz" },
+    { "@type": "City", name: "Watsonville" },
+    { "@type": "City", name: "Capitola" },
+    { "@type": "City", name: "Soquel" },
+    { "@type": "City", name: "Aptos" },
+    { "@type": "City", name: "Monterey" },
+    { "@type": "City", name: "Scotts Valley" },
+    { "@type": "City", name: "Live Oak" },
+    { "@type": "City", name: "Felton" },
+    { "@type": "City", name: "Boulder Creek" },
+    { "@type": "City", name: "Ben Lomond" },
+  ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Tree Services",
+    itemListElement: [
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Tree Removal" } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Tree Trimming" } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Stump Grinding & Root Removal" } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Emergency Tree Service" } },
+      { "@type": "Offer", itemOffered: { "@type": "Service", name: "Arborist Consulting" } },
+    ],
+  },
+};
+
 // ── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(LOCAL_BUSINESS_SCHEMA) }}
+      />
 
       {/* ── 1. HERO ── */}
       <section style={{ position: "relative", minHeight: "93vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
