@@ -475,3 +475,19 @@ header .mobile-nav a.mobile-cta-btn:hover {
   border-top: 1px solid #e5e7eb;
   margin: 36px 0;
 }
+
+/* Blog listing card hover — CSS only (no JS event handlers needed) */
+.blog-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 28px 26px 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.blog-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+  transform: translateY(-2px);
+}

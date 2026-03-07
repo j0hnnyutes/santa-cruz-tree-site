@@ -104,26 +104,7 @@ export default function BlogPage() {
                     href={`/blog/${post.slug}`}
                     style={{ textDecoration: "none" }}
                   >
-                    <article
-                      style={{
-                        background: "#fff",
-                        borderRadius: 14,
-                        border: "1px solid #e5e7eb",
-                        padding: "28px 26px 24px",
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        transition: "box-shadow 0.2s, transform 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.10)";
-                        (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                      }}
-                    >
+                    <article className="blog-card">
                       {/* Category + read time */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                         <span
