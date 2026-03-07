@@ -183,7 +183,7 @@ export default function HomePage() {
           </div>
 
           <h1 style={{
-            fontSize: "clamp(38px, 5.5vw, 68px)",
+            fontSize: "clamp(28px, 4vw, 50px)",
             fontWeight: 900,
             color: "#fff",
             lineHeight: 1.08,
@@ -195,7 +195,7 @@ export default function HomePage() {
             You Can <span style={{ color: "#86efad" }}>Trust</span>
           </h1>
 
-          <p style={{ fontSize: 19, color: "rgba(255,255,255,0.82)", maxWidth: 500, lineHeight: 1.6, marginBottom: 36 }}>
+          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.82)", maxWidth: 500, lineHeight: 1.6, marginBottom: 28 }}>
             Licensed, insured, and locally owned. From emergency removals to precision trimming — we protect your property and your trees.
           </p>
 
@@ -205,8 +205,8 @@ export default function HomePage() {
               style={{
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                 background: "var(--brand-green)", color: "#fff",
-                padding: "14px 32px", borderRadius: 8,
-                fontSize: 18, fontWeight: 700, textDecoration: "none",
+                padding: "10px 22px", borderRadius: 8,
+                fontSize: 15, fontWeight: 700, textDecoration: "none",
               }}
             >
               Get a Free Estimate
@@ -217,8 +217,8 @@ export default function HomePage() {
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                 background: "transparent", color: "#fff",
                 border: "2px solid rgba(255,255,255,0.65)",
-                padding: "14px 32px", borderRadius: 8,
-                fontSize: 18, fontWeight: 600, textDecoration: "none",
+                padding: "10px 22px", borderRadius: 8,
+                fontSize: 15, fontWeight: 600, textDecoration: "none",
               }}
             >
               Our Services ↓
