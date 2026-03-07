@@ -48,7 +48,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 style={{ color: '#1a1a2e' }}
-                className="text-[1.05rem] font-medium hover:text-[var(--brand-green)] transition-colors"
+                className="text-[1.1rem] font-medium hover:text-[var(--brand-green)] transition-colors"
               >
                 {item.label}
               </Link>
