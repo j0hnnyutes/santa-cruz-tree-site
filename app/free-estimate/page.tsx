@@ -7,6 +7,8 @@ import { useFormEventTracker } from "@/lib/formEventTracker";
 
 type Errors = Record<string, string>;
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+
 const SERVICES = [
   "Tree Removal",
   "Tree Trimming / Pruning",
@@ -427,10 +429,10 @@ export default function FreeEstimatePage() {
 
             {/* Turnstile — desktop only. On mobile the script triggers a
                 Cloudflare challenge error (110200) before React can handle it. */}
-            {!isMobile && (
+            {!isMobile && TURNSTILE_SITE_KEY && (
               <div data-field="turnstile">
                 <Turnstile
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY as string}
+                  siteKey={TURNSTILE_SITE_KEY}
                   options={{ theme: "light" }}
                   onSuccess={(token) => {
                     setTsToken(token);
