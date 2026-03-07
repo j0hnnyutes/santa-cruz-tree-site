@@ -31,13 +31,13 @@ export default function Header() {
       <div className="h-[3px] bg-[var(--brand-green)]" />
 
       <div className="site-container">
-        <div className="flex items-center justify-between h-[92px] sm:h-[100px]">
+        <div className="flex items-center justify-between h-[104px] sm:h-[112px]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <img
               src="/sctreepros-logo.svg"
               alt="Santa Cruz Tree Pros"
-              className="h-[86px] sm:h-[94px] w-auto object-contain"
+              className="h-[96px] sm:h-[104px] w-auto object-contain"
             />
           </Link>
 
