@@ -131,16 +131,34 @@ async function sendLeadNotification(lead: {
       html: `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Prevent Apple Mail / iOS Mail dark-mode colour inversion -->
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<style>
+  :root { color-scheme: light only; }
+  /* Fallback for clients that support prefers-color-scheme but not color-scheme meta */
+  @media (prefers-color-scheme: dark) {
+    .email-header  { background-color: #1b5e35 !important; }
+    .cta-button    { background-color: #1b5e35 !important; color: #ffffff !important; }
+    .email-body    { background-color: #ffffff !important; }
+    .email-footer  { background-color: #f9fafb !important; }
+    .email-wrapper { background-color: #f0f2f5 !important; }
+    .field-bg      { background-color: #f9fafb !important; }
+  }
+</style>
+</head>
 <body style="margin:0;padding:0;background-color:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f2f5;padding:32px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" class="email-wrapper" style="background-color:#f0f2f5;padding:32px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
         <!-- Header -->
         <tr>
-          <td style="background-color:#1b5e35;border-radius:12px 12px 0 0;padding:28px 32px;">
+          <td class="email-header" style="background-color:#1b5e35;border-radius:12px 12px 0 0;padding:28px 32px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
@@ -165,7 +183,7 @@ async function sendLeadNotification(lead: {
 
         <!-- Body -->
         <tr>
-          <td style="background-color:#ffffff;padding:32px;">
+          <td class="email-body" style="background-color:#ffffff;padding:32px;">
 
             <!-- Contact info -->
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
@@ -221,7 +239,7 @@ async function sendLeadNotification(lead: {
 
             <!-- CTA Button -->
             <div style="border-top:1px solid #f3f4f6;padding-top:24px;text-align:center;">
-              <a href="${leadUrl}" style="display:inline-block;background-color:#1b5e35;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.01em;">View Lead in Admin →</a>
+              <a href="${leadUrl}" class="cta-button" style="display:inline-block;background-color:#1b5e35;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.01em;">View Lead in Admin →</a>
               <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">You'll be prompted to log in if your session has expired.</p>
             </div>
 
@@ -230,7 +248,7 @@ async function sendLeadNotification(lead: {
 
         <!-- Footer -->
         <tr>
-          <td style="background-color:#f9fafb;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e5e7eb;">
+          <td class="email-footer" style="background-color:#f9fafb;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e5e7eb;">
             <p style="margin:0;font-size:12px;color:#9ca3af;">Lead ID: <span style="font-family:monospace;">${lead.leadId}</span></p>
           </td>
         </tr>
