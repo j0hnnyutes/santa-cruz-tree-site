@@ -88,9 +88,25 @@ async function verifyTurnstile(token: string): Promise<boolean> {
       body: new URLSearchParams({ secret, response: token }),
     });
     const data = await res.json();
+    if (data?.success !== true) {
+      logError(null, {
+        severity: "warning",
+        type: "captcha",
+        message: "Turnstile verification returned success=false",
+        path: "/api/lead",
+        metadata: { errorCodes: data?.["error-codes"] ?? [] },
+      });
+    }
     return data?.success === true;
   } catch (err) {
     console.error("Turnstile verification failed:", err);
+    logError(null, {
+      severity: "warning",
+      type: "captcha",
+      message: err instanceof Error ? err.message : "Turnstile verification threw unexpectedly",
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/lead",
+    });
     return false;
   }
 }
@@ -280,11 +296,25 @@ async function sendLeadNotification(lead: {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Resend API error:", res.status, err);
+      const body = await res.text();
+      console.error("Resend API error:", res.status, body);
+      logError(null, {
+        severity: "critical",
+        type: "email_delivery",
+        message: `Resend API returned ${res.status} — lead notification not delivered`,
+        path: "/api/lead",
+        metadata: { status: res.status, response: body.slice(0, 500) },
+      });
     }
   } catch (err) {
     console.error("Failed to send lead notification email:", err);
+    logError(null, {
+      severity: "critical",
+      type: "email_delivery",
+      message: err instanceof Error ? err.message : "Email notification threw unexpectedly",
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/lead",
+    });
     // Don't throw — email failure shouldn't block lead creation
   }
 }
@@ -422,7 +452,16 @@ export async function POST(request: Request) {
         : details || null,
       leadId: lead.leadId,
       photoAttachments,
-    }).catch((err) => console.error("Email notification error:", err));
+    }).catch((err) => {
+      console.error("Email notification error:", err);
+      logError(null, {
+        severity: "critical",
+        type: "email_delivery",
+        message: err instanceof Error ? err.message : "Uncaught email notification error",
+        stack: err instanceof Error ? err.stack : undefined,
+        path: "/api/lead",
+      });
+    });
 
     return NextResponse.json({ ok: true, leadId: lead.leadId }, { status: 200 });
   } catch (err) {

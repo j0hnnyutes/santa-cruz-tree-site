@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAdminCsrf } from "@/lib/adminCsrf";
+import { logError } from "@/lib/logError";
 
 function toStr(v: unknown) {
   return typeof v === "string" ? v : v == null ? "" : String(v);
@@ -54,6 +55,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     console.error("POST /api/admin/leads/bulk error:", err);
+    logError(request, {
+      severity: "error",
+      type: "server_api",
+      message: err instanceof Error ? err.message : "Server error performing bulk action",
+      stack: err instanceof Error ? err.stack : undefined,
+      path: "/api/admin/leads/bulk",
+    });
     return NextResponse.json(
       { ok: false, error: "Server error performing bulk action." },
       { status: 500 }
