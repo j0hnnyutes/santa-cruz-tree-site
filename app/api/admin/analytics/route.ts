@@ -24,14 +24,16 @@ export async function GET(request: Request) {
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     // Page views by day
+    // Note: table and camelCase column names must be double-quoted in PostgreSQL.
+    // strftime() is SQLite-only; PostgreSQL equivalent is TO_CHAR().
     const pageViewsByDayRaw = await prisma.$queryRaw<
       Array<{ date: string; views: bigint; sessions: bigint }>
     >`
-      SELECT strftime('%Y-%m-%d', createdAt) as date,
+      SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') as date,
              COUNT(*) as views,
-             COUNT(DISTINCT sessionId) as sessions
-      FROM PageView
-      WHERE createdAt >= ${cutoff.toISOString()}
+             COUNT(DISTINCT "sessionId") as sessions
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff}
       GROUP BY date
       ORDER BY date ASC
     `;
