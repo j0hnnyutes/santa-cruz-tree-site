@@ -1,7 +1,7 @@
 # Santa Cruz Tree Pros — Features & Functionality Reference
 
 > **Keep this file up to date** when new features are added or changed.
-> Last updated: 2026-03-07
+> Last updated: 2026-03-08
 
 ---
 
@@ -129,6 +129,48 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 
 ---
 
+### Phase 4 — Observability, Bug Fixes & Polish (Claude)
+
+**Admin dashboard — analytics bug fixes**
+- Form Conversion stat card now shows "N/A" (not "0.0%") when `started=0` but submissions exist; shows "—" when no activity at all
+- API returns `null` for `conversionRate` when started=0 rather than forcing 0.0
+- Added subtitle to Form Funnel section clarifying that "Field Errors" = client-side form validation events (not server errors)
+- Added "View all errors →" link from Recent Errors section on dashboard → `/admin/errors`
+
+**Error observability — client-side**
+- `GlobalErrorTracker` component — hooks `window.onerror` + `window.unhandledrejection`; captures unhandled JS errors and promise rejections that occur outside the React tree (setTimeout callbacks, async chains, third-party scripts). Filters benign browser noise (ResizeObserver, cross-origin script errors). Mounted in root layout.
+- `app/error.tsx` — Next.js route-segment error boundary; catches errors during page/layout rendering, shows "Try again / Go home" UI, logs automatically with `digest` in metadata
+- `app/global-error.tsx` — root layout error boundary (critical severity); renders its own `<html>/<body>` since root layout is gone
+
+**Error observability — server-side**
+- Added `logError()` to `/api/admin/analytics` catch block (was console.error only)
+- Added `logError()` to `/api/admin/stats` catch block (was console.error only)
+- Added `logError()` to `/api/admin/change-password` catch block (was console.error only)
+- Added `logError()` to `/api/admin/leads/bulk` catch block (was console.error only)
+- Email delivery failures now logged as `critical` / type `email_delivery` — both Resend API non-2xx responses (with status code + response body in metadata) and unexpected throws
+- Turnstile `success=false` logged as `warning` / type `captcha` (includes Cloudflare `error-codes` array in metadata)
+- Turnstile network errors logged as `warning` / type `captcha`
+- `/api/log/error` public endpoint now persists the `metadata` field from client (was hardcoded to `null`); includes source, filename, lineno, digest, errorCodes, etc.
+
+**Error type taxonomy** (used in `type` field across all `logError` calls)
+- `client_js` — unhandled browser JS errors and React crashes
+- `server_api` — unexpected throws in API route handlers
+- `email_delivery` — Resend API failures
+- `captcha` — Cloudflare Turnstile failures
+
+**Email — dark mode fix**
+- Added `<meta name="color-scheme" content="light">` and `<meta name="supported-color-schemes" content="light">` to lead notification email `<head>`
+- Added `:root { color-scheme: light only }` CSS and `@media (prefers-color-scheme: dark)` overrides with `!important`
+- Prevents Apple Mail on iOS from auto-inverting `#1b5e35` (forest green) to lime green
+
+**PostgreSQL raw SQL fix**
+- `/api/admin/analytics` page-views-by-day query: fixed `FROM PageView` → `FROM "PageView"` (PostgreSQL requires double-quotes for mixed-case table names)
+- Replaced SQLite-only `strftime('%Y-%m-%d', ...)` with PostgreSQL `TO_CHAR("createdAt", 'YYYY-MM-DD')`
+- All camelCase column references double-quoted: `createdAt` → `"createdAt"`, `sessionId` → `"sessionId"`
+- Cutoff value passed as a `Date` object (Prisma parameterises natively) instead of ISO string
+
+---
+
 ## Table of Contents
 1. [Tech Stack](#tech-stack)
 2. [Pages & Routes](#pages--routes)
@@ -211,15 +253,20 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 | Route | Method | Description |
 |---|---|---|
 | `/api/lead` | POST | Lead form submission — validates, deduplicates, stores, sends email |
-| `/api/log` | POST | Client-side error logging |
+| `/api/log/error` | POST | Client-side JS error ingestion (unhandled errors, React crashes) |
+| `/api/log/event` | POST | Form interaction event tracking (STARTED, FIELD_ERROR, ABANDONED, SUBMITTED) |
+| `/api/log/pageview` | POST | Page view tracking (path, referrer, session ID, duration) |
 | `/api/admin/login` | POST | Admin authentication |
 | `/api/admin/logout` | POST | Admin session logout |
 | `/api/admin/leads` | GET | Paginated lead list with filters |
+| `/api/admin/leads/[leadId]` | GET/PATCH | Single lead detail and update |
+| `/api/admin/leads/bulk` | POST | Bulk action (archive) on multiple leads |
 | `/api/admin/leads/export` | GET | CSV export of all leads |
 | `/api/admin/leads/set-status` | POST | Update lead status |
-| `/api/admin/analytics` | GET | Analytics data (page views, leads, devices) |
-| `/api/admin/analytics/stats` | GET | Summary stats for dashboard |
-| `/api/admin/errors` | GET | Error log entries |
+| `/api/admin/leads/notes` | POST | Update admin notes on a lead |
+| `/api/admin/analytics` | GET | Analytics data (page views by day, devices, referrers) |
+| `/api/admin/stats` | GET | Summary stats for dashboard (leads, errors, form funnel, top pages) |
+| `/api/admin/errors` | GET | Error log entries with filters |
 | `/api/admin/change-password` | POST | Admin password update |
 | `/api/admin/debug-env` | GET | Environment variable diagnostics (dev only) |
 
@@ -298,8 +345,9 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - `ServiceAreaMap` / `ServiceAreaMapWrapper` / `ServiceAreaSVGMap` — interactive county map
 - `SiteKit` / `SiteShell` — shared layout wrappers
 - `AccentCardLink` — reusable accent-bordered card with link
-- `ErrorBoundary` — client-side React error boundary
-- `SiteAnalytics` — analytics tracking component
+- `ErrorBoundary` — React class component error boundary (catches component tree crashes via `componentDidCatch`, logs to `/api/log/error`, shows reload UI)
+- `GlobalErrorTracker` — client component mounted in root layout; hooks `window.onerror` and `window.unhandledrejection` to capture errors outside the React tree
+- `SiteAnalytics` — page view tracking component (path, referrer, session ID, time-on-page)
 
 ---
 
@@ -314,9 +362,20 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 6. Sends email notification via Resend (includes duplicate warning banner if flagged)
 7. Returns success or field-level validation errors as JSON
 
-### Error Logging (`POST /api/log`)
-- Accepts client-side JS errors and server-side errors
-- Stores to `ErrorLog` table with severity, type, message, stack trace, path, IP
+### Error Logging
+Three endpoints write to `ErrorLog`:
+- `POST /api/log/error` — client-side errors (unhandled JS, React crashes, global error tracker). Accepts: severity, type, message, stack, path, metadata (JSON)
+- `lib/logError.ts` — server-side utility called directly from API route catch blocks
+
+**What is logged:**
+- Unhandled browser JS errors (`window.onerror`) — type `client_js`
+- Unhandled promise rejections (`window.unhandledrejection`) — type `client_js`
+- React component tree crashes (`ErrorBoundary.componentDidCatch`) — type `client_js`
+- Next.js route-segment render errors (`app/error.tsx`) — type `client_js`, severity `error`
+- Root layout crashes (`app/global-error.tsx`) — type `client_js`, severity `critical`
+- API route unexpected throws (`/api/lead`, `/api/admin/*`) — type `server_api`
+- Email delivery failures (Resend non-2xx or throw) — type `email_delivery`, severity `critical`
+- Cloudflare Turnstile failures — type `captcha`, severity `warning`
 
 ### Admin Auth
 - Session-based authentication via HTTP-only cookie
@@ -370,11 +429,42 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 | `id` | Int | Auto-increment |
 | `createdAt` | DateTime | Auto-set |
 | `severity` | String | error, warning, critical |
-| `type` | String | client_js, server_api, form_validation, rate_limit, auth, etc. |
+| `type` | String | client_js, server_api, email_delivery, captcha, form_validation, rate_limit, auth, etc. |
 | `message` | String | |
-| `stack` | String? | |
+| `stack` | String? | Stack trace |
 | `path` | String? | URL path where error occurred |
-| `ip` | String? | |
+| `ip` | String? | Client IP |
+| `userAgent` | String? | Browser/client user agent |
+| `metadata` | String? | JSON string — source, filename, lineno, digest, errorCodes, etc. |
+
+#### `PageView`
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Int | Auto-increment |
+| `createdAt` | DateTime | Auto-set |
+| `path` | String | Page path |
+| `referrer` | String? | HTTP referrer |
+| `ip` | String? | Client IP |
+| `userAgent` | String? | Browser user agent |
+| `sessionId` | String? | Session UUID from sessionStorage |
+| `duration` | Int? | Time on page in milliseconds |
+
+#### `FormEvent`
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Int | Auto-increment |
+| `createdAt` | DateTime | Auto-set |
+| `sessionId` | String? | Session UUID |
+| `eventType` | String | STARTED, FIELD_ERROR, ABANDONED, SUBMITTED |
+| `fieldName` | String? | Field that had an error (for FIELD_ERROR events) |
+| `metadata` | String? | JSON string for future use |
+
+#### `AdminConfig`
+| Field | Type | Notes |
+|---|---|---|
+| `key` | String | Primary key (e.g. `password_hash`) |
+| `value` | String | Stored value |
+| `updatedAt` | DateTime | Auto-updated |
 
 ---
 
@@ -403,9 +493,19 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - Top service types requested
 - Top cities
 
+### Dashboard (`/admin/dashboard`)
+- Summary stat cards: Total Leads, New Leads (30d), Errors (30d), Form Conversion
+- Form Conversion shows "N/A" when no page-load tracking yet (not a misleading "0.0%")
+- Form Funnel (30d): Started → Field Errors → Abandoned → Submitted
+- Recent errors list with "View all errors →" link
+- Top pages by view count
+- Configurable date range
+
 ### Error Log (`/admin/errors`)
 - Chronological error log viewer
 - Severity and type filters
+- Full stack trace expansion
+- Metadata display (source, filename, error codes, etc.)
 
 ### Settings (`/admin/settings`)
 - Password change form
@@ -453,11 +553,14 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 **Provider:** Resend
 
 ### Lead Notification Email
-- Sent to site owner on every new lead submission
-- HTML email template with lead details
-- Includes: name, phone (formatted, click-to-call link), email, address, city, service, details, submission timestamp
+- Sent to site owner on every new lead submission via Resend
+- HTML email template with: name, phone (formatted, click-to-call link), email, address, service, details
 - **Duplicate warning banner** displayed prominently if lead flagged as duplicate (same phone/email within 24h)
-- Fire-and-forget with `await` (non-blocking to form response)
+- **Photos attached** to email when submitted (up to 5, base64-encoded)
+- "View Lead in Admin →" button linking directly to the lead detail page
+- `await`ed before response so Vercel serverless function doesn't shut down before send completes
+- **Delivery failures** logged as `critical` severity in `ErrorLog` (type `email_delivery`)
+- **Dark mode safe** — `<meta name="color-scheme" content="light">`, `<meta name="supported-color-schemes" content="light">`, and `:root { color-scheme: light only }` prevent Apple Mail on iOS from inverting the forest green header to lime green
 
 ---
 
@@ -476,9 +579,14 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - Checks `phoneDigits` AND `email` against leads created in the last 24 hours
 - Flags duplicate in DB and email — does not silently discard
 
-### Error Logging
-- Client-side JS errors reported to `/api/log`
-- Stored in `ErrorLog` table for admin review
+### Error Logging & Observability
+- `GlobalErrorTracker` captures all unhandled browser JS errors and promise rejections
+- `ErrorBoundary` catches React component tree crashes
+- `app/error.tsx` and `app/global-error.tsx` handle Next.js route/layout-level crashes
+- Server-side: all API route catch blocks call `logError()` — persistent DB record with severity, type, message, stack, path, IP, user agent, metadata
+- Email delivery failures logged as `critical` — ensures missed lead notifications are detectable
+- Turnstile failures logged as `warning` — repeated warnings can indicate bot activity or misconfigured key
+- All errors viewable at `/admin/errors` with severity/type filters
 
 ---
 
