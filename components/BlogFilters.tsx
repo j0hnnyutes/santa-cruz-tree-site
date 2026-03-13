@@ -5,7 +5,7 @@
 // When a filter is active → shows ALL matching posts (no pagination).
 // When no filter → shows paginated grid (12/page) via inline pagination.
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { BlogPostMeta, formatDate, POSTS_PER_PAGE } from "@/lib/blog-shared";
 
@@ -31,6 +31,16 @@ export default function BlogFilters({ allPosts }: Props) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+
+  // Ref to the top of the grid — scroll here whenever the page changes
+  const gridTopRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to grid top on every page change (skip the very first render)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    gridTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
 
   // Derive category list from posts (preserving declaration order above)
   const categories = useMemo(() => {
@@ -101,6 +111,8 @@ export default function BlogFilters({ allPosts }: Props) {
 
   return (
     <section style={{ background: "#f9fafb", padding: "40px 0 80px" }}>
+      {/* Scroll target — sits just above the filter bar */}
+      <div ref={gridTopRef} style={{ scrollMarginTop: 80 }} />
       <div className="site-container">
 
         {/* ── Search + Filter Bar ── */}
