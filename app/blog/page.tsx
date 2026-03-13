@@ -1,6 +1,7 @@
-// app/blog/page.tsx
+// app/blog/page.tsx  — Blog listing with search + category filtering
 import Link from "next/link";
-import { getAllPosts, formatDate } from "@/lib/blog";
+import BlogFilters from "@/components/BlogFilters";
+import { getAllPosts } from "@/lib/blog";
 
 export const metadata = {
   title: "Tree Care Blog | Santa Cruz Tree Pros",
@@ -23,21 +24,9 @@ export const metadata = {
   },
 };
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  "Pricing & Planning":  { bg: "#dcfce7", text: "#166534" },
-  "Tree Care":           { bg: "#dbeafe", text: "#1e40af" },
-  "Safety & Hazards":    { bg: "#fee2e2", text: "#991b1b" },
-  "Seasonal":            { bg: "#fef9c3", text: "#854d0e" },
-  "Services":            { bg: "#f3e8ff", text: "#6b21a8" },
-  "Local Regulations":   { bg: "#e0f2fe", text: "#0c4a6e" },
-};
-
-function categoryStyle(cat: string) {
-  return CATEGORY_COLORS[cat] ?? { bg: "#f3f4f6", text: "#374151" };
-}
-
 export default function BlogPage() {
-  const posts = getAllPosts();
+  // All posts passed to the client component for filtering + client-side pagination
+  const allPosts = getAllPosts();
 
   return (
     <main>
@@ -90,105 +79,8 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* ── Post Grid ── */}
-      <section style={{ background: "#f9fafb", padding: "64px 0 80px" }}>
-        <div className="site-container">
-          {posts.length === 0 ? (
-            <p style={{ textAlign: "center", color: "var(--muted)" }}>No posts yet — check back soon.</p>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                gap: 28,
-              }}
-            >
-              {posts.map((post) => {
-                const { bg, text } = categoryStyle(post.category);
-                return (
-                  <Link
-                    key={post.slug}
-                    href={`/blog/${post.slug}`}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <article className="blog-card">
-                      {/* Category + read time */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <span
-                          style={{
-                            background: bg,
-                            color: text,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: "0.05em",
-                            textTransform: "uppercase",
-                            padding: "3px 10px",
-                            borderRadius: 99,
-                          }}
-                        >
-                          {post.category}
-                        </span>
-                        <span style={{ fontSize: 12, color: "#9ca3af" }}>{post.readTime}</span>
-                      </div>
-
-                      {/* Title */}
-                      <h2
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 700,
-                          color: "#111827",
-                          lineHeight: 1.4,
-                          marginBottom: 10,
-                          flexGrow: 1,
-                        }}
-                      >
-                        {post.title}
-                      </h2>
-
-                      {/* Description */}
-                      <p
-                        style={{
-                          fontSize: 13,
-                          color: "#6b7280",
-                          lineHeight: 1.6,
-                          marginBottom: 18,
-                        }}
-                      >
-                        {post.description}
-                      </p>
-
-                      {/* Date + Read link */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          borderTop: "1px solid #f3f4f6",
-                          paddingTop: 14,
-                          marginTop: "auto",
-                        }}
-                      >
-                        <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                          {formatDate(post.date)}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--brand-green)",
-                          }}
-                        >
-                          Read article →
-                        </span>
-                      </div>
-                    </article>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* ── Search + Filter + Grid + Pagination (client component) ── */}
+      <BlogFilters allPosts={allPosts} />
 
       {/* ── Bottom CTA ── */}
       <section
@@ -199,7 +91,14 @@ export default function BlogPage() {
         }}
       >
         <div className="site-container">
-          <h2 style={{ fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 800, color: "#fff", marginBottom: 12 }}>
+          <h2
+            style={{
+              fontSize: "clamp(20px, 2.5vw, 30px)",
+              fontWeight: 800,
+              color: "#fff",
+              marginBottom: 12,
+            }}
+          >
             Ready for a Free Estimate?
           </h2>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.8)", marginBottom: 28 }}>

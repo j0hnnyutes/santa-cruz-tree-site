@@ -1,7 +1,7 @@
 # Santa Cruz Tree Pros — Features & Functionality Reference
 
 > **Keep this file up to date** when new features are added or changed.
-> Last updated: 2026-03-08
+> Last updated: 2026-03-12
 
 ---
 
@@ -171,6 +171,26 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 
 ---
 
+### Phase 5 — Blog Pagination, Search & Category Filtering (Claude)
+
+**Blog pagination (12 per page)**
+- `lib/blog.ts` — added `POSTS_PER_PAGE = 12` constant, `getPaginatedPosts(page, perPage)` helper, `getTotalPages(perPage)` helper
+- `components/BlogGrid.tsx` (new) — shared grid + static pagination controls for the `/blog/page/[n]` static direct-URL routes
+- `app/blog/page/[page]/page.tsx` (new) — static paginated pages for pages 2, 3, etc. Uses `generateStaticParams()` to pre-render all pages at build time. Redirects `/blog/page/1` → `/blog`. 404s on out-of-range pages. Sets `robots: { index: false }` on non-page-1 pages (SEO best practice)
+- Pagination URLs: `/blog` (page 1), `/blog/page/2`, `/blog/page/3`, etc. — auto-generated as articles are added
+
+**Blog search + category filtering**
+- `components/BlogFilters.tsx` (new) — `"use client"` component; all post metadata serialized from server at build time (lightweight — titles/descriptions only, no full content, no API call at runtime)
+- **Search input**: live-filters by title, description, and category as you type; resets to page 1 on each keystroke
+- **Category pills**: 6 color-coded pill buttons (one per category); active pill fills with the category's brand color; click again to deselect
+- **Clear button**: appears when any filter is active; resets both search query and selected category
+- **Filtered mode**: when any filter is active, shows all matching posts in one list with match count; no pagination (typical filtered set is <12)
+- **Unfiltered mode**: client-side pagination (Prev/Next + numbered page buttons, 12/page)
+- No new npm dependencies — plain `String.prototype.includes()` matching (more than adequate for 100+ articles)
+- `app/blog/page.tsx` — refactored: hero + CTA remain server-rendered; passes all posts to `BlogFilters` for client-side interactivity
+
+---
+
 ## Table of Contents
 1. [Tech Stack](#tech-stack)
 2. [Pages & Routes](#pages--routes)
@@ -229,7 +249,8 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 | `/service-areas/monterey` | Monterey area page |
 | `/free-estimate` | Lead capture form |
 | `/thank-you` | Post-form submission confirmation |
-| `/blog` | Blog listing page |
+| `/blog` | Blog listing page (page 1, 12 per page) |
+| `/blog/page/[page]` | Blog listing pages 2, 3, etc. |
 | `/blog/[slug]` | Individual blog article page |
 | `/contact` | Contact page |
 | `/privacy-policy` | Privacy Policy page |
@@ -316,12 +337,14 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - Redirect to `/thank-you` on success
 
 ### Blog
-- `/blog` — listing page with category-color-coded cards, read time, publish date, "Read article →" link
+- `/blog` — listing page with live search input, 6 category filter pills, client-side pagination (12/page), and "Read article →" cards
+- `/blog/page/[n]` — statically pre-rendered paginated pages for direct URL access (e.g. from sitemap)
 - `/blog/[slug]` — article pages with dark hero, breadcrumb, category tag, publish date, read time, formatted article body, in-article CTA block, "Back to all articles" link
 - Blog card hover effect via CSS (`.blog-card:hover`) — lift + shadow
-- 10 articles published at launch (see content below)
-- Content stored as `.md` files in `content/blog/` — new articles added by dropping a file, no code changes needed
-- Zero new npm dependencies — custom TypeScript markdown renderer (`lib/markdown.ts`) and frontmatter parser (`lib/blog.ts`)
+- 17 articles (2 pages at 12/page)
+- Content stored as `.md` files in `content/blog/` — new articles added by dropping a file, no code changes needed; pagination auto-adjusts at next build
+- Zero new npm dependencies — custom TypeScript markdown renderer (`lib/markdown.ts`), frontmatter parser (`lib/blog.ts`), plain-string search in `BlogFilters`
+- `BlogGrid` component used by static `/blog/page/[n]` routes; `BlogFilters` used by the main `/blog` page (interactive)
 
 ### Blog Articles (17 total)
 

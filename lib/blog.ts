@@ -80,6 +80,21 @@ export function getPost(slug: string): BlogPost | null {
   };
 }
 
+export const POSTS_PER_PAGE = 12;
+
+/** Returns a slice of posts for a given page (1-indexed) */
+export function getPaginatedPosts(page: number, perPage = POSTS_PER_PAGE): BlogPostMeta[] {
+  const all = getAllPosts();
+  const start = (page - 1) * perPage;
+  return all.slice(start, start + perPage);
+}
+
+/** Returns the total number of pages */
+export function getTotalPages(perPage = POSTS_PER_PAGE): number {
+  const all = getAllPosts();
+  return Math.max(1, Math.ceil(all.length / perPage));
+}
+
 /** Format ISO date to readable string e.g. "March 1, 2025" */
 export function formatDate(iso: string): string {
   if (!iso) return "";
