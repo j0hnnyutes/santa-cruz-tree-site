@@ -323,21 +323,27 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - Content stored as `.md` files in `content/blog/` — new articles added by dropping a file, no code changes needed
 - Zero new npm dependencies — custom TypeScript markdown renderer (`lib/markdown.ts`) and frontmatter parser (`lib/blog.ts`)
 
-### Blog Articles (10 at launch)
+### Blog Articles (17 total)
 
 | Slug | Category |
 |---|---|
 | `tree-removal-cost-santa-cruz` | Pricing & Planning |
+| `tree-trimming-cost-santa-cruz` | Pricing & Planning |
 | `best-time-trim-trees-santa-cruz` | Seasonal |
 | `how-to-tell-if-tree-is-dead` | Safety & Hazards |
 | `fire-resistant-landscaping-santa-cruz` | Safety & Hazards |
-| `stump-grinding-vs-stump-removal` | Services |
+| `emergency-tree-service-santa-cruz` | Safety & Hazards |
+| `dangerous-trees-santa-cruz` | Safety & Hazards |
+| `tree-root-damage-foundation-pipes` | Safety & Hazards |
 | `what-to-do-after-storm-tree-damage` | Safety & Hazards |
+| `stump-grinding-vs-stump-removal` | Services |
+| `what-to-expect-tree-removal` | Services |
 | `diy-vs-hiring-arborist` | Tree Care |
 | `how-often-trim-trees` | Tree Care |
-| `dangerous-trees-santa-cruz` | Safety & Hazards |
-| `tree-removal-permits-santa-cruz` | Local Regulations |
+| `coast-live-oak-care-santa-cruz` | Tree Care |
+| `how-to-choose-tree-service-santa-cruz` | Tree Care |
 | `tree-care-after-drought` | Tree Care |
+| `tree-removal-permits-santa-cruz` | Local Regulations |
 | `what-to-expect-tree-removal` | Services |
 
 ### Other Components
