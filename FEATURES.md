@@ -1,7 +1,7 @@
 # Santa Cruz Tree Pros — Features & Functionality Reference
 
 > **Keep this file up to date** when new features are added or changed.
-> Last updated: 2026-03-12
+> Last updated: 2026-03-12 (Phase 5 complete)
 
 ---
 
@@ -188,6 +188,22 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - **Unfiltered mode**: client-side pagination (Prev/Next + numbered page buttons, 12/page)
 - No new npm dependencies — plain `String.prototype.includes()` matching (more than adequate for 100+ articles)
 - `app/blog/page.tsx` — refactored: hero + CTA remain server-rendered; passes all posts to `BlogFilters` for client-side interactivity
+
+**Bug fix — client bundle (`fs` module)**
+- Split `lib/blog.ts` into two files: `lib/blog.ts` (server-only, keeps `fs`/`path`) and `lib/blog-shared.ts` (client-safe: types, `POSTS_PER_PAGE`, `formatDate`)
+- `BlogFilters` and `BlogGrid` import from `lib/blog-shared` — eliminates Turbopack "Can't resolve 'fs'" build error that occurs when a `"use client"` component's import graph reaches a Node built-in
+- All existing server-side imports from `lib/blog` continue to work unchanged (it re-exports everything from `blog-shared`)
+
+**UX — smooth scroll on page change**
+- Pagination page-number clicks smooth-scroll to a `ref` anchor just above the filter bar (`scrollMarginTop: 80` to clear the sticky header) so the user sees the new articles rather than staying at the bottom of the page
+- Implemented with `useEffect` watching `page` state; skips scroll on initial render
+
+**Mobile optimization**
+- **Filter bar**: stacks vertically on mobile (search full-width above pills); switches to side-by-side row on ≥ 640px
+- **Search input**: `fontSize: 15px` prevents iOS Safari auto-zoom (triggered below 16px); `-webkit-appearance: none` for consistent iOS rendering; focus ring using brand green
+- **Touch targets**: category pills `min-height: 36px`; pagination buttons `height: 44px` (Apple HIG minimum)
+- **Pagination on narrow screens** (< 400px): intermediate page numbers and ellipsis hidden via CSS — only Prev/Next + "Page N of N" summary remain
+- **Grid gap**: 20px on mobile, 28px on desktop
 
 ---
 
