@@ -2,7 +2,7 @@
 // Shared blog listing grid + pagination controls used by /blog and /blog/page/[n]
 
 import Link from "next/link";
-import { BlogPostMeta, formatDate } from "@/lib/blog";
+import { BlogPostMeta, formatDate } from "@/lib/blog-shared";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "Pricing & Planning": { bg: "#dcfce7", text: "#166534" },

@@ -1,22 +1,17 @@
 // lib/blog.ts
-// Reads .md files from content/blog/, parses frontmatter, returns post data.
-// No external dependencies — pure Node.js fs + built-in string parsing.
+// SERVER-ONLY — imports Node.js 'fs' and 'path'. Never import this from a
+// "use client" component. Use lib/blog-shared.ts for shared types/utils.
 
 import fs from "fs";
 import path from "path";
 
-export interface BlogPostMeta {
-  slug: string;
-  title: string;
-  date: string;       // ISO date string e.g. "2025-03-01"
-  description: string;
-  category: string;
-  readTime: string;
-}
+// Re-export everything from the shared module so existing server imports
+// (app/blog/page.tsx, app/blog/[slug]/page.tsx, etc.) keep working unchanged.
+export type { BlogPostMeta, BlogPost } from "./blog-shared";
+export { POSTS_PER_PAGE, formatDate } from "./blog-shared";
 
-export interface BlogPost extends BlogPostMeta {
-  content: string;    // raw markdown body (after frontmatter)
-}
+import type { BlogPostMeta, BlogPost } from "./blog-shared";
+import { POSTS_PER_PAGE } from "./blog-shared";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -80,8 +75,6 @@ export function getPost(slug: string): BlogPost | null {
   };
 }
 
-export const POSTS_PER_PAGE = 12;
-
 /** Returns a slice of posts for a given page (1-indexed) */
 export function getPaginatedPosts(page: number, perPage = POSTS_PER_PAGE): BlogPostMeta[] {
   const all = getAllPosts();
@@ -93,11 +86,4 @@ export function getPaginatedPosts(page: number, perPage = POSTS_PER_PAGE): BlogP
 export function getTotalPages(perPage = POSTS_PER_PAGE): number {
   const all = getAllPosts();
   return Math.max(1, Math.ceil(all.length / perPage));
-}
-
-/** Format ISO date to readable string e.g. "March 1, 2025" */
-export function formatDate(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso + "T12:00:00Z");
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }

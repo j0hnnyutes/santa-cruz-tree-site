@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { BlogPostMeta, formatDate, POSTS_PER_PAGE } from "@/lib/blog";
+import { BlogPostMeta, formatDate, POSTS_PER_PAGE } from "@/lib/blog-shared";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; activeBg: string; activeText: string }> = {
   "Pricing & Planning": { bg: "#dcfce7", text: "#166534", activeBg: "#166534", activeText: "#fff" },
