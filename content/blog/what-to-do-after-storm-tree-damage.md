@@ -4,6 +4,7 @@ date: "2025-01-20"
 description: "High winds and heavy rain can leave trees damaged, leaning, or down. Here's exactly what to do — and what not to do — after storm damage to your trees."
 category: "Safety & Hazards"
 readTime: "6 min read"
+image: "/images/blog/what-to-do-after-storm-tree-damage.jpg"
 ---
 
 Santa Cruz County gets battered by Pacific storms every winter — high winds, heavy rain, and occasionally heavy snow in the mountains. These storms regularly cause tree failures: broken limbs, uprooted trees, trunk splits, and canopy damage that ranges from cosmetic to catastrophic.

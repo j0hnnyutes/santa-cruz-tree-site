@@ -4,6 +4,7 @@ date: "2025-03-15"
 description: "Some trees in Santa Cruz County pose real risks to property and people. Here are the five most common hazardous tree situations local homeowners encounter."
 category: "Safety & Hazards"
 readTime: "6 min read"
+image: "/images/blog/dangerous-trees-santa-cruz.jpg"
 ---
 
 Santa Cruz County is home to some of the most majestic trees in California — redwoods, oaks, and eucalyptus that have been growing for decades or even centuries. But trees in an urban and suburban environment require management, and some situations create genuine risks to structures, vehicles, and people.

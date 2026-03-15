@@ -4,6 +4,7 @@ date: "2025-03-05"
 description: "Tree down in a storm? Learn what to do immediately after emergency tree damage in Santa Cruz — and what emergency tree service actually costs in 2025."
 category: "Safety & Hazards"
 readTime: "6 min read"
+image: "/images/blog/emergency-tree-service-santa-cruz.jpg"
 ---
 
 A tree comes down at 2 a.m. during a winter storm. It's on your roof. Or blocking your driveway. Or dangling over a power line. What do you do?

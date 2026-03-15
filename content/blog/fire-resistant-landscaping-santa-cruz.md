@@ -4,6 +4,7 @@ date: "2025-03-01"
 description: "Wildfires are a real threat in Santa Cruz County. Learn which trees and shrubs to avoid, how to create defensible space, and what to plant instead."
 category: "Safety & Hazards"
 readTime: "8 min read"
+image: "/images/blog/fire-resistant-landscaping-santa-cruz.jpg"
 ---
 
 Santa Cruz County has seen firsthand what wildfires can do. The CZU Lightning Complex fire in 2020 burned over 86,000 acres across Santa Cruz and San Mateo counties, destroying hundreds of homes. For residents in the mountains, foothills, and wildland-urban interface — Boulder Creek, Ben Lomond, Felton, Scotts Valley, and parts of Santa Cruz itself — fire-resistant landscaping isn't just a nice-to-have. It can be the difference between a home that survives and one that doesn't.

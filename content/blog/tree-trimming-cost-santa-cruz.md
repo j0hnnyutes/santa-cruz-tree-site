@@ -4,6 +4,7 @@ date: "2025-03-01"
 description: "Wondering what tree trimming costs in Santa Cruz County? Get real 2025 pricing by tree size, type, and complexity — plus tips to avoid overpaying."
 category: "Pricing & Planning"
 readTime: "7 min read"
+image: "/images/blog/tree-trimming-cost-santa-cruz.jpg"
 ---
 
 Tree trimming is one of the most common — and most misquoted — services in the tree care industry. Prices swing dramatically depending on who you call, what they're looking at, and how they price their work. This guide breaks down what tree trimming actually costs in Santa Cruz in 2025, what drives prices up or down, and how to make sure you're getting a fair deal.

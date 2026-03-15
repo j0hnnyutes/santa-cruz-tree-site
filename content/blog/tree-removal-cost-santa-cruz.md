@@ -4,6 +4,7 @@ date: "2025-01-15"
 description: "How much does tree removal cost in Santa Cruz County? We break down pricing by tree size, complexity, and what factors drive costs up or down."
 category: "Pricing & Planning"
 readTime: "7 min read"
+image: "/images/blog/tree-removal-cost-santa-cruz.jpg"
 ---
 
 If you're wondering what tree removal costs in Santa Cruz, you're not alone — it's one of the most common questions we get. The honest answer is that pricing varies widely depending on several factors, but this guide will walk you through everything so you know what to expect before you call.

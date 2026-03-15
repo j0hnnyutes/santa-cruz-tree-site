@@ -4,6 +4,7 @@ date: "2025-02-15"
 description: "Not sure if your tree is dead, dormant, or just stressed? Learn the warning signs of a dying tree and when to call an arborist before it becomes a hazard."
 category: "Safety & Hazards"
 readTime: "6 min read"
+image: "/images/blog/how-to-tell-if-tree-is-dead.jpg"
 ---
 
 Dead and dying trees are among the most common hazards on residential properties in Santa Cruz County — and one of the most underestimated. A tree that looks like it might be struggling can take years to fully die, but when it does fall, the damage is often catastrophic and preventable.

@@ -4,6 +4,7 @@ date: "2025-02-01"
 description: "Timing your tree trimming right can mean healthier trees and better growth. Here's when to trim common trees in Santa Cruz County's coastal climate."
 category: "Seasonal"
 readTime: "6 min read"
+image: "/images/blog/best-time-trim-trees-santa-cruz.jpg"
 ---
 
 Timing matters more than most homeowners realize when it comes to tree trimming. Prune at the wrong time and you can stress the tree, invite disease, or cut off next year's blooms. Prune at the right time and the tree responds with healthy new growth and better structure.

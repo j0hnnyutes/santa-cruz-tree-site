@@ -4,6 +4,7 @@ date: "2025-02-10"
 description: "There's no universal answer — trimming frequency depends on species, age, location, and goals. Here's a practical guide for Santa Cruz County homeowners."
 category: "Tree Care"
 readTime: "5 min read"
+image: "/images/blog/how-often-trim-trees.jpg"
 ---
 
 One of the most common questions homeowners ask is how often trees need to be trimmed. The honest answer is: it depends. There's no single rule that applies to every tree, but there are solid guidelines based on species, age, and what you're trying to accomplish.

@@ -4,6 +4,7 @@ date: "2025-01-28"
 description: "Never had a tree removed before? Here's exactly what happens on removal day — from arrival to cleanup — so you know what to expect."
 category: "Services"
 readTime: "5 min read"
+image: "/images/blog/what-to-expect-tree-removal.jpg"
 ---
 
 For most homeowners, a tree removal is an infrequent event. If you've never had one done, you might wonder what the process actually looks like, how long it takes, and what your property will look like afterward. Here's a straightforward walkthrough of what to expect.

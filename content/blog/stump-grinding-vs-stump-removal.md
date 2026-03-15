@@ -4,6 +4,7 @@ date: "2025-03-10"
 description: "Should you grind the stump or have it fully removed? We explain the difference, the costs, and which method makes sense for your situation."
 category: "Services"
 readTime: "5 min read"
+image: "/images/blog/stump-grinding-vs-stump-removal.jpg"
 ---
 
 After a tree comes down, you're left with a choice: what do you do with the stump? Most homeowners are surprised to learn there are two distinct options — stump grinding and full stump removal — and they're quite different in scope, cost, and what they accomplish.

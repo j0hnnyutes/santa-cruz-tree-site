@@ -4,6 +4,7 @@ date: "2025-03-05"
 description: "Extended drought stresses trees in ways that can take years to show up. Here's how to assess drought damage and help your trees recover in Santa Cruz County."
 category: "Tree Care"
 readTime: "6 min read"
+image: "/images/blog/tree-care-after-drought.jpg"
 ---
 
 California's relationship with drought is well-established — the state cycles through multi-year dry periods that put enormous stress on trees, especially those not adapted to our coastal climate or those planted in the wrong microclimate. In Santa Cruz County, even native species like oaks and redwoods can struggle after extended dry stretches, and landscape trees from wetter climates can decline rapidly.

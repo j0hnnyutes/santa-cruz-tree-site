@@ -4,6 +4,7 @@ date: "2025-03-10"
 description: "Tree roots cause billions in property damage every year. Learn how to identify root damage risks, what it costs to repair, and how to protect your home in Santa Cruz."
 category: "Safety & Hazards"
 readTime: "7 min read"
+image: "/images/blog/tree-root-damage-foundation-pipes.jpg"
 ---
 
 Tree roots don't make noise. They don't give warnings. They work quietly for years — and by the time you notice a problem, the damage is often already expensive. Root damage to sewer lines, foundations, driveways, and retaining walls is one of the most common — and most preventable — costly surprises for homeowners in Santa Cruz.

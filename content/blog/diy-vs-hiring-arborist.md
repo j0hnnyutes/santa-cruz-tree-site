@@ -4,6 +4,7 @@ date: "2025-02-20"
 description: "Some tree work is fine to do yourself. Other jobs are genuinely dangerous. Here's how to tell the difference — and what to look for when hiring a tree professional."
 category: "Tree Care"
 readTime: "6 min read"
+image: "/images/blog/diy-vs-hiring-arborist.jpg"
 ---
 
 Not all tree work requires a professional. A homeowner with basic tools can safely handle small pruning jobs — and there's real satisfaction in maintaining your own landscape. But tree work is among the most dangerous jobs in the country, and the line between "I can handle this" and "I need a professional" is worth understanding clearly.

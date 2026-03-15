@@ -4,6 +4,7 @@ date: "2025-03-08"
 description: "Coast live oaks are the defining tree of Santa Cruz County. Learn how to care for them, protect them from Sudden Oak Death, and when to call a professional."
 category: "Tree Care"
 readTime: "8 min read"
+image: "/images/blog/coast-live-oak-care-santa-cruz.jpg"
 ---
 
 If you live in Santa Cruz County, you live with coast live oaks. They line our streets, anchor our hillsides, frame our homes, and define the look of the Central Coast landscape. They're among the most ecologically valuable trees in California — and among the most misunderstood when it comes to care.

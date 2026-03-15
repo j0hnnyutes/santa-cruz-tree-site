@@ -4,6 +4,7 @@ date: "2025-03-12"
 description: "Not all tree companies are equal. Here's exactly what to look for — and what to watch out for — when hiring a tree service in Santa Cruz County."
 category: "Tree Care"
 readTime: "6 min read"
+image: "/images/blog/how-to-choose-tree-service-santa-cruz.jpg"
 ---
 
 Hiring the wrong tree company is one of the more expensive mistakes a Santa Cruz homeowner can make. A bad trim can damage or kill a tree worth thousands. An uninsured crew working on your property can leave you holding liability for an injury. A "low-price" job done with bad technique can cost double to fix years later.
