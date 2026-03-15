@@ -18,6 +18,9 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; activeBg: stri
   "Seasonal":           { bg: "#fef9c3", text: "#854d0e", activeBg: "#854d0e", activeText: "#fff" },
   "Services":           { bg: "#f3e8ff", text: "#6b21a8", activeBg: "#6b21a8", activeText: "#fff" },
   "Local Regulations":  { bg: "#e0f2fe", text: "#0c4a6e", activeBg: "#0c4a6e", activeText: "#fff" },
+  "Service Areas":      { bg: "#f0fdf4", text: "#166534", activeBg: "#15803d", activeText: "#fff" },
+  "Tree Removal":       { bg: "#fff7ed", text: "#9a3412", activeBg: "#c2410c", activeText: "#fff" },
+  "Tree Law & Permits": { bg: "#f0f9ff", text: "#075985", activeBg: "#0369a1", activeText: "#fff" },
 };
 
 function cardCategoryStyle(cat: string) {

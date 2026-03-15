@@ -2,233 +2,279 @@
 """
 generate_blog_images.py
 =======================
-Run this script ONCE from your project root to generate all blog article images.
+Generates all blog article images using Hugging Face's free Inference API
+(FLUX.1-schnell model — fast, high quality, photorealistic).
 
-Usage:
-    pip install requests Pillow opencv-python
-    python3 generate_blog_images.py
+SETUP (one time, ~2 minutes):
+  1. Create a free account at https://huggingface.co/join
+  2. Go to https://huggingface.co/settings/tokens
+  3. Click "New token" → name it anything → Role: "Read" → Create
+  4. Copy the token (starts with hf_...)
+  5. Set it as an environment variable:
+       export HF_TOKEN="hf_your_token_here"
+     OR just run the script and paste it when prompted.
 
-What it does:
-  1. Sends each prompt to the Craiyon free API (no account needed)
-  2. Picks the best landscape image from the 9 generated
-  3. Removes the Craiyon watermark using OpenCV inpainting
-  4. Saves as JPEG to public/images/blog/
+USAGE:
+  pip3 install requests Pillow
+  python3 generate_blog_images.py
 
-Already exists (skipped automatically):
-  - tree-removal-permits-santa-cruz.jpg
+Already-existing images are skipped automatically.
 """
 
-import base64
+from __future__ import annotations
+
 import io
-import json
 import os
 import sys
 import time
+import warnings
+
+warnings.filterwarnings("ignore")
 
 try:
     import requests
 except ImportError:
-    sys.exit("Missing: pip install requests")
-
+    sys.exit("Missing: pip3 install requests Pillow")
 try:
     from PIL import Image
 except ImportError:
-    sys.exit("Missing: pip install Pillow")
-
-try:
-    import cv2
-    import numpy as np
-except ImportError:
-    sys.exit("Missing: pip install opencv-python")
+    sys.exit("Missing: pip3 install requests Pillow")
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "public", "images", "blog")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "public", "images", "blog"
+)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# 16 articles: (slug, prompt)
+HF_API_URL = (
+    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
+)
+
+# (slug, prompt)
 ARTICLES = [
     (
         "best-time-trim-trees-santa-cruz",
-        "arborist trimming tree branches California coastal garden blue sky, "
-        "professional tree care, high quality photo",
+        "professional arborist in safety gear trimming tree branches, California coastal "
+        "garden, blue sky, photorealistic photography",
     ),
     (
         "coast-live-oak-care-santa-cruz",
-        "large majestic coast live oak tree California hillside green leaves blue sky, "
-        "landscape photography",
+        "large majestic coast live oak tree on California hillside, lush green leaves, "
+        "blue sky, landscape photography, photorealistic",
     ),
     (
         "dangerous-trees-santa-cruz",
-        "hazardous dead tree leaning dangerously toward suburban house California yard, "
-        "cracked trunk, realistic photo",
+        "dead hazardous tree with cracked trunk leaning toward suburban house, California "
+        "yard, danger, photorealistic photo",
     ),
     (
         "diy-vs-hiring-arborist",
-        "certified arborist with safety harness helmet climbing large tree, "
-        "professional tree service equipment, realistic photo",
+        "certified arborist wearing safety harness and hard hat climbing large tree with "
+        "professional equipment, photorealistic photo",
     ),
     (
         "emergency-tree-service-santa-cruz",
-        "large tree fallen on house roof after storm damage, emergency crew responding, "
-        "realistic photo",
+        "large tree fallen on house roof after storm, emergency crew with chainsaws, "
+        "California residential street, photorealistic photo",
     ),
     (
         "fire-resistant-landscaping-santa-cruz",
-        "California home defensible space cleared dry brush fire prevention landscaping, "
-        "aerial view residential property, realistic photo",
+        "California home with well-maintained defensible space landscaping, cleared dry "
+        "brush around house, wildfire prevention, wide shot, photorealistic",
     ),
     (
         "how-often-trim-trees",
-        "arborist in bucket truck aerial lift trimming mature tree residential street, "
-        "professional tree pruning, realistic photo",
+        "arborist in aerial bucket truck trimming mature tree branches on residential "
+        "street, professional tree service, sunny day, photorealistic photo",
     ),
     (
         "how-to-choose-tree-service-santa-cruz",
-        "professional arborist consulting homeowner about large tree in front yard, "
-        "tree inspection, realistic photo",
+        "professional arborist in hi-vis vest and hard hat consulting homeowner standing "
+        "in front yard next to large tree, photorealistic photo",
     ),
     (
         "how-to-tell-if-tree-is-dead",
-        "dead dying tree with bare branches fungal growth bark decay standing "
-        "next to healthy green trees, realistic photo",
+        "dead tree with bare branches and fungal growth on bark standing beside healthy "
+        "green trees in California backyard, photorealistic photo",
     ),
     (
         "stump-grinding-vs-stump-removal",
-        "stump grinder machine grinding large tree stump green lawn backyard, "
-        "realistic photo",
+        "stump grinder machine actively grinding large tree stump in green lawn backyard, "
+        "wood chips flying, photorealistic photo",
     ),
     (
         "tree-care-after-drought",
-        "drought stressed brown dying trees dry cracked California landscape, "
-        "wilted leaves, realistic photo",
+        "drought-stressed trees with brown wilted leaves in dry California landscape, "
+        "cracked earth, wildfires risk, photorealistic photo",
     ),
     (
         "tree-removal-cost-santa-cruz",
-        "professional tree removal crew with crane removing large tree residential "
-        "neighborhood California, realistic photo",
+        "professional tree removal crew using crane and rigging to remove tall tree in "
+        "California residential neighborhood, photorealistic photo",
     ),
     (
         "tree-root-damage-foundation-pipes",
-        "large tree roots cracking lifting concrete sidewalk driveway pavement damage, "
-        "close up realistic photo",
+        "large exposed tree roots cracking and lifting concrete sidewalk and driveway, "
+        "close-up structural damage, photorealistic photo",
     ),
     (
         "tree-trimming-cost-santa-cruz",
-        "arborist trimming pruning residential tree with chainsaw on ladder sunny day, "
-        "realistic photo",
+        "arborist on ladder pruning and trimming residential tree branches with pole saw "
+        "on a sunny California day, photorealistic photo",
     ),
     (
         "what-to-do-after-storm-tree-damage",
-        "storm damaged tree fallen leaning on fence after heavy rain wind, "
-        "residential yard, realistic photo",
+        "large storm-damaged tree leaning on wooden fence after heavy rain and wind, "
+        "suburban yard with debris, photorealistic photo",
     ),
     (
         "what-to-expect-tree-removal",
-        "professional tree removal team with equipment truck chipper arriving at "
-        "residential property, realistic photo",
+        "professional tree service team with wood chipper truck and equipment on "
+        "residential driveway ready to remove large tree, photorealistic photo",
+    ),
+    # ── New articles (added April–May 2025) ─────────────────────────────────
+    (
+        "eucalyptus-tree-removal-santa-cruz",
+        "massive blue gum eucalyptus tree being removed by professional arborists using "
+        "crane in California residential neighborhood, large trunk sections, photorealistic photo",
+    ),
+    (
+        "tree-service-monterey-county",
+        "certified arborist trimming iconic Monterey cypress tree on the California coast, "
+        "Pacific Ocean in background, sunny day, photorealistic photography",
+    ),
+    (
+        "tree-trimming-aptos-capitola",
+        "aerial bucket truck trimming large oak tree canopy in California coastal "
+        "neighborhood, crew in safety gear, sunny day, photorealistic photo",
+    ),
+    (
+        "tree-cabling-bracing-santa-cruz",
+        "close-up of steel cable hardware and bracing rod installed in large forked "
+        "tree trunk, structural tree support, professional arborist work, photorealistic photo",
+    ),
+    (
+        "arborist-report-real-estate-santa-cruz",
+        "ISA certified arborist in hard hat examining large oak tree trunk with clipboard "
+        "and tablet, writing report, California residential property, photorealistic photo",
+    ),
+    (
+        "palm-tree-trimming-santa-cruz",
+        "arborist on aerial lift trimming tall queen palm tree fronds against bright "
+        "blue California coastal sky, professional tree service, photorealistic photo",
+    ),
+    (
+        "tree-service-watsonville-gilroy",
+        "tree removal crew with heavy equipment working on large heritage valley oak "
+        "in California agricultural landscape, safety gear, photorealistic photo",
+    ),
+    (
+        "neighbor-tree-disputes-california",
+        "large overhanging tree branches extending over wooden fence between two "
+        "California residential properties, suburban neighborhood, photorealistic photo",
+    ),
+    # ── Seasonal, Pricing & Planning, Local Regulations articles ────────────
+    (
+        "winter-storm-tree-prep-santa-cruz",
+        "homeowner and arborist inspecting large tree in California yard before winter "
+        "storm season, cloudy dramatic sky, safety assessment, photorealistic photo",
+    ),
+    (
+        "spring-tree-care-santa-cruz",
+        "arborist examining fresh green spring growth on tree branches in California "
+        "garden, bright sunny spring morning, post-rain landscape, photorealistic photo",
+    ),
+    (
+        "emergency-tree-service-cost-santa-cruz",
+        "emergency tree service crew at night using floodlights to remove large fallen "
+        "tree from residential roof after storm, California neighborhood, photorealistic photo",
+    ),
+    (
+        "how-to-compare-tree-service-quotes",
+        "homeowner reviewing written tree service estimates on clipboard standing in "
+        "backyard next to large tree, professional consultation, photorealistic photo",
+    ),
+    (
+        "santa-cruz-city-tree-ordinance",
+        "Santa Cruz California city street with large protected heritage oak tree beside "
+        "residential homes, urban forest, sunny day, photorealistic photo",
+    ),
+    (
+        "protected-trees-santa-cruz-county",
+        "impressive ancient valley oak tree with massive trunk and spreading canopy on "
+        "California hillside, protected heritage tree, photorealistic photo",
+    ),
+    (
+        "hoa-tree-rules-california",
+        "well-maintained HOA community green belt with manicured trees and walkway in "
+        "California residential neighborhood, suburban landscape, photorealistic photo",
     ),
 ]
 
-CRAIYON_API = "https://api.craiyon.com/v3"
-HEADERS = {
-    "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                  "AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
-}
+
+# ---------------------------------------------------------------------------
+# Token
+# ---------------------------------------------------------------------------
+
+def get_token() -> str:
+    token = os.environ.get("HF_TOKEN", "").strip()
+    if token:
+        print(f"Using HF_TOKEN from environment ({token[:8]}...)\n")
+        return token
+    print("Hugging Face API token required.")
+    print("Get a FREE token at: https://huggingface.co/settings/tokens\n")
+    token = input("Paste your token here: ").strip()
+    if not token:
+        sys.exit("No token provided — exiting.")
+    return token
 
 
 # ---------------------------------------------------------------------------
-# Watermark removal (orange Craiyon crayon in bottom-right corner)
+# Image generation
 # ---------------------------------------------------------------------------
 
-def remove_watermark(img_array: np.ndarray) -> np.ndarray:
-    """Remove the Craiyon orange crayon watermark from the bottom-right corner."""
-    h, w = img_array.shape[:2]
-    bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-
-    # Region of interest: bottom-right ~220x230 pixels
-    cx, cy = max(0, w - 220), max(0, h - 230)
-
-    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
-
-    # Orange crayon body
-    mask_orange = cv2.inRange(
-        hsv[cy:h, cx:w],
-        np.array([5, 160, 100]),
-        np.array([22, 255, 255]),
-    )
-    # Orange sparkles / highlights
-    mask_sparkle = cv2.inRange(
-        hsv[cy:h, cx:w],
-        np.array([15, 130, 180]),
-        np.array([28, 255, 255]),
-    )
-    # Navy/dark blue "+" symbols
-    mask_navy = cv2.inRange(
-        hsv[cy:h, cx:w],
-        np.array([100, 80, 30]),
-        np.array([135, 255, 140]),
-    )
-
-    combined = cv2.bitwise_or(mask_orange, cv2.bitwise_or(mask_sparkle, mask_navy))
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    dilated = cv2.dilate(combined, kernel, iterations=2)
-
-    full_mask = np.zeros((h, w), dtype=np.uint8)
-    full_mask[cy:h, cx:w] = dilated
-
-    result_bgr = cv2.inpaint(bgr, full_mask, inpaintRadius=12, flags=cv2.INPAINT_NS)
-    return cv2.cvtColor(result_bgr, cv2.COLOR_BGR2RGB)
-
-
-# ---------------------------------------------------------------------------
-# Craiyon generation
-# ---------------------------------------------------------------------------
-
-def generate_images(prompt: str) -> list[np.ndarray]:
-    """Call Craiyon API and return list of images as numpy arrays."""
+def generate_image(prompt: str, token: str, retries: int = 3) -> Image.Image:
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {
-        "prompt": prompt,
-        "negative_prompt": "blurry, text, watermark, logo, cartoon, anime, illustration",
-        "model": "photo",
+        "inputs": prompt,
+        "parameters": {
+            "width": 1024,
+            "height": 576,
+            "num_inference_steps": 4,   # FLUX schnell works great at 4 steps
+            "guidance_scale": 0,        # schnell uses 0 guidance
+        },
     }
-    resp = requests.post(CRAIYON_API, headers=HEADERS, json=payload, timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
 
-    images = []
-    raw_images = data.get("images", data.get("result", []))
-
-    for raw in raw_images:
+    for attempt in range(1, retries + 1):
         try:
-            if isinstance(raw, str):
-                # Could be base64 or a URL
-                if raw.startswith("http"):
-                    img_resp = requests.get(raw, headers=HEADERS, timeout=30)
-                    img = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
-                else:
-                    # base64
-                    decoded = base64.b64decode(raw)
-                    img = Image.open(io.BytesIO(decoded)).convert("RGB")
-                images.append(np.array(img))
-        except Exception as e:
-            print(f"    [skip image: {e}]")
+            resp = requests.post(
+                HF_API_URL, headers=headers, json=payload, timeout=120
+            )
+            if resp.status_code == 200:
+                return Image.open(io.BytesIO(resp.content)).convert("RGB")
+            elif resp.status_code == 503:
+                # Model loading — HF loads on first request, takes ~20s
+                wait = 25
+                print(f"        Model loading, waiting {wait}s (attempt {attempt}/{retries})...")
+                time.sleep(wait)
+            elif resp.status_code == 429:
+                wait = 60
+                print(f"        Rate limited, waiting {wait}s...")
+                time.sleep(wait)
+            else:
+                err = resp.text[:200] if resp.text else f"HTTP {resp.status_code}"
+                raise RuntimeError(f"HTTP {resp.status_code}: {err}")
+        except requests.exceptions.Timeout:
+            if attempt < retries:
+                print(f"        Timeout, retrying ({attempt}/{retries})...")
+                time.sleep(5)
+            else:
+                raise
 
-    return images
-
-
-def pick_best(images: list[np.ndarray]) -> np.ndarray | None:
-    """Pick the best landscape-oriented image."""
-    if not images:
-        return None
-    # Prefer landscape (w > h)
-    landscape = [img for img in images if img.shape[1] >= img.shape[0]]
-    pool = landscape if landscape else images
-    # Pick the one with the largest area (highest resolution)
-    return max(pool, key=lambda img: img.shape[0] * img.shape[1])
+    raise RuntimeError(f"Failed after {retries} attempts")
 
 
 # ---------------------------------------------------------------------------
@@ -236,58 +282,50 @@ def pick_best(images: list[np.ndarray]) -> np.ndarray | None:
 # ---------------------------------------------------------------------------
 
 def main():
-    print(f"Output directory: {OUTPUT_DIR}\n")
-    skipped = 0
-    succeeded = 0
-    failed = []
+    print("=" * 55)
+    print("  Blog Image Generator — Santa Cruz Tree Pros")
+    print("=" * 55)
+    print(f"Output → {OUTPUT_DIR}\n")
 
-    for slug, prompt in ARTICLES:
+    token = get_token()
+    succeeded = 0
+    skipped   = 0
+    failed    = []
+
+    for idx, (slug, prompt) in enumerate(ARTICLES):
         out_path = os.path.join(OUTPUT_DIR, f"{slug}.jpg")
 
         if os.path.exists(out_path):
-            print(f"[skip] {slug}.jpg already exists")
+            kb = os.path.getsize(out_path) // 1024
+            print(f"[skip] {slug}.jpg ({kb} KB already exists)")
             skipped += 1
             continue
 
-        print(f"[gen ] {slug}")
-        print(f"       prompt: {prompt[:70]}...")
+        print(f"\n[{idx+1:02d}/{len(ARTICLES)}] {slug}")
 
         try:
-            images = generate_images(prompt)
-            if not images:
-                raise ValueError("No images returned by API")
-
-            best = pick_best(images)
-            if best is None:
-                raise ValueError("Could not select best image")
-
-            print(f"       got {len(images)} images, best: {best.shape[1]}x{best.shape[0]}")
-
-            # Remove watermark
-            clean = remove_watermark(best)
-
-            # Save as JPEG
-            pil_img = Image.fromarray(clean)
-            pil_img.save(out_path, "JPEG", quality=92, optimize=True)
-            file_kb = os.path.getsize(out_path) // 1024
-            print(f"       saved → {slug}.jpg ({file_kb} KB) ✓")
+            img = generate_image(prompt, token)
+            img.save(out_path, "JPEG", quality=90, optimize=True)
+            kb = os.path.getsize(out_path) // 1024
+            print(f"        {img.width}×{img.height} → saved ({kb} KB) ✓")
             succeeded += 1
-
         except Exception as e:
-            print(f"       ERROR: {e}")
+            print(f"        ERROR: {e}")
             failed.append((slug, str(e)))
 
-        # Be polite to the free API
-        if succeeded + len(failed) < len(ARTICLES) - skipped:
-            time.sleep(3)
-
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 55}")
     print(f"Done: {succeeded} generated, {skipped} skipped, {len(failed)} failed")
+
     if failed:
-        print("\nFailed articles (retry manually):")
+        print("\nFailed (re-run to retry — existing files are skipped):")
         for slug, err in failed:
             print(f"  {slug}: {err}")
-    print("\nNext step: run `git add public/images/blog && git commit -m 'add blog images'`")
+
+    if succeeded > 0:
+        print("\nNext steps:")
+        print("  git add public/images/blog/")
+        print("  git commit -m 'add blog article images'")
+        print("  git push")
 
 
 if __name__ == "__main__":

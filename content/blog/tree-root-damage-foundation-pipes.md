@@ -1,7 +1,7 @@
 ---
 title: "Tree Root Damage to Foundations, Pipes, and Driveways: What Santa Cruz Homeowners Need to Know"
 date: "2025-03-10"
-description: "Tree roots cause billions in property damage every year. Learn how to identify root damage risks, what it costs to repair, and how to protect your home in Santa Cruz."
+description: "Tree roots cause billions in property damage annually. Learn how to spot root damage risks, what repairs cost, and how to protect your Santa Cruz home."
 category: "Safety & Hazards"
 readTime: "7 min read"
 image: "/images/blog/tree-root-damage-foundation-pipes.jpg"

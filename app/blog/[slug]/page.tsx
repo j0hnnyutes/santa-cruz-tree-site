@@ -142,7 +142,7 @@ export default async function BlogPostPage({ params }: Props) {
 
       {/* ── Article Hero Image (if provided) ── */}
       {post.image && (
-        <section style={{ background: "#fff", paddingTop: 40, paddingBottom: 0 }}>
+        <section style={{ background: "#fff", paddingTop: 24, paddingBottom: 0 }}>
           <div className="site-container" style={{ maxWidth: 780 }}>
             <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", maxHeight: 440, borderRadius: 12, overflow: "hidden" }}>
               <NextImage
@@ -159,7 +159,7 @@ export default async function BlogPostPage({ params }: Props) {
       )}
 
       {/* ── Article Body ── */}
-      <section style={{ background: "#fff", padding: "56px 0 72px" }}>
+      <section style={{ background: "#fff", padding: `${post.image ? "28px" : "56px"} 0 72px` }}>
         <div className="site-container" style={{ maxWidth: 780 }}>
           <div
             className="blog-body"

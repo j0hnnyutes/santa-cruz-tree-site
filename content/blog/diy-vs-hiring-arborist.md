@@ -1,7 +1,7 @@
 ---
 title: "DIY Tree Trimming vs. Hiring a Certified Arborist: When to Call a Pro"
 date: "2025-02-20"
-description: "Some tree work is fine to do yourself. Other jobs are genuinely dangerous. Here's how to tell the difference — and what to look for when hiring a tree professional."
+description: "Some tree work is safe to DIY. Other jobs are genuinely dangerous. Here's how to tell the difference and what to look for when hiring a tree professional."
 category: "Tree Care"
 readTime: "6 min read"
 image: "/images/blog/diy-vs-hiring-arborist.jpg"
