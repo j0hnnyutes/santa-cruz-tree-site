@@ -28,11 +28,13 @@ export async function generateMetadata({ params }: Props) {
       type: "article",
       siteName: "Santa Cruz Tree Pros",
       publishedTime: post.date,
+      ...(post.image ? { images: [`https://santacruztreepros.com${post.image}`] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
+      ...(post.image ? { images: [`https://santacruztreepros.com${post.image}`] } : {}),
     },
   };
 }
@@ -136,6 +138,26 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </div>
       </section>
+
+      {/* ── Article Hero Image (if provided) ── */}
+      {post.image && (
+        <section style={{ background: "#fff", paddingTop: 40, paddingBottom: 0 }}>
+          <div className="site-container" style={{ maxWidth: 780 }}>
+            <img
+              src={post.image}
+              alt={post.title}
+              style={{
+                width: "100%",
+                height: "auto",
+                maxHeight: 440,
+                objectFit: "cover",
+                borderRadius: 12,
+                display: "block",
+              }}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── Article Body ── */}
       <section style={{ background: "#fff", padding: "56px 0 72px" }}>

@@ -67,7 +67,22 @@ export default function BlogGrid({ posts, currentPage, totalPages }: Props) {
                 const { bg, text } = categoryStyle(post.category);
                 return (
                   <Link key={post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: "none" }}>
-                    <article className="blog-card">
+                    <article className="blog-card" style={{ padding: post.image ? 0 : undefined }}>
+                      {/* Card image */}
+                      {post.image && (
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          style={{
+                            width: "100%",
+                            height: 180,
+                            objectFit: "cover",
+                            borderRadius: "10px 10px 0 0",
+                            display: "block",
+                          }}
+                        />
+                      )}
+                      <div style={{ padding: post.image ? "18px 20px 20px" : undefined }}>
                       {/* Category + read time */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                         <span
@@ -131,6 +146,7 @@ export default function BlogGrid({ posts, currentPage, totalPages }: Props) {
                           Read article →
                         </span>
                       </div>
+                      </div>{/* end inner padding wrapper */}
                     </article>
                   </Link>
                 );

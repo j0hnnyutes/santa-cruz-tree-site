@@ -4,6 +4,7 @@ date: "2025-03-20"
 description: "Do you need a permit to remove a tree in Santa Cruz? The rules vary by city, size, and species. Here's what to know before cutting anything down."
 category: "Local Regulations"
 readTime: "7 min read"
+image: "/images/blog/tree-removal-permits-santa-cruz.jpg"
 ---
 
 One of the most common surprises for homeowners planning a tree removal in Santa Cruz County is discovering that permits may be required. Unlike many other types of property work, tree removal regulations in California are highly localized — the rules in the City of Santa Cruz can be very different from those in unincorporated Santa Cruz County, Scotts Valley, or Watsonville.

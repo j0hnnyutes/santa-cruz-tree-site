@@ -43,6 +43,7 @@ function metaFromFile(filename: string): BlogPostMeta {
     description: meta.description ?? "",
     category: meta.category ?? "Tree Care",
     readTime: meta.readTime ?? "5 min read",
+    ...(meta.image ? { image: meta.image } : {}),
   };
 }
 
@@ -72,6 +73,7 @@ export function getPost(slug: string): BlogPost | null {
     category: meta.category ?? "Tree Care",
     readTime: meta.readTime ?? "5 min read",
     content: body,
+    ...(meta.image ? { image: meta.image } : {}),
   };
 }
 

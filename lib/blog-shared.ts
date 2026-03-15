@@ -10,6 +10,7 @@ export interface BlogPostMeta {
   description: string;
   category: string;
   readTime: string;
+  image?: string;     // optional: path relative to /public e.g. "/images/blog/my-article.jpg"
 }
 
 export interface BlogPost extends BlogPostMeta {
