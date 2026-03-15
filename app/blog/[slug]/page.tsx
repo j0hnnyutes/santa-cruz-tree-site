@@ -1,6 +1,7 @@
 // app/blog/[slug]/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import NextImage from "next/image";
 import { getAllPosts, getPost, formatDate } from "@/lib/blog";
 import { markdownToHtml } from "@/lib/markdown";
 
@@ -143,18 +144,16 @@ export default async function BlogPostPage({ params }: Props) {
       {post.image && (
         <section style={{ background: "#fff", paddingTop: 40, paddingBottom: 0 }}>
           <div className="site-container" style={{ maxWidth: 780 }}>
-            <img
-              src={post.image}
-              alt={post.title}
-              style={{
-                width: "100%",
-                height: "auto",
-                maxHeight: 440,
-                objectFit: "cover",
-                borderRadius: 12,
-                display: "block",
-              }}
-            />
+            <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", maxHeight: 440, borderRadius: 12, overflow: "hidden" }}>
+              <NextImage
+                src={post.image}
+                alt={post.title}
+                fill
+                priority
+                sizes="(max-width: 780px) 100vw, 780px"
+                style={{ objectFit: "cover" }}
+              />
+            </div>
           </div>
         </section>
       )}

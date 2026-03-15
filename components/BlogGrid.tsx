@@ -2,6 +2,7 @@
 // Shared blog listing grid + pagination controls used by /blog and /blog/page/[n]
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { BlogPostMeta, formatDate } from "@/lib/blog-shared";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -70,17 +71,15 @@ export default function BlogGrid({ posts, currentPage, totalPages }: Props) {
                     <article className="blog-card" style={{ padding: post.image ? 0 : undefined }}>
                       {/* Card image */}
                       {post.image && (
-                        <img
-                          src={post.image}
-                          alt={post.title}
-                          style={{
-                            width: "100%",
-                            height: 180,
-                            objectFit: "cover",
-                            borderRadius: "10px 10px 0 0",
-                            display: "block",
-                          }}
-                        />
+                        <div style={{ position: "relative", height: 180, borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
+                          <NextImage
+                            src={post.image}
+                            alt={post.title}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
+                            style={{ objectFit: "cover" }}
+                          />
+                        </div>
                       )}
                       <div style={{ padding: post.image ? "18px 20px 20px" : undefined }}>
                       {/* Category + read time */}
