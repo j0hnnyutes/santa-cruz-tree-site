@@ -90,18 +90,7 @@ export async function POST(request: Request) {
     const resolvedUtmMedium   = utmMedium   || null;
     const resolvedUtmCampaign = utmCampaign || null;
 
-    prisma.$executeRaw`
-      INSERT INTO "PageView"
-        ("path","referrer","sessionId","duration","userAgent",
-         "utmSource","utmMedium","utmCampaign",
-         "country","region","city","createdAt")
-      VALUES
-        (${resolvedPath}, ${resolvedReferrer}, ${resolvedSessionId},
-         ${resolvedDuration}, ${ua},
-         ${resolvedUtmSource}, ${resolvedUtmMedium}, ${resolvedUtmCampaign},
-         ${country}, ${region}, ${city},
-         NOW())
-    `
+    prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","duration","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${resolvedDuration},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},NOW())`
       .catch((err: unknown) => {
         console.error("Failed to log pageview:", err);
         logError(null, {
