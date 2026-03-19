@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/logError";
 
 /**
  * Bot user-agent patterns to silently drop — never written to the DB.
@@ -54,6 +55,12 @@ export async function POST(request: Request) {
     });
 
     if (!rl.ok) {
+      logError(request, {
+        severity: "low",
+        type: "rate_limit",
+        message: "Rate limit hit on /api/log/pageview",
+        path: "/api/log/pageview",
+      });
       return NextResponse.json({ ok: false }, { status: 429 });
     }
 
@@ -90,7 +97,16 @@ export async function POST(request: Request) {
           city,
         },
       })
-      .catch((err: unknown) => console.error("Failed to log pageview:", err));
+      .catch((err: unknown) => {
+        console.error("Failed to log pageview:", err);
+        // Best-effort: if DB recovers, subsequent errors will be captured
+        logError(null, {
+          severity: "medium",
+          type: "server_api",
+          message: `Pageview DB write failed: ${err instanceof Error ? err.message : String(err)}`,
+          path: "/api/log/pageview",
+        });
+      });
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err: unknown) {

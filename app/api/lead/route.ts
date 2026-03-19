@@ -325,6 +325,12 @@ export async function POST(request: Request) {
   // Rate limiting
   const rl = await rateLimit(request, { max: 10, windowMs: 60_000, keyPrefix: "lead:" });
   if (!rl.ok) {
+    logError(request, {
+      severity: "medium",
+      type: "rate_limit",
+      message: "Rate limit hit on /api/lead — possible form spam attempt",
+      path: "/api/lead",
+    });
     return NextResponse.json(
       { ok: false, error: "Too many requests. Please wait a moment." },
       { status: 429 }

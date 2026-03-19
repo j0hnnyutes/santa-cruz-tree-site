@@ -4,6 +4,7 @@ import { createHmac } from "crypto";
 import { newCsrfToken } from "@/lib/adminCsrf";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { logError } from "@/lib/logError";
 
 type AdminConfigRow = { key: string; value: string };
 
@@ -106,6 +107,13 @@ export async function POST(req: NextRequest) {
 
   if (!isValid) {
     if (locked) {
+      logError(req, {
+        severity: "high",
+        type: "auth",
+        message: `Admin login locked out after ${MAX_ATTEMPTS} failed attempts`,
+        path: "/api/admin/login",
+        metadata: { ip, attempts: MAX_ATTEMPTS },
+      });
       return NextResponse.json(
         { ok: false, error: "Too many attempts. Try again later." },
         { status: 429 }
@@ -119,6 +127,15 @@ export async function POST(req: NextRequest) {
     } else {
       entry.count += 1;
     }
+
+    const attemptCount = attempts.get(ip)?.count ?? 1;
+    logError(req, {
+      severity: attemptCount >= 3 ? "medium" : "low",
+      type: "auth",
+      message: `Admin login failed (attempt ${attemptCount}/${MAX_ATTEMPTS})`,
+      path: "/api/admin/login",
+      metadata: { ip, attemptCount },
+    });
 
     return NextResponse.json(
       { ok: false, error: "Invalid password." },
