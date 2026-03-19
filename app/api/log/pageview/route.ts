@@ -80,26 +80,30 @@ export async function POST(request: Request) {
     // City header is URL-encoded (e.g. "San%20Jose")
     const city = rawCity ? decodeURIComponent(rawCity) : null;
 
-    // Write to database (fire-and-forget)
-    (prisma as any).pageView
-      .create({
-        data: {
-          path: path || "/",
-          referrer: referrer || null,
-          sessionId: sessionId || "",
-          duration: typeof duration === "number" ? duration : null,
-          userAgent: request.headers.get("user-agent"),
-          utmSource:   utmSource   || null,
-          utmMedium:   utmMedium   || null,
-          utmCampaign: utmCampaign || null,
-          country,
-          region,
-          city,
-        },
-      })
+    // Write to database using raw SQL to avoid any Prisma client schema-sync issues.
+    // prisma.$executeRaw sends parameterized SQL directly — bypasses ORM validation.
+    const resolvedPath = path || "/";
+    const resolvedReferrer = referrer || null;
+    const resolvedSessionId = sessionId || "";
+    const resolvedDuration = typeof duration === "number" ? duration : null;
+    const resolvedUtmSource   = utmSource   || null;
+    const resolvedUtmMedium   = utmMedium   || null;
+    const resolvedUtmCampaign = utmCampaign || null;
+
+    prisma.$executeRaw`
+      INSERT INTO "PageView"
+        ("path","referrer","sessionId","duration","userAgent",
+         "utmSource","utmMedium","utmCampaign",
+         "country","region","city","createdAt")
+      VALUES
+        (${resolvedPath}, ${resolvedReferrer}, ${resolvedSessionId},
+         ${resolvedDuration}, ${ua},
+         ${resolvedUtmSource}, ${resolvedUtmMedium}, ${resolvedUtmCampaign},
+         ${country}, ${region}, ${city},
+         NOW())
+    `
       .catch((err: unknown) => {
         console.error("Failed to log pageview:", err);
-        // Best-effort: if DB recovers, subsequent errors will be captured
         logError(null, {
           severity: "medium",
           type: "server_api",
