@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   StatCard,
   AdminCard,
@@ -342,6 +342,274 @@ function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
   );
 }
 
+/* ─── Page drill-down panel ──────────────────────────────────────────── */
+
+interface NextPage { path: string; visits: number; pct: number }
+interface PageDrillDownData {
+  ok:         boolean;
+  path:       string;
+  days:       number;
+  summary:    { totalViews: number; totalSessions: number; avgDuration: number | null; siteSharePct: number };
+  pageViewsByDay:  Array<{ date: string; views: number; sessions: number }>;
+  hourlyBreakdown: Array<{ hour: number; views: number }>;
+  topReferrers:    Array<{ referrer: string; count: number; pct: number }>;
+  nextPages:       NextPage[];
+  deviceBreakdown: { mobile: number; desktop: number };
+}
+
+function PageDrillDown({
+  data,
+  loading,
+  onClose,
+}: {
+  data: PageDrillDownData | null;
+  loading: boolean;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Trap scrolling background when open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const maxViews = data ? Math.max(1, ...data.pageViewsByDay.map((d) => d.views)) : 1;
+  const maxHourly = data ? Math.max(1, ...data.hourlyBreakdown.map((d) => d.views)) : 1;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Slide-in panel */}
+      <div
+        ref={panelRef}
+        className="fixed right-0 top-0 h-full z-50 flex flex-col overflow-hidden shadow-2xl"
+        style={{
+          width: "min(600px, 96vw)",
+          backgroundColor: "#0f0f10",
+          borderLeft: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-start justify-between px-6 py-5 shrink-0 border-b"
+          style={{ borderColor: "rgba(255,255,255,0.07)" }}
+        >
+          <div className="min-w-0 pr-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">Page Details</p>
+            <h2
+              className="text-base font-mono font-semibold text-white truncate"
+              title={data?.path ?? ""}
+            >
+              {data?.path ?? "…"}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 w-8 h-8 rounded-lg border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white transition-colors flex items-center justify-center text-lg leading-none"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {loading && (
+            <div className="h-40 flex items-center justify-center">
+              <LoadingDots />
+            </div>
+          )}
+
+          {!loading && data && (
+            <>
+              {/* KPI row */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Views",       value: formatNumber(data.summary.totalViews),    color: "#22c55e" },
+                  { label: "Sessions",    value: formatNumber(data.summary.totalSessions), color: "#3b82f6" },
+                  { label: "Avg. Time",   value: data.summary.avgDuration ? formatDuration(data.summary.avgDuration) : "—", color: "#a78bfa" },
+                  { label: "Site Share",  value: `${data.summary.siteSharePct}%`,          color: "#f59e0b" },
+                ].map(({ label, value, color }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-gray-700/50 px-3 py-3 text-center"
+                    style={{ backgroundColor: "rgba(255,255,255,0.025)" }}
+                  >
+                    <div className="text-lg font-bold text-white">{value}</div>
+                    <div className="text-xs font-semibold mt-0.5" style={{ color }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Daily views mini chart */}
+              {data.pageViewsByDay.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                    Daily Views
+                  </p>
+                  <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ height: 80 }}>
+                    {data.pageViewsByDay.map((pv, i) => {
+                      const h = Math.max(4, Math.round((pv.views / maxViews) * 60));
+                      return (
+                        <div
+                          key={i}
+                          className="group flex-1 min-w-[18px] flex flex-col items-center relative"
+                        >
+                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                            <span className="text-white">{new Date(pv.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                            <span className="text-green-400 ml-1">{pv.views}</span>
+                          </div>
+                          <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: 64 }}>
+                            <div
+                              className="rounded-t w-full"
+                              style={{ height: h, backgroundColor: "#22c55e", opacity: 0.8 }}
+                            />
+                          </div>
+                          <div className="text-gray-600 mt-1 whitespace-nowrap" style={{ fontSize: 8 }}>
+                            {new Date(pv.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Hourly heatmap */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Traffic by Hour
+                </p>
+                <div className="flex items-end gap-0.5 pb-4" style={{ height: 50 }}>
+                  {data.hourlyBreakdown.map((b) => {
+                    const h = Math.round((b.views / maxHourly) * 36);
+                    const intensity = b.views / maxHourly;
+                    const bg = intensity === 0
+                      ? "#1f2937"
+                      : `rgba(34,197,94,${0.15 + intensity * 0.85})`;
+                    return (
+                      <div
+                        key={b.hour}
+                        className="group flex-1 relative"
+                        style={{ minWidth: 0 }}
+                      >
+                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                          <span className="text-white">{fmtHour(b.hour)}</span>
+                          <span className="text-green-400 ml-1">{b.views}</span>
+                        </div>
+                        <div
+                          className="rounded-t w-full"
+                          style={{ height: Math.max(3, h), backgroundColor: bg }}
+                        />
+                        {[0, 6, 12, 18].includes(b.hour) && (
+                          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-gray-600" style={{ fontSize: 8 }}>
+                            {fmtHour(b.hour)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2-col row: Top Referrers + Next Pages */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Top referrers to this page */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                    Referrers to This Page
+                  </p>
+                  {data.topReferrers.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.topReferrers.map((r, i) => (
+                        <div key={i}>
+                          <div className="flex items-center justify-between text-xs mb-0.5">
+                            <span className="font-mono text-gray-300 truncate mr-2" title={r.referrer}>{r.referrer}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-gray-500">{r.pct}%</span>
+                              <span className="text-gray-300 font-semibold w-6 text-right">{r.count}</span>
+                            </div>
+                          </div>
+                          <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${r.pct}%`, backgroundColor: "#3b82f6", opacity: 0.7 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-xs italic">No referrer data</p>
+                  )}
+                </div>
+
+                {/* Next pages */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                    Next Pages Visited
+                  </p>
+                  {data.nextPages.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.nextPages.map((p, i) => (
+                        <div key={i}>
+                          <div className="flex items-center justify-between text-xs mb-0.5">
+                            <span className="font-mono text-gray-300 truncate mr-2" title={p.path}>{p.path}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-gray-500">{p.pct}%</span>
+                              <span className="text-gray-300 font-semibold w-6 text-right">{p.visits}</span>
+                            </div>
+                          </div>
+                          <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.min(100, p.pct * 2)}%`, backgroundColor: "#a78bfa", opacity: 0.7 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-xs italic">No exit data</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Device split */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Device Split
+                </p>
+                <div className="flex rounded-lg overflow-hidden h-4 mb-2">
+                  <div style={{ width: `${data.deviceBreakdown.mobile}%`, backgroundColor: "#a78bfa" }} />
+                  <div style={{ width: `${data.deviceBreakdown.desktop}%`, backgroundColor: "#22c55e" }} />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>📱 Mobile {data.deviceBreakdown.mobile}%</span>
+                  <span>🖥 Desktop {data.deviceBreakdown.desktop}%</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!loading && !data && (
+            <div className="h-32 flex items-center justify-center text-gray-500 text-sm">
+              No data available for this page.
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── Shared constants ───────────────────────────────────────────────── */
 
 const EMPTY_SUMMARY = {
@@ -470,6 +738,11 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const [customFrom, setCustomFrom]   = useState("");
   const [customTo, setCustomTo]       = useState("");
 
+  // Page drill-down panel
+  const [drillPath, setDrillPath]     = useState<string | null>(null);
+  const [drillData, setDrillData]     = useState<PageDrillDownData | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
+
   /* ── Fetch with either preset days or custom range ── */
   const fetchData = useCallback(async (opts: { days?: number; from?: string; to?: string }) => {
     setLoading(true);
@@ -493,6 +766,29 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
       setLoading(false);
     }
   }, []);
+
+  /* ── Page drill-down fetch ── */
+  const openDrillDown = useCallback(async (path: string) => {
+    setDrillPath(path);
+    setDrillData(null);
+    setDrillLoading(true);
+    try {
+      const params = new URLSearchParams({ path });
+      if (customMode && customFrom && customTo) {
+        params.set("from_date", customFrom);
+        params.set("to_date",   customTo);
+      } else {
+        params.set("days", String(days));
+      }
+      const res  = await fetch(`/api/admin/analytics/page?${params.toString()}`);
+      const json = await res.json();
+      if (json.ok) setDrillData(json as PageDrillDownData);
+    } catch {
+      // silent
+    } finally {
+      setDrillLoading(false);
+    }
+  }, [days, customMode, customFrom, customTo]);
 
   // Fetch when preset days changes (skip if in custom mode)
   useEffect(() => {
@@ -538,6 +834,15 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Page drill-down panel (portal-like, fixed) ───────────── */}
+      {drillPath !== null && (
+        <PageDrillDown
+          data={drillData}
+          loading={drillLoading}
+          onClose={() => { setDrillPath(null); setDrillData(null); }}
+        />
+      )}
 
       {/* ── Controls row ──────────────────────────────────────────── */}
       <div className="space-y-2">
@@ -691,20 +996,28 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
         <AdminCard className="lg:col-span-2">
           <SectionHeader
             title="Top Pages"
-            sub={`Most visited in the last ${days}d`}
+            sub={`Most visited in the last ${days}d — click any row for details`}
           />
           {topPages.length > 0 ? (
             <div className="space-y-2">
               {topPages.map((page, i) => (
-                <div key={i} className="group">
+                <button
+                  key={i}
+                  className="group w-full text-left rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-white/[0.04] focus:outline-none focus:ring-1 focus:ring-green-700/60"
+                  onClick={() => openDrillDown(page.path || "/")}
+                  title={`View details for ${page.path || "/"}`}
+                >
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span
-                      className="font-mono text-gray-300 truncate mr-2 group-hover:text-white transition-colors"
-                      title={page.path}
-                    >
-                      {page.path || "/"}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="font-mono text-gray-300 truncate group-hover:text-white transition-colors"
+                        title={page.path}
+                      >
+                        {page.path || "/"}
+                      </span>
+                      <span className="text-gray-600 group-hover:text-gray-500 transition-colors shrink-0 text-[10px]">↗</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       <span className="text-gray-500">{page.pct}%</span>
                       <span className="text-gray-300 font-semibold w-10 text-right">
                         {formatNumber(page.views)}
@@ -717,7 +1030,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
                       style={{ width: `${page.pct}%`, backgroundColor: "#22c55e", opacity: 0.7 }}
                     />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
