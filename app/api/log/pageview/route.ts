@@ -24,6 +24,13 @@ export async function POST(request: Request) {
 
     const { path, referrer, sessionId, duration, utmSource, utmMedium, utmCampaign } = body;
 
+    // Geolocation from Vercel edge headers (available on all Vercel plans, null in local dev)
+    const country = request.headers.get("x-vercel-ip-country") || null;
+    const region  = request.headers.get("x-vercel-ip-country-region") || null;
+    const rawCity = request.headers.get("x-vercel-ip-city") || null;
+    // City header is URL-encoded (e.g. "San%20Jose")
+    const city = rawCity ? decodeURIComponent(rawCity) : null;
+
     // Write to database (fire-and-forget)
     (prisma as any).pageView
       .create({
@@ -36,6 +43,9 @@ export async function POST(request: Request) {
           utmSource:   utmSource   || null,
           utmMedium:   utmMedium   || null,
           utmCampaign: utmCampaign || null,
+          country,
+          region,
+          city,
         },
       })
       .catch((err: unknown) => console.error("Failed to log pageview:", err));

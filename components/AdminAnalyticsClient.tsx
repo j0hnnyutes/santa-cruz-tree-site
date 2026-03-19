@@ -37,6 +37,14 @@ interface UtmBreakdown {
   campaigns: UtmRow[];
 }
 
+interface GeoCountry { code: string; views: number; pct: number }
+interface GeoCity    { city: string; country: string; views: number; pct: number }
+interface GeoBreakdown {
+  totalTracked: number;
+  countries: GeoCountry[];
+  cities:    GeoCity[];
+}
+
 interface AnalyticsData {
   ok: boolean;
   days?: number;
@@ -54,6 +62,7 @@ interface AnalyticsData {
   topReferrers:     Referrer[];
   formFunnel?:      FormFunnel;
   utmBreakdown?:    UtmBreakdown;
+  geoBreakdown?:    GeoBreakdown;
 }
 
 interface Props { initialData: AnalyticsData }
@@ -336,6 +345,132 @@ function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
           <p className="text-xs text-gray-500 mt-1.5">
             {funnel.fieldErrors} total validation errors across {funnel.started} session{funnel.started !== 1 ? "s" : ""}
           </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Geo breakdown card ─────────────────────────────────────────────── */
+
+// Convert ISO 3166-1 alpha-2 country code to emoji flag (works in all modern browsers)
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌐";
+  try {
+    return String.fromCodePoint(
+      ...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)
+    );
+  } catch {
+    return "🌐";
+  }
+}
+
+// Human-readable country names for common codes
+const COUNTRY_NAMES: Record<string, string> = {
+  US: "United States", CA: "Canada", GB: "United Kingdom", AU: "Australia",
+  MX: "Mexico", DE: "Germany", FR: "France", IN: "India", JP: "Japan",
+  BR: "Brazil", IT: "Italy", ES: "Spain", NL: "Netherlands", RU: "Russia",
+  KR: "South Korea", CN: "China", SG: "Singapore", SE: "Sweden", NO: "Norway",
+  DK: "Denmark", FI: "Finland", NZ: "New Zealand", IE: "Ireland", CH: "Switzerland",
+  AT: "Austria", BE: "Belgium", PL: "Poland", PT: "Portugal", ZA: "South Africa",
+  AR: "Argentina", CL: "Chile", CO: "Colombia", PH: "Philippines", ID: "Indonesia",
+  TH: "Thailand", MY: "Malaysia", VN: "Vietnam", IL: "Israel", AE: "UAE",
+  SA: "Saudi Arabia", EG: "Egypt", NG: "Nigeria", KE: "Kenya", GH: "Ghana",
+};
+
+function countryName(code: string): string {
+  return COUNTRY_NAMES[code.toUpperCase()] ?? code;
+}
+
+function GeoCard({ geo }: { geo: GeoBreakdown }) {
+  const [tab, setTab] = useState<"countries" | "cities">("countries");
+
+  if (geo.totalTracked === 0) {
+    return (
+      <div className="text-center py-6 space-y-2">
+        <p className="text-gray-400 text-sm">No geographic data yet.</p>
+        <p className="text-gray-600 text-xs max-w-sm mx-auto">
+          Geo data is captured automatically via Vercel's edge network — it will appear here once your site receives traffic in production.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1">
+        {(["countries", "cities"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              tab === t
+                ? "border-green-700 bg-green-900/30 text-green-400"
+                : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
+            }`}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-gray-500">
+          {geo.totalTracked.toLocaleString()} tracked visit{geo.totalTracked !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Countries list */}
+      {tab === "countries" && (
+        <div className="space-y-2">
+          {geo.countries.map((c) => (
+            <div key={c.code}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base leading-none">{countryFlag(c.code)}</span>
+                  <span className="text-gray-300 truncate">{countryName(c.code)}</span>
+                  <span className="text-gray-600 font-mono text-[10px] shrink-0">{c.code}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-gray-500">{c.pct}%</span>
+                  <span className="text-gray-300 font-semibold w-10 text-right">{c.views.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${c.pct}%`, backgroundColor: "#22c55e", opacity: 0.7 }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Cities list */}
+      {tab === "cities" && (
+        <div className="space-y-2">
+          {geo.cities.length > 0 ? geo.cities.map((c, i) => (
+            <div key={i}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base leading-none">{countryFlag(c.country)}</span>
+                  <span className="text-gray-300 truncate">{c.city}</span>
+                  <span className="text-gray-600 font-mono text-[10px] shrink-0">{c.country}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-gray-500">{c.pct}%</span>
+                  <span className="text-gray-300 font-semibold w-10 text-right">{c.views.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${c.pct}%`, backgroundColor: "#3b82f6", opacity: 0.7 }}
+                />
+              </div>
+            </div>
+          )) : (
+            <p className="text-gray-500 text-sm italic">No city data for this period</p>
+          )}
         </div>
       )}
     </div>
@@ -628,6 +763,7 @@ function exportCSV(data: AnalyticsData, days: number) {
   const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
   const funnel   = data.formFunnel;
   const utm      = data.utmBreakdown;
+  const geo      = data.geoBreakdown;
 
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const row = (...cols: (string | number)[]) => cols.map(esc).join(",");
@@ -692,6 +828,23 @@ function exportCSV(data: AnalyticsData, days: number) {
         ...funnel.topFieldErrors.map((fe) => row(fe.field, fe.count)),
         blank,
       ] : [blank]),
+    ] : []),
+
+    // ── Geographic breakdown
+    ...(geo && geo.totalTracked > 0 ? [
+      row("VISITOR LOCATIONS"),
+      row("Total Tracked Visits", geo.totalTracked),
+      blank,
+      row("TOP COUNTRIES"),
+      row("Country Code", "Country", "Visits", "% of Tracked"),
+      ...geo.countries.map((c) => row(c.code, COUNTRY_NAMES[c.code] ?? c.code, c.views, `${c.pct}%`)),
+      blank,
+      ...(geo.cities.length > 0 ? [
+        row("TOP CITIES"),
+        row("City", "Country", "Visits", "% of Tracked"),
+        ...geo.cities.map((c) => row(c.city, c.country, c.views, `${c.pct}%`)),
+        blank,
+      ] : []),
     ] : []),
 
     // ── UTM / Campaign tracking
@@ -821,6 +974,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
   const funnel    = data.formFunnel;
   const utm       = data.utmBreakdown;
+  const geo       = data.geoBreakdown;
 
   const relTime = (d: Date) => {
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -1092,6 +1246,21 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
         ) : (
           <div className="h-20 flex items-center justify-center text-gray-500 text-sm">
             No form data for this period
+          </div>
+        )}
+      </AdminCard>
+
+      {/* ── Geographic breakdown ──────────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Visitor Locations"
+          sub="Countries and cities your traffic comes from"
+        />
+        {geo ? (
+          <GeoCard geo={geo} />
+        ) : (
+          <div className="h-20 flex items-center justify-center text-gray-500 text-sm">
+            No geographic data for this period
           </div>
         )}
       </AdminCard>

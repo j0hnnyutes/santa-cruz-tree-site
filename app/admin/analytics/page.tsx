@@ -29,6 +29,7 @@ export default async function AnalyticsPage() {
     topPages:         [],
     hourlyBreakdown:  [],
     utmBreakdown:     { totalTracked: 0, sources: [], mediums: [], campaigns: [] },
+    geoBreakdown:     { totalTracked: 0, countries: [], cities: [] },
     summary: {
       totalViews:    0,
       totalSessions: 0,

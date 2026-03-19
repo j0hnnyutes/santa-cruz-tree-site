@@ -78,11 +78,15 @@ model PageView {
   utmSource   String?  // utm_source query param
   utmMedium   String?  // utm_medium query param
   utmCampaign String?  // utm_campaign query param
+  country     String?  // ISO 3166-1 alpha-2 country code (from x-vercel-ip-country)
+  region      String?  // state/region code (from x-vercel-ip-country-region)
+  city        String?  // city name (from x-vercel-ip-city)
 
   @@index([createdAt])
   @@index([path, createdAt])
   @@index([sessionId, createdAt])
   @@index([utmSource, createdAt])
+  @@index([country, createdAt])
 }
 
 model FormEvent {

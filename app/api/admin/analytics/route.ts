@@ -269,6 +269,49 @@ export async function GET(request: Request) {
       campaigns: utmCampaignRaw.map((r) => ({ label: r.campaign ?? "", views: Number(r.views), pct: utmTotal > 0 ? Math.round((Number(r.views) / utmTotal) * 100) : 0 })),
     };
 
+    /* ── 11. Geographic breakdown ────────────────────────────────────── */
+    const geoCountryRaw = await prisma.$queryRaw<Array<{ country: string | null; views: bigint }>>`
+      SELECT country, COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND country IS NOT NULL AND country <> ''
+      GROUP BY country
+      ORDER BY views DESC
+      LIMIT 15
+    `;
+
+    const geoCityRaw = await prisma.$queryRaw<Array<{ city: string | null; country: string | null; views: bigint }>>`
+      SELECT city, country, COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND city IS NOT NULL AND city <> ''
+      GROUP BY city, country
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+
+    const geoTotalRaw = await prisma.$queryRaw<Array<{ total: bigint }>>`
+      SELECT COUNT(*) as total FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND country IS NOT NULL AND country <> ''
+    `;
+    const geoTotal = Number((geoTotalRaw[0] || { total: BigInt(0) as bigint }).total);
+
+    const geoBreakdown = {
+      totalTracked: geoTotal,
+      countries: geoCountryRaw.map((r) => ({
+        code:  r.country ?? "",
+        views: Number(r.views),
+        pct:   geoTotal > 0 ? Math.round((Number(r.views) / geoTotal) * 100) : 0,
+      })),
+      cities: geoCityRaw.map((r) => ({
+        city:    r.city ?? "",
+        country: r.country ?? "",
+        views:   Number(r.views),
+        pct:     geoTotal > 0 ? Math.round((Number(r.views) / geoTotal) * 100) : 0,
+      })),
+    };
+
     /* ── Response ────────────────────────────────────────────────────── */
     return NextResponse.json(
       {
@@ -296,6 +339,7 @@ export async function GET(request: Request) {
         topReferrers,
         formFunnel,
         utmBreakdown,
+        geoBreakdown,
       },
       { status: 200 }
     );
