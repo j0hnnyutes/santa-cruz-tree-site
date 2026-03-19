@@ -2,8 +2,50 @@ import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Bot user-agent patterns to silently drop — never written to the DB.
+ * Uses lowercase substring matching so a single entry covers many variants
+ * (e.g. "googlebot" also catches "Googlebot/2.1", "APIs-Google", etc.).
+ *
+ * SEO crawlers (Googlebot, Bingbot, etc.) are deliberately included here
+ * because they almost never execute JavaScript, so they can't reach this
+ * endpoint in the first place. If they somehow do, we still don't want
+ * them inflating session counts. Their ability to crawl the actual HTML
+ * pages is completely unaffected.
+ */
+const BOT_UA_PATTERNS = [
+  // Search engine crawlers
+  "googlebot", "bingbot", "slurp", "duckduckbot", "baiduspider",
+  "yandexbot", "sogou", "exabot", "facebot", "ia_archiver",
+  "semrushbot", "ahrefsbot", "mj12bot", "dotbot", "rogerbot",
+  "screaming frog", "seokicks", "sistrix", "seobilitybot",
+  // Generic bot / spider / crawler signals
+  "bot", "crawl", "spider", "scrape", "slurp",
+  // HTTP clients / automation tools
+  "python-requests", "python-urllib", "go-http-client", "java/",
+  "curl/", "wget/", "libwww", "lwp-", "okhttp", "axios/",
+  "node-fetch", "got/", "undici", "httpclient", "apache-httpclient",
+  // Monitoring / uptime tools
+  "pingdom", "uptimerobot", "statuscake", "datadog", "newrelic",
+  "site24x7", "freshping", "hetrixtools",
+  // Headless / test browsers (non-user traffic)
+  "headlesschrome", "phantomjs", "slimerjs",
+];
+
+function isBot(ua: string): boolean {
+  if (!ua) return false;
+  const lower = ua.toLowerCase();
+  return BOT_UA_PATTERNS.some((p) => lower.includes(p));
+}
+
 export async function POST(request: Request) {
   try {
+    // Drop known bots before anything else — no DB write, no rate-limit slot used
+    const ua = request.headers.get("user-agent") ?? "";
+    if (isBot(ua)) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
     // Rate limit: 100 per minute
     const rl = await rateLimit(request, {
       max: 100,

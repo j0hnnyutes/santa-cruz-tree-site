@@ -34,37 +34,61 @@ function getUtmParams(): { utmSource?: string; utmMedium?: string; utmCampaign?:
   }
 }
 
+function logPageview(payload: Record<string, unknown>) {
+  fetch("/api/log/pageview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
 export default function SiteAnalytics() {
   useEffect(() => {
     const sessionId = getOrCreateSessionId();
     const startTime = Date.now();
     const utm = getUtmParams();
+    let logged = false;
+    let timerId: ReturnType<typeof setTimeout>;
 
-    // Log page view on mount
-    fetch("/api/log/pageview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    function doLog() {
+      if (logged) return;
+      // Only count the visit if the page is actually visible — filters out
+      // prefetched pages the user never looked at, and most headless tools
+      // that don't implement the Visibility API.
+      if (document.visibilityState !== "visible") return;
+      logged = true;
+      logPageview({
         path: window.location.pathname,
         referrer: document.referrer,
         sessionId,
         ...utm,
-      }),
-    }).catch(() => {});
+      });
+    }
 
-    // Log duration on unmount
+    // Primary trigger: 1.5 s after mount, if page is visible.
+    // Real users are still on the page; bounces and prefetch hits are gone.
+    timerId = setTimeout(doLog, 1500);
+
+    // Fallback: if the tab was in the background on load (e.g. opened via
+    // middle-click) log as soon as it becomes visible.
+    function onVisible() {
+      if (document.visibilityState === "visible") doLog();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Log duration on unmount (only if the initial view was recorded)
     return () => {
-      const duration = Date.now() - startTime;
-      fetch("/api/log/pageview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      clearTimeout(timerId);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (logged) {
+        const duration = Date.now() - startTime;
+        logPageview({
           path: window.location.pathname,
           referrer: document.referrer,
           sessionId,
           duration,
-        }),
-      }).catch(() => {});
+        });
+      }
     };
   }, []);
 
