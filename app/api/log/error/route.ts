@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     (prisma as any).errorLog
       .create({
         data: {
-          severity: severity || "error",
+          severity: severity || "high",
           type: type || "client_error",
           message: message || "Unknown error",
           stack: stack || null,

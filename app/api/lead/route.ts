@@ -90,7 +90,7 @@ async function verifyTurnstile(token: string): Promise<boolean> {
     const data = await res.json();
     if (data?.success !== true) {
       logError(null, {
-        severity: "warning",
+        severity: "medium",
         type: "captcha",
         message: "Turnstile verification returned success=false",
         path: "/api/lead",
@@ -101,7 +101,7 @@ async function verifyTurnstile(token: string): Promise<boolean> {
   } catch (err) {
     console.error("Turnstile verification failed:", err);
     logError(null, {
-      severity: "warning",
+      severity: "medium",
       type: "captcha",
       message: err instanceof Error ? err.message : "Turnstile verification threw unexpectedly",
       stack: err instanceof Error ? err.stack : undefined,
@@ -467,7 +467,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("POST /api/lead error:", err);
     logError(request, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: String(err),
       stack: err instanceof Error ? err.stack : undefined,

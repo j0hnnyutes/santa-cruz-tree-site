@@ -111,7 +111,7 @@ export async function GET(request: Request) {
   } catch (err: unknown) {
     console.error("GET /api/admin/analytics error:", err);
     logError(request, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: err instanceof Error ? err.message : "Server error fetching analytics",
       stack: err instanceof Error ? err.stack : undefined,

@@ -19,7 +19,7 @@ export default function Error({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        severity: "error",
+        severity: "high",
         type: "client_js",
         message: error.message || "Route-level render error",
         stack: error.stack,

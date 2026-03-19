@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[change-password] Unexpected error:", err);
     logError(req, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: err instanceof Error ? err.message : "Unexpected error in change-password",
       stack: err instanceof Error ? err.stack : undefined,

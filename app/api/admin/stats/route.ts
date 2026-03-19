@@ -52,9 +52,10 @@ export async function GET(request: Request) {
     });
 
     const severityCounts: Record<string, number> = {
-      error: 0,
-      warning: 0,
       critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
     };
     for (const item of errorsBySeverity) {
       severityCounts[item.severity] = item._count;
@@ -146,7 +147,7 @@ export async function GET(request: Request) {
   } catch (err: unknown) {
     console.error("GET /api/admin/stats error:", err);
     logError(request, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: err instanceof Error ? err.message : "Server error fetching stats",
       stack: err instanceof Error ? err.stack : undefined,

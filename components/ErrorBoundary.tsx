@@ -33,7 +33,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
         message: error.message,
         stack,
         path,
-        severity: "error",
+        severity: "high",
         type: "client_js",
       }),
     }).catch(() => {});

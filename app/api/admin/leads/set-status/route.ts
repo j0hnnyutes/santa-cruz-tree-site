@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("POST /api/admin/leads/set-status error:", err);
     logError(request, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: String(err),
       stack: err instanceof Error ? err.stack : undefined,

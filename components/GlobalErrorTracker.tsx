@@ -28,7 +28,7 @@ export default function GlobalErrorTracker() {
       if (message.startsWith("Script error")) return; // cross-origin noise, no useful info
 
       send({
-        severity: "error",
+        severity: "high",
         type: "client_js",
         message,
         stack:
@@ -53,7 +53,7 @@ export default function GlobalErrorTracker() {
       const stack = isError ? reason.stack : undefined;
 
       send({
-        severity: "error",
+        severity: "high",
         type: "client_js",
         message,
         stack,

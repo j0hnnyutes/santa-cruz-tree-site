@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("POST /api/admin/leads/bulk error:", err);
     logError(request, {
-      severity: "error",
+      severity: "high",
       type: "server_api",
       message: err instanceof Error ? err.message : "Server error performing bulk action",
       stack: err instanceof Error ? err.stack : undefined,

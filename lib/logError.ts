@@ -24,7 +24,7 @@ function getUserAgent(req: Request | null | undefined): string | null {
 export function logError(
   req: Request | null | undefined,
   options: {
-    severity: "error" | "warning" | "critical";
+    severity: "critical" | "high" | "medium" | "low";
     type: string;
     message: string;
     stack?: string;
