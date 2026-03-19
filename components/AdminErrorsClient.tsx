@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { StatCard } from "@/components/AdminShared";
 
 type ErrorLogRow = {
   id: number;
@@ -73,18 +74,6 @@ function severityStyle(severity: string) {
     default: // low
       return { badge: "bg-gray-800/60 text-gray-400 border border-gray-700/40",    dot: "#6b7280" };
   }
-}
-
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div
-      className="rounded-xl border border-gray-700/60 px-5 py-4"
-      style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-    >
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-xs mt-1 font-medium" style={{ color }}>{label}</div>
-    </div>
-  );
 }
 
 /* ─── Main component ──────────────────────────────────────────────────── */

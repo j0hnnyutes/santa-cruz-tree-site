@@ -1,163 +1,418 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  StatCard,
+  AdminCard,
+  SectionHeader,
+  TimePresets,
+  LoadingDots,
+  formatDuration,
+  formatNumber,
+} from "@/components/AdminShared";
 
-interface PageView {
-  date: string;
-  views: number;
-  sessions: number;
-}
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
-interface Referrer {
-  referrer: string;
-  count: number;
-}
+interface PageViewDay   { date: string; views: number; sessions: number }
+interface TopPage       { path: string; views: number; pct: number }
+interface HourlyBucket  { hour: number; views: number }
+interface Referrer      { referrer: string; count: number; pct: number }
 
 interface AnalyticsData {
   ok: boolean;
-  pageViewsByDay: PageView[];
-  deviceBreakdown: { mobile: number; desktop: number };
-  topReferrers: Referrer[];
+  days?: number;
+  summary?: {
+    totalViews: number;
+    totalSessions: number;
+    avgDuration: number | null;
+    bounceRate: number;
+    trends: { views: number | null; sessions: number | null };
+  };
+  pageViewsByDay:   PageViewDay[];
+  topPages?:        TopPage[];
+  hourlyBreakdown?: HourlyBucket[];
+  deviceBreakdown:  { mobile: number; desktop: number };
+  topReferrers:     Referrer[];
 }
 
-interface Props {
-  initialData: AnalyticsData;
+interface Props { initialData: AnalyticsData }
+
+/* ─── Helpers ────────────────────────────────────────────────────────── */
+
+function fmtAxisDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+function fmtHour(h: number) {
+  if (h === 0)  return "12a";
+  if (h === 12) return "12p";
+  return h < 12 ? `${h}a` : `${h - 12}p`;
+}
+
+/* ─── Dual bar chart (views + sessions) ─────────────────────────────── */
+function ViewsChart({ data, loading }: { data: PageViewDay[]; loading: boolean }) {
+  const maxViews = Math.max(1, ...data.map((d) => d.views));
+
+  if (!data.length) {
+    return (
+      <div className="h-40 flex items-center justify-center text-gray-600 text-sm">
+        No data for this period
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {loading && (
+        <div className="absolute inset-0 bg-gray-950/60 flex items-center justify-center rounded-lg z-10">
+          <LoadingDots />
+        </div>
+      )}
+      <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ height: 140 }}>
+        {data.map((pv, i) => {
+          const viewH   = Math.round((pv.views    / maxViews) * 110);
+          const sessH   = Math.round((pv.sessions / maxViews) * 110);
+          return (
+            <div
+              key={i}
+              className="group flex-1 min-w-[28px] flex flex-col items-center gap-0 relative"
+            >
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-20 text-center">
+                <div className="text-white font-semibold">{fmtAxisDate(pv.date)}</div>
+                <div className="text-green-400">{pv.views} views</div>
+                <div className="text-blue-400">{pv.sessions} sessions</div>
+              </div>
+              {/* Bars side by side */}
+              <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: 120 }}>
+                <div
+                  className="rounded-t transition-all"
+                  style={{ width: "45%", height: viewH, backgroundColor: "#22c55e", opacity: 0.85 }}
+                />
+                <div
+                  className="rounded-t transition-all"
+                  style={{ width: "45%", height: sessH, backgroundColor: "#3b82f6", opacity: 0.7 }}
+                />
+              </div>
+              <div className="text-gray-600 text-xs mt-1 whitespace-nowrap" style={{ fontSize: 9 }}>
+                {fmtAxisDate(pv.date)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-2">
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#22c55e" }} />
+          Views
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#3b82f6" }} />
+          Sessions
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Hourly heatmap ─────────────────────────────────────────────────── */
+function HourlyChart({ data, loading }: { data: HourlyBucket[]; loading: boolean }) {
+  const maxViews = Math.max(1, ...data.map((d) => d.views));
+  const showLabels = [0, 3, 6, 9, 12, 15, 18, 21];
+
+  return (
+    <div className="relative">
+      {loading && (
+        <div className="absolute inset-0 bg-gray-950/60 flex items-center justify-center rounded-lg z-10">
+          <LoadingDots />
+        </div>
+      )}
+      <div className="flex items-end gap-0.5 pb-5" style={{ height: 72 }}>
+        {data.map((b) => {
+          const h = Math.round((b.views / maxViews) * 50);
+          const intensity = b.views / maxViews;
+          const bg = intensity === 0
+            ? "#1f2937"
+            : `rgba(34,197,94,${0.15 + intensity * 0.85})`;
+          return (
+            <div
+              key={b.hour}
+              className="group flex-1 relative"
+              style={{ minWidth: 0 }}
+            >
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                <span className="text-white">{fmtHour(b.hour)}</span>
+                <span className="text-green-400 ml-1">{b.views}</span>
+              </div>
+              <div
+                className="rounded-t w-full transition-all"
+                style={{ height: Math.max(4, h), backgroundColor: bg }}
+              />
+              {showLabels.includes(b.hour) && (
+                <div
+                  className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-gray-600"
+                  style={{ fontSize: 9, whiteSpace: "nowrap" }}
+                >
+                  {fmtHour(b.hour)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────────────────── */
+
+const EMPTY_SUMMARY = {
+  totalViews: 0, totalSessions: 0, avgDuration: null, bounceRate: 0,
+  trends: { views: null, sessions: null },
+};
 
 export default function AdminAnalyticsClient({ initialData }: Props) {
-  const [days, setDays] = useState(7);
-  const [data, setData] = useState<AnalyticsData>(initialData);
+  const [days, setDays]       = useState(7);
+  const [data, setData]       = useState<AnalyticsData>(initialData);
   const [loading, setLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  useEffect(() => {
+  const fetchData = useCallback(async (d: number) => {
     setLoading(true);
-    const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    fetch(`${base}/api/admin/analytics?days=${days}`)
-      .then((res) => res.json())
-      .then((d) => {
-        if (d.ok) setData(d);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [days]);
+    try {
+      const res  = await fetch(`/api/admin/analytics?days=${d}`);
+      const json = await res.json();
+      if (json.ok) {
+        setData(json);
+        setLastRefreshed(new Date());
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const maxViews = Math.max(1, Math.max(...(data.pageViewsByDay || []).map((p) => p.views)));
+  useEffect(() => { fetchData(days); }, [days, fetchData]);
+
+  // Auto-refresh every 60s
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => fetchData(days), 60_000);
+    return () => clearInterval(id);
+  }, [autoRefresh, days, fetchData]);
+
+  const summary     = data.summary     ?? EMPTY_SUMMARY;
+  const topPages    = data.topPages    ?? [];
+  const hourly      = data.hourlyBreakdown ?? Array.from({ length: 24 }, (_, h) => ({ hour: h, views: 0 }));
+  const pvByDay     = data.pageViewsByDay ?? [];
+  const referrers   = data.topReferrers ?? [];
+  const device      = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+
+  const relTime = (d: Date) => {
+    const s = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (s < 5) return "just now";
+    if (s < 60) return `${s}s ago`;
+    return `${Math.floor(s / 60)}m ago`;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Day range buttons */}
-      <div className="flex gap-2">
-        {[7, 14, 30, 90].map((d) => (
+
+      {/* ── Controls row ──────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <TimePresets value={days} onChange={(d) => setDays(d)} disabled={loading} />
+          {loading && <LoadingDots />}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>Refreshed {relTime(lastRefreshed)}</span>
           <button
-            key={d}
-            onClick={() => setDays(d)}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: days === d ? "var(--brand-green)" : "rgba(255, 255, 255, 0.05)",
-              color: days === d ? "white" : "rgba(255, 255, 255, 0.7)",
-            }}
+            onClick={() => fetchData(days)}
+            className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-green-700 hover:text-green-400 transition-colors"
+            title="Refresh now"
           >
-            {d}d
+            ↻
           </button>
-        ))}
-      </div>
-
-      {/* Page views chart */}
-      <div
-        className="rounded-lg p-6"
-        style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
-      >
-        <h2 className="mb-6 text-xl font-semibold text-white">Page Views by Day</h2>
-        {data.pageViewsByDay && data.pageViewsByDay.length > 0 ? (
-          <div className="flex items-end justify-start gap-2 overflow-x-auto pb-4 h-40">
-            {data.pageViewsByDay.map((pv, idx) => {
-              const barHeight = (pv.views / maxViews) * 120;
-              return (
-                <div key={idx} className="flex flex-col items-center gap-2 min-w-fit">
-                  <div
-                    className="rounded-t"
-                    style={{
-                      width: "32px",
-                      height: `${barHeight}px`,
-                      backgroundColor: "var(--brand-green)",
-                    }}
-                    title={`${pv.views} views, ${pv.sessions} sessions`}
-                  />
-                  <div className="text-xs text-gray-400 whitespace-nowrap">
-                    {new Date(pv.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-400">No data available</p>
-        )}
-      </div>
-
-      {/* Device breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div
-          className="rounded-lg p-6"
-          style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
-        >
-          <p className="text-sm text-gray-400 font-medium">Mobile</p>
-          <p className="mt-2 text-3xl font-bold text-white">
-            {data.deviceBreakdown.mobile}%
-          </p>
-        </div>
-        <div
-          className="rounded-lg p-6"
-          style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
-        >
-          <p className="text-sm text-gray-400 font-medium">Desktop</p>
-          <p className="mt-2 text-3xl font-bold text-white">
-            {data.deviceBreakdown.desktop}%
-          </p>
+          <button
+            onClick={() => setAutoRefresh((v) => !v)}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+              autoRefresh
+                ? "border-green-700 bg-green-900/30 text-green-400"
+                : "border-gray-700 text-gray-400 hover:border-gray-500"
+            }`}
+          >
+            {autoRefresh ? "⏸ Live" : "▶ Live"}
+          </button>
         </div>
       </div>
 
-      {/* Top referrers */}
-      <div
-        className="rounded-lg p-6"
-        style={{ backgroundColor: "#1a2e1a", border: "1px solid rgba(255, 255, 255, 0.1)" }}
-      >
-        <h2 className="mb-6 text-xl font-semibold text-white">Top Referrers</h2>
-        {data.topReferrers && data.topReferrers.length > 0 ? (
-          <div className="space-y-4">
-            {data.topReferrers.map((ref, idx) => {
-              const maxCount = Math.max(
-                1,
-                Math.max(...(data.topReferrers || []).map((r) => r.count))
-              );
-              const barWidth = (ref.count / maxCount) * 100;
-              return (
-                <div key={idx} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300 truncate">{ref.referrer}</span>
-                    <span className="text-gray-400">{ref.count}</span>
+      {/* ── KPI cards ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          label="Page Views"
+          value={formatNumber(summary.totalViews)}
+          trend={summary.trends.views ?? undefined}
+          trendGoodWhenUp={true}
+          color="#22c55e"
+          icon="👁"
+        />
+        <StatCard
+          label="Unique Sessions"
+          value={formatNumber(summary.totalSessions)}
+          trend={summary.trends.sessions ?? undefined}
+          trendGoodWhenUp={true}
+          color="#3b82f6"
+          icon="🧑‍💻"
+        />
+        <StatCard
+          label="Avg. Time on Page"
+          value={summary.avgDuration ? formatDuration(summary.avgDuration) : "—"}
+          sub="across all pages"
+          color="#a78bfa"
+          icon="⏱"
+        />
+        <StatCard
+          label="Bounce Rate"
+          value={`${summary.bounceRate}%`}
+          sub="single-page sessions"
+          trendGoodWhenUp={false}
+          color="#f97316"
+          icon="↩"
+        />
+      </div>
+
+      {/* ── Views chart ───────────────────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Page Views & Sessions"
+          sub={`Daily breakdown for the last ${days} day${days !== 1 ? "s" : ""}`}
+        />
+        <ViewsChart data={pvByDay} loading={loading} />
+      </AdminCard>
+
+      {/* ── Top pages + Device split ──────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+
+        {/* Top pages — takes 2/3 */}
+        <AdminCard className="lg:col-span-2">
+          <SectionHeader
+            title="Top Pages"
+            sub={`Most visited in the last ${days}d`}
+          />
+          {topPages.length > 0 ? (
+            <div className="space-y-2">
+              {topPages.map((page, i) => (
+                <div key={i} className="group">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span
+                      className="font-mono text-gray-300 truncate mr-2 group-hover:text-white transition-colors"
+                      title={page.path}
+                    >
+                      {page.path || "/"}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-gray-500">{page.pct}%</span>
+                      <span className="text-gray-300 font-semibold w-10 text-right">
+                        {formatNumber(page.views)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full"
-                      style={{
-                        width: `${barWidth}%`,
-                        backgroundColor: "var(--brand-green)",
-                      }}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${page.pct}%`, backgroundColor: "#22c55e", opacity: 0.7 }}
                     />
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-sm">No page data yet</p>
+          )}
+        </AdminCard>
+
+        {/* Device split — 1/3 */}
+        <AdminCard>
+          <SectionHeader title="Device Split" />
+          <div className="space-y-5">
+            {/* Visual proportion bar */}
+            <div>
+              <div className="flex rounded-lg overflow-hidden h-5 mb-2">
+                <div style={{ width: `${device.mobile}%`, backgroundColor: "#a78bfa" }} />
+                <div style={{ width: `${device.desktop}%`, backgroundColor: "#22c55e" }} />
+              </div>
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Mobile</span>
+                <span>Desktop</span>
+              </div>
+            </div>
+            {/* Stat rows */}
+            <div className="space-y-3">
+              {[
+                { label: "📱 Mobile",  value: device.mobile,  color: "#a78bfa" },
+                { label: "🖥 Desktop", value: device.desktop, color: "#22c55e" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">{label}</span>
+                  <span className="text-xl font-bold text-white">
+                    {value}
+                    <span className="text-sm font-normal text-gray-500 ml-0.5">%</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </AdminCard>
+      </div>
+
+      {/* ── Hourly traffic heatmap ────────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Traffic by Hour"
+          sub="When your visitors are most active (local time)"
+        />
+        <HourlyChart data={hourly} loading={loading} />
+      </AdminCard>
+
+      {/* ── Top referrers ─────────────────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Top Referrers"
+          sub={`Traffic sources for the last ${days}d`}
+        />
+        {referrers.length > 0 ? (
+          <div className="space-y-3">
+            {referrers.map((ref, i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-gray-500 w-4 text-right shrink-0">{i + 1}</span>
+                    <span className="font-mono text-gray-300 truncate" title={ref.referrer}>
+                      {ref.referrer}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-gray-500">{ref.pct}%</span>
+                    <span className="text-gray-300 font-semibold w-8 text-right">{ref.count}</span>
+                  </div>
+                </div>
+                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${ref.pct}%`, backgroundColor: "#3b82f6", opacity: 0.7 }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <p className="text-gray-400">No referrer data available</p>
+          <p className="text-gray-600 text-sm">No referrer data for this period</p>
         )}
-      </div>
+      </AdminCard>
+
     </div>
   );
 }
