@@ -67,10 +67,10 @@ export function StatCard({
           {value}
           {trendEl}
         </div>
-        {icon && <span className="text-gray-600 text-lg">{icon}</span>}
+        {icon && <span className="text-gray-500 text-lg">{icon}</span>}
       </div>
-      {sub && <div className="text-xs text-gray-600">{sub}</div>}
-      <div className="text-xs font-semibold mt-0.5" style={{ color }}>{label}</div>
+      {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+      <div className="text-xs font-semibold mt-1" style={{ color }}>{label}</div>
     </div>
   );
 }
@@ -111,7 +111,7 @@ export function SectionHeader({
     <div className="flex items-start justify-between mb-4">
       <div>
         <h2 className="text-sm font-semibold text-white uppercase tracking-wide">{title}</h2>
-        {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
       {actions && <div>{actions}</div>}
     </div>

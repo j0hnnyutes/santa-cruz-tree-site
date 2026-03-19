@@ -54,7 +54,7 @@ function ViewsChart({ data, loading }: { data: PageViewDay[]; loading: boolean }
 
   if (!data.length) {
     return (
-      <div className="h-40 flex items-center justify-center text-gray-600 text-sm">
+      <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
         No data for this period
       </div>
     );
@@ -93,7 +93,7 @@ function ViewsChart({ data, loading }: { data: PageViewDay[]; loading: boolean }
                   style={{ width: "45%", height: sessH, backgroundColor: "#3b82f6", opacity: 0.7 }}
                 />
               </div>
-              <div className="text-gray-600 text-xs mt-1 whitespace-nowrap" style={{ fontSize: 9 }}>
+              <div className="text-gray-500 text-xs mt-1 whitespace-nowrap" style={{ fontSize: 9 }}>
                 {fmtAxisDate(pv.date)}
               </div>
             </div>
@@ -242,16 +242,29 @@ function exportCSV(data: AnalyticsData, days: number) {
 /* ─── Main component ─────────────────────────────────────────────────── */
 
 export default function AdminAnalyticsClient({ initialData }: Props) {
-  const [days, setDays]       = useState(7);
-  const [data, setData]       = useState<AnalyticsData>(initialData);
-  const [loading, setLoading] = useState(false);
+  const [days, setDays]           = useState(7);
+  const [data, setData]           = useState<AnalyticsData>(initialData);
+  const [loading, setLoading]     = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  const fetchData = useCallback(async (d: number) => {
+  // Custom date range
+  const [customMode, setCustomMode]   = useState(false);
+  const [customFrom, setCustomFrom]   = useState("");
+  const [customTo, setCustomTo]       = useState("");
+
+  /* ── Fetch with either preset days or custom range ── */
+  const fetchData = useCallback(async (opts: { days?: number; from?: string; to?: string }) => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/admin/analytics?days=${d}`);
+      const params = new URLSearchParams();
+      if (opts.from && opts.to) {
+        params.set("from_date", opts.from);
+        params.set("to_date", opts.to);
+      } else {
+        params.set("days", String(opts.days ?? 7));
+      }
+      const res  = await fetch(`/api/admin/analytics?${params.toString()}`);
       const json = await res.json();
       if (json.ok) {
         setData(json);
@@ -264,21 +277,35 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
     }
   }, []);
 
-  useEffect(() => { fetchData(days); }, [days, fetchData]);
+  // Fetch when preset days changes (skip if in custom mode)
+  useEffect(() => {
+    if (!customMode) fetchData({ days });
+  }, [days, customMode, fetchData]);
+
+  // Fetch when both custom dates are filled
+  useEffect(() => {
+    if (customMode && customFrom && customTo && customFrom <= customTo) {
+      fetchData({ from: customFrom, to: customTo });
+    }
+  }, [customMode, customFrom, customTo, fetchData]);
 
   // Auto-refresh every 60s
   useEffect(() => {
     if (!autoRefresh) return;
-    const id = setInterval(() => fetchData(days), 60_000);
+    const id = setInterval(() => {
+      customMode && customFrom && customTo
+        ? fetchData({ from: customFrom, to: customTo })
+        : fetchData({ days });
+    }, 60_000);
     return () => clearInterval(id);
-  }, [autoRefresh, days, fetchData]);
+  }, [autoRefresh, days, customMode, customFrom, customTo, fetchData]);
 
-  const summary     = data.summary     ?? EMPTY_SUMMARY;
-  const topPages    = data.topPages    ?? [];
-  const hourly      = data.hourlyBreakdown ?? Array.from({ length: 24 }, (_, h) => ({ hour: h, views: 0 }));
-  const pvByDay     = data.pageViewsByDay ?? [];
-  const referrers   = data.topReferrers ?? [];
-  const device      = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+  const summary   = data.summary     ?? EMPTY_SUMMARY;
+  const topPages  = data.topPages    ?? [];
+  const hourly    = data.hourlyBreakdown ?? Array.from({ length: 24 }, (_, h) => ({ hour: h, views: 0 }));
+  const pvByDay   = data.pageViewsByDay ?? [];
+  const referrers = data.topReferrers ?? [];
+  const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
 
   const relTime = (d: Date) => {
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -287,43 +314,111 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
     return `${Math.floor(s / 60)}m ago`;
   };
 
+  // Today's date string for max attribute on date inputs
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="space-y-6">
 
       {/* ── Controls row ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <TimePresets value={days} onChange={(d) => setDays(d)} disabled={loading} />
-          {loading && <LoadingDots />}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left: presets + Custom toggle */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <TimePresets
+              value={customMode ? -1 : days}
+              onChange={(d) => { setCustomMode(false); setDays(d); }}
+              disabled={loading}
+            />
+            {/* Custom date range button */}
+            <button
+              onClick={() => {
+                setCustomMode((v) => !v);
+                if (!customMode && !customFrom) {
+                  // Default: last 7 days as starting point
+                  const t = new Date();
+                  const f = new Date(t.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  setCustomFrom(f.toISOString().slice(0, 10));
+                  setCustomTo(t.toISOString().slice(0, 10));
+                }
+              }}
+              disabled={loading}
+              className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap disabled:opacity-40 ${
+                customMode
+                  ? "border-purple-600 bg-purple-900/30 text-purple-400"
+                  : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
+              }`}
+            >
+              {customMode ? "✎ Custom" : "Custom"}
+            </button>
+            {loading && <LoadingDots />}
+          </div>
+
+          {/* Right: status + action buttons */}
+          <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+            <span>Updated {relTime(lastRefreshed)}</span>
+            <button
+              onClick={() => customMode && customFrom && customTo
+                ? fetchData({ from: customFrom, to: customTo })
+                : fetchData({ days })}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-green-700 hover:text-green-400 transition-colors"
+              title="Refresh now"
+            >
+              ↻
+            </button>
+            <button
+              onClick={() => setAutoRefresh((v) => !v)}
+              title="Automatically refreshes data every 60 seconds"
+              className={`px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
+                autoRefresh
+                  ? "border-green-700 bg-green-900/30 text-green-400"
+                  : "border-gray-700 text-gray-400 hover:border-gray-500"
+              }`}
+            >
+              {autoRefresh
+                ? <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" /> Auto-refresh on</span>
+                : "Auto-refresh"}
+            </button>
+            <button
+              onClick={() => exportCSV(data, days)}
+              disabled={loading || !data.ok}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-blue-700 hover:text-blue-400 transition-colors disabled:opacity-40 font-medium"
+              title="Download all visible data as CSV"
+            >
+              ↓ CSV
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-          <span>Refreshed {relTime(lastRefreshed)}</span>
-          <button
-            onClick={() => fetchData(days)}
-            className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-green-700 hover:text-green-400 transition-colors"
-            title="Refresh now"
-          >
-            ↻
-          </button>
-          <button
-            onClick={() => setAutoRefresh((v) => !v)}
-            className={`px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
-              autoRefresh
-                ? "border-green-700 bg-green-900/30 text-green-400"
-                : "border-gray-700 text-gray-400 hover:border-gray-500"
-            }`}
-          >
-            {autoRefresh ? "⏸ Live" : "▶ Live"}
-          </button>
-          <button
-            onClick={() => exportCSV(data, days)}
-            disabled={loading || !data.ok}
-            className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-blue-700 hover:text-blue-400 transition-colors disabled:opacity-40 font-medium"
-            title="Export to CSV"
-          >
-            ↓ CSV
-          </button>
-        </div>
+
+        {/* Custom date range inputs — shown only when Custom is active */}
+        {customMode && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-400 font-medium">From</span>
+            <input
+              type="date"
+              value={customFrom}
+              max={customTo || todayStr}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              style={{ colorScheme: "dark" }}
+              className="rounded-lg bg-gray-900 text-gray-200 px-3 py-1.5 border border-gray-600 text-xs outline-none focus:border-purple-500 transition-colors cursor-pointer"
+            />
+            <span className="text-xs text-gray-400 font-medium">To</span>
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom}
+              max={todayStr}
+              onChange={(e) => setCustomTo(e.target.value)}
+              style={{ colorScheme: "dark" }}
+              className="rounded-lg bg-gray-900 text-gray-200 px-3 py-1.5 border border-gray-600 text-xs outline-none focus:border-purple-500 transition-colors cursor-pointer"
+            />
+            {customFrom && customTo && (
+              <span className="text-xs text-gray-500">
+                {Math.round((new Date(customTo).getTime() - new Date(customFrom).getTime()) / (86400000)) + 1} days selected
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── KPI cards ─────────────────────────────────────────────── */}
@@ -407,7 +502,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-gray-600 text-sm">No page data yet</p>
+            <p className="text-gray-400 text-sm">No page data yet</p>
           )}
         </AdminCard>
 
@@ -486,7 +581,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
             ))}
           </div>
         ) : (
-          <p className="text-gray-600 text-sm">No referrer data for this period</p>
+          <p className="text-gray-400 text-sm">No referrer data for this period</p>
         )}
       </AdminCard>
 

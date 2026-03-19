@@ -11,18 +11,31 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
-    const daysParam = url.searchParams.get("days");
-    let days = 7;
 
-    if (daysParam) {
-      const parsed = parseInt(daysParam, 10);
-      if (!isNaN(parsed) && parsed > 0 && parsed <= 90) {
-        days = parsed;
+    // Support either ?days=N  OR  ?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD
+    const fromParam = url.searchParams.get("from_date");
+    const toParam   = url.searchParams.get("to_date");
+    const daysParam = url.searchParams.get("days");
+
+    let cutoff: Date;
+    let toDate: Date;
+    let days: number;
+
+    if (fromParam && toParam) {
+      // Custom date range — parse as start-of-day / end-of-day UTC
+      cutoff = new Date(`${fromParam}T00:00:00.000Z`);
+      toDate  = new Date(`${toParam}T23:59:59.999Z`);
+      days    = Math.max(1, Math.round((toDate.getTime() - cutoff.getTime()) / (24 * 60 * 60 * 1000)));
+    } else {
+      days    = 7;
+      if (daysParam) {
+        const parsed = parseInt(daysParam, 10);
+        if (!isNaN(parsed) && parsed > 0 && parsed <= 365) days = parsed;
       }
+      toDate = new Date();
+      cutoff = new Date(toDate.getTime() - days * 24 * 60 * 60 * 1000);
     }
 
-    const now = new Date();
-    const cutoff     = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     const prevCutoff = new Date(cutoff.getTime() - days * 24 * 60 * 60 * 1000);
 
     /* ── 1. Page views by day ─────────────────────────────────────────── */
@@ -33,7 +46,7 @@ export async function GET(request: Request) {
              COUNT(*) as views,
              COUNT(DISTINCT "sessionId") as sessions
       FROM "PageView"
-      WHERE "createdAt" >= ${cutoff}
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
       GROUP BY date
       ORDER BY date ASC
     `;
@@ -53,7 +66,7 @@ export async function GET(request: Request) {
         COUNT(DISTINCT "sessionId") as total_sessions,
         AVG(CASE WHEN duration > 0 AND duration < 600000 THEN duration END) as avg_duration
       FROM "PageView"
-      WHERE "createdAt" >= ${cutoff}
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
     `;
 
     const s = summaryRaw[0] || { total_views: BigInt(0) as bigint, total_sessions: BigInt(0) as bigint, avg_duration: null };
@@ -66,7 +79,7 @@ export async function GET(request: Request) {
       SELECT COUNT(*) as bounce_count FROM (
         SELECT "sessionId"
         FROM "PageView"
-        WHERE "createdAt" >= ${cutoff} AND "sessionId" IS NOT NULL
+        WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate} AND "sessionId" IS NOT NULL
         GROUP BY "sessionId"
         HAVING COUNT(*) = 1
       ) t
@@ -93,7 +106,7 @@ export async function GET(request: Request) {
     const topPagesRaw = await prisma.$queryRaw<Array<{ path: string; views: bigint }>>`
       SELECT path, COUNT(*) as views
       FROM "PageView"
-      WHERE "createdAt" >= ${cutoff}
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
       GROUP BY path
       ORDER BY views DESC
       LIMIT 10
@@ -108,7 +121,7 @@ export async function GET(request: Request) {
     const hourlyRaw = await prisma.$queryRaw<Array<{ hour: number; views: bigint }>>`
       SELECT EXTRACT(HOUR FROM "createdAt")::int as hour, COUNT(*) as views
       FROM "PageView"
-      WHERE "createdAt" >= ${cutoff}
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
       GROUP BY hour
       ORDER BY hour ASC
     `;
@@ -121,7 +134,7 @@ export async function GET(request: Request) {
 
     /* ── 7. Device breakdown ─────────────────────────────────────────── */
     const allPageViews = await (prisma as any).pageView.findMany({
-      where: { createdAt: { gte: cutoff } },
+      where: { createdAt: { gte: cutoff, lte: toDate } },
       select: { userAgent: true },
     });
 
@@ -138,7 +151,7 @@ export async function GET(request: Request) {
     const topReferrersRaw = await (prisma as any).pageView.groupBy({
       by: ["referrer"],
       _count: true,
-      where: { createdAt: { gte: cutoff } },
+      where: { createdAt: { gte: cutoff, lte: toDate } },
       orderBy: { _count: { id: "desc" } },
       take: 10,
     });
@@ -166,6 +179,8 @@ export async function GET(request: Request) {
       {
         ok: true,
         days,
+        fromDate: cutoff.toISOString().slice(0, 10),
+        toDate:   toDate.toISOString().slice(0, 10),
         summary: {
           totalViews,
           totalSessions,

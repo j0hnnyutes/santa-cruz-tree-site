@@ -90,6 +90,11 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
   const [search, setSearch] = useState("");
   const [timePreset, setTimePreset] = useState(0); // hours; 0 = any time
 
+  // Custom date range
+  const [customMode, setCustomMode]   = useState(false);
+  const [customFrom, setCustomFrom]   = useState("");
+  const [customTo, setCustomTo]       = useState("");
+
   // UI state
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -100,15 +105,18 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
   const [confirmClear, setConfirmClear] = useState(false);
   const [copied, setCopied] = useState<number | null>(null);
 
-  /* ── Compute from/to from preset ── */
+  /* ── Compute from/to from preset OR custom dates ── */
   const { fromDate, toDate } = useMemo(() => {
+    if (customMode && customFrom && customTo) {
+      return {
+        fromDate: `${customFrom}T00:00:00.000Z`,
+        toDate:   `${customTo}T23:59:59.999Z`,
+      };
+    }
     if (timePreset === 0) return { fromDate: "", toDate: "" };
     const from = new Date(Date.now() - timePreset * 60 * 60 * 1000);
-    return {
-      fromDate: from.toISOString(),
-      toDate: "",
-    };
-  }, [timePreset]);
+    return { fromDate: from.toISOString(), toDate: "" };
+  }, [timePreset, customMode, customFrom, customTo]);
 
   /* ── Fetch ── */
   const fetchErrors = useCallback(async () => {
@@ -160,7 +168,7 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
     low:      errors.filter((e) => e.severity === "low").length,
   }), [errors]);
 
-  const hasActiveFilters = severity || type || search || timePreset !== 0;
+  const hasActiveFilters = severity || type || search || timePreset !== 0 || customMode;
 
   /* Delete single */
   async function deleteError(id: number) {
@@ -214,8 +222,11 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
 
   function resetFilters() {
     setSeverity(""); setType(""); setSearch(""); setTimePreset(0);
+    setCustomMode(false); setCustomFrom(""); setCustomTo("");
     setPage(1);
   }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -269,7 +280,7 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
             </select>
           </div>
 
-          {/* Time range preset buttons */}
+          {/* Time range preset buttons + Custom */}
           <div className="flex-1">
             <label className="block text-xs text-gray-400 mb-1.5 font-semibold uppercase tracking-wide">
               Time Range
@@ -278,9 +289,9 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
               {TIME_PRESETS.map((preset) => (
                 <button
                   key={preset.hours}
-                  onClick={() => { setTimePreset(preset.hours); setPage(1); }}
+                  onClick={() => { setCustomMode(false); setTimePreset(preset.hours); setPage(1); }}
                   className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
-                    timePreset === preset.hours
+                    !customMode && timePreset === preset.hours
                       ? "border-green-600 bg-green-900/30 text-green-400"
                       : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
                   }`}
@@ -288,7 +299,56 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
                   {preset.label}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  if (!customMode) {
+                    const t = new Date();
+                    const f = new Date(t.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    setCustomFrom(f.toISOString().slice(0, 10));
+                    setCustomTo(t.toISOString().slice(0, 10));
+                  }
+                  setCustomMode((v) => !v);
+                  setPage(1);
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
+                  customMode
+                    ? "border-purple-600 bg-purple-900/30 text-purple-400"
+                    : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
+                }`}
+              >
+                {customMode ? "✎ Custom" : "Custom"}
+              </button>
             </div>
+
+            {/* Custom date inputs — shown inline when active */}
+            {customMode && (
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-xs text-gray-400 font-medium">From</span>
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={customTo || todayStr}
+                  onChange={(e) => { setCustomFrom(e.target.value); setPage(1); }}
+                  style={{ colorScheme: "dark" }}
+                  className="rounded-lg bg-gray-900 text-gray-200 px-3 py-1.5 border border-gray-600 text-xs outline-none focus:border-purple-500 transition-colors cursor-pointer"
+                />
+                <span className="text-xs text-gray-400 font-medium">To</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom}
+                  max={todayStr}
+                  onChange={(e) => { setCustomTo(e.target.value); setPage(1); }}
+                  style={{ colorScheme: "dark" }}
+                  className="rounded-lg bg-gray-900 text-gray-200 px-3 py-1.5 border border-gray-600 text-xs outline-none focus:border-purple-500 transition-colors cursor-pointer"
+                />
+                {customFrom && customTo && (
+                  <span className="text-xs text-gray-500">
+                    {Math.round((new Date(customTo).getTime() - new Date(customFrom).getTime()) / 86400000) + 1} days
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -336,7 +396,9 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
                   : "border-gray-700 text-gray-400 hover:border-gray-500"
               }`}
             >
-              {autoRefresh ? "⏸ Auto" : "▶ Auto"}
+              {autoRefresh
+                ? <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" /> Auto-refresh on</span>
+                : "Auto-refresh"}
             </button>
             {errors.length > 0 && !confirmClear && (
               <button
