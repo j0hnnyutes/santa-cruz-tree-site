@@ -165,12 +165,81 @@ function HourlyChart({ data, loading }: { data: HourlyBucket[]; loading: boolean
   );
 }
 
-/* ─── Main component ─────────────────────────────────────────────────── */
+/* ─── Shared constants ───────────────────────────────────────────────── */
 
 const EMPTY_SUMMARY = {
   totalViews: 0, totalSessions: 0, avgDuration: null, bounceRate: 0,
   trends: { views: null, sessions: null },
 };
+
+/* ─── CSV export ─────────────────────────────────────────────────────── */
+
+function exportCSV(data: AnalyticsData, days: number) {
+  const summary  = data.summary  ?? EMPTY_SUMMARY;
+  const pvByDay  = data.pageViewsByDay ?? [];
+  const topPages = data.topPages ?? [];
+  const hourly   = data.hourlyBreakdown ?? [];
+  const refs     = data.topReferrers ?? [];
+  const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+
+  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const row = (...cols: (string | number)[]) => cols.map(esc).join(",");
+  const blank = "";
+
+  const lines: string[] = [
+    // ── Meta header
+    row("Santa Cruz Tree Pros — Analytics Export"),
+    row("Period", `Last ${days} day${days !== 1 ? "s" : ""}`),
+    row("Exported", new Date().toLocaleString()),
+    blank,
+
+    // ── Summary
+    row("SUMMARY"),
+    row("Metric", "Value"),
+    row("Total Page Views",   summary.totalViews),
+    row("Unique Sessions",    summary.totalSessions),
+    row("Avg. Time on Page",  summary.avgDuration ? formatDuration(summary.avgDuration) : "—"),
+    row("Bounce Rate",        `${summary.bounceRate}%`),
+    row("Mobile Traffic",     `${device.mobile}%`),
+    row("Desktop Traffic",    `${device.desktop}%`),
+    blank,
+
+    // ── Daily views
+    row("DAILY PAGE VIEWS"),
+    row("Date", "Views", "Sessions"),
+    ...pvByDay.map((d) => row(d.date, d.views, d.sessions)),
+    blank,
+
+    // ── Top pages
+    row("TOP PAGES"),
+    row("Path", "Views", "% of Total"),
+    ...topPages.map((p) => row(p.path || "/", p.views, `${p.pct}%`)),
+    blank,
+
+    // ── Top referrers
+    row("TOP REFERRERS"),
+    row("Source", "Visits", "% of Total"),
+    ...refs.map((r) => row(r.referrer, r.count, `${r.pct}%`)),
+    blank,
+
+    // ── Hourly
+    row("TRAFFIC BY HOUR"),
+    row("Hour", "Views"),
+    ...hourly.map((h) => row(`${h.hour}:00`, h.views)),
+  ];
+
+  const csv    = lines.join("\n");
+  const blob   = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url    = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  const fname  = `analytics-${days}d-${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.href  = url;
+  anchor.download = fname;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ─── Main component ─────────────────────────────────────────────────── */
 
 export default function AdminAnalyticsClient({ initialData }: Props) {
   const [days, setDays]       = useState(7);
@@ -227,7 +296,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
           <TimePresets value={days} onChange={(d) => setDays(d)} disabled={loading} />
           {loading && <LoadingDots />}
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
           <span>Refreshed {relTime(lastRefreshed)}</span>
           <button
             onClick={() => fetchData(days)}
@@ -238,13 +307,21 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
           </button>
           <button
             onClick={() => setAutoRefresh((v) => !v)}
-            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+            className={`px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
               autoRefresh
                 ? "border-green-700 bg-green-900/30 text-green-400"
                 : "border-gray-700 text-gray-400 hover:border-gray-500"
             }`}
           >
             {autoRefresh ? "⏸ Live" : "▶ Live"}
+          </button>
+          <button
+            onClick={() => exportCSV(data, days)}
+            disabled={loading || !data.ok}
+            className="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-blue-700 hover:text-blue-400 transition-colors disabled:opacity-40 font-medium"
+            title="Export to CSV"
+          >
+            ↓ CSV
           </button>
         </div>
       </div>
