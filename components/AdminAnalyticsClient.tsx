@@ -17,6 +17,17 @@ interface PageViewDay   { date: string; views: number; sessions: number }
 interface TopPage       { path: string; views: number; pct: number }
 interface HourlyBucket  { hour: number; views: number }
 interface Referrer      { referrer: string; count: number; pct: number }
+interface FieldError    { field: string; count: number }
+
+interface FormFunnel {
+  started:        number;
+  submitted:      number;
+  abandoned:      number;
+  fieldErrors:    number;
+  conversionRate: number;
+  abandonRate:    number;
+  topFieldErrors: FieldError[];
+}
 
 interface AnalyticsData {
   ok: boolean;
@@ -33,6 +44,7 @@ interface AnalyticsData {
   hourlyBreakdown?: HourlyBucket[];
   deviceBreakdown:  { mobile: number; desktop: number };
   topReferrers:     Referrer[];
+  formFunnel?:      FormFunnel;
 }
 
 interface Props { initialData: AnalyticsData }
@@ -165,6 +177,101 @@ function HourlyChart({ data, loading }: { data: HourlyBucket[]; loading: boolean
   );
 }
 
+/* ─── Form funnel card ───────────────────────────────────────────────── */
+
+function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
+  const steps = [
+    { label: "Started",   value: funnel.started,   color: "#3b82f6", desc: "opened form" },
+    { label: "Submitted", value: funnel.submitted,  color: "#22c55e", desc: "completed & sent" },
+    { label: "Abandoned", value: funnel.abandoned,  color: "#f97316", desc: "left without submitting" },
+  ];
+  const maxVal = Math.max(1, funnel.started);
+
+  if (funnel.started === 0) {
+    return (
+      <div className="h-24 flex items-center justify-center text-gray-500 text-sm">
+        No form interactions yet for this period
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* KPI row */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Form Starts",      value: funnel.started,        color: "#3b82f6" },
+          { label: "Submissions",      value: funnel.submitted,      color: "#22c55e" },
+          { label: "Conversion Rate",  value: `${funnel.conversionRate}%`, color: funnel.conversionRate >= 50 ? "#22c55e" : funnel.conversionRate >= 25 ? "#eab308" : "#ef4444" },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className="rounded-xl border border-gray-700/60 px-4 py-3 text-center"
+            style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+          >
+            <div className="text-xl font-bold text-white">{value}</div>
+            <div className="text-xs font-semibold mt-1" style={{ color }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Funnel bars */}
+      <div className="space-y-2">
+        {steps.map((step) => {
+          const pct = Math.round((step.value / maxVal) * 100);
+          return (
+            <div key={step.label} className="group">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: step.color }}
+                  />
+                  <span className="text-gray-300 font-medium">{step.label}</span>
+                  <span className="text-gray-500">{step.desc}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-gray-400">{pct}%</span>
+                  <span className="text-gray-200 font-semibold w-6 text-right">{step.value}</span>
+                </div>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, backgroundColor: step.color, opacity: 0.8 }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Field errors */}
+      {funnel.topFieldErrors.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">
+            Common Validation Errors
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {funnel.topFieldErrors.map((fe) => (
+              <span
+                key={fe.field}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border border-orange-800/40 bg-orange-900/20 text-orange-300"
+              >
+                <span className="font-mono">{fe.field}</span>
+                <span className="text-orange-500 font-bold">{fe.count}</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-1.5">
+            {funnel.fieldErrors} total validation errors across {funnel.started} session{funnel.started !== 1 ? "s" : ""}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Shared constants ───────────────────────────────────────────────── */
 
 const EMPTY_SUMMARY = {
@@ -181,6 +288,7 @@ function exportCSV(data: AnalyticsData, days: number) {
   const hourly   = data.hourlyBreakdown ?? [];
   const refs     = data.topReferrers ?? [];
   const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+  const funnel   = data.formFunnel;
 
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const row = (...cols: (string | number)[]) => cols.map(esc).join(",");
@@ -226,6 +334,25 @@ function exportCSV(data: AnalyticsData, days: number) {
     row("TRAFFIC BY HOUR"),
     row("Hour", "Views"),
     ...hourly.map((h) => row(`${h.hour}:00`, h.views)),
+    blank,
+
+    // ── Form funnel
+    ...(funnel ? [
+      row("FORM CONVERSIONS"),
+      row("Metric", "Value"),
+      row("Form Starts",      funnel.started),
+      row("Submissions",      funnel.submitted),
+      row("Abandoned",        funnel.abandoned),
+      row("Conversion Rate",  `${funnel.conversionRate}%`),
+      row("Abandonment Rate", `${funnel.abandonRate}%`),
+      row("Total Field Errors", funnel.fieldErrors),
+      blank,
+      ...(funnel.topFieldErrors.length > 0 ? [
+        row("COMMON VALIDATION ERRORS"),
+        row("Field", "Error Count"),
+        ...funnel.topFieldErrors.map((fe) => row(fe.field, fe.count)),
+      ] : []),
+    ] : []),
   ];
 
   const csv    = lines.join("\n");
@@ -306,6 +433,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const pvByDay   = data.pageViewsByDay ?? [];
   const referrers = data.topReferrers ?? [];
   const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+  const funnel    = data.formFunnel;
 
   const relTime = (d: Date) => {
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -547,6 +675,21 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
           sub="When your visitors are most active (local time)"
         />
         <HourlyChart data={hourly} loading={loading} />
+      </AdminCard>
+
+      {/* ── Form conversion funnel ────────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Form Conversions"
+          sub="Lead form funnel — from first interaction to submission"
+        />
+        {funnel ? (
+          <FormFunnelCard funnel={funnel} />
+        ) : (
+          <div className="h-20 flex items-center justify-center text-gray-500 text-sm">
+            No form data for this period
+          </div>
+        )}
       </AdminCard>
 
       {/* ── Top referrers ─────────────────────────────────────────── */}

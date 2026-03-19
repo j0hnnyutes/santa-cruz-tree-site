@@ -174,6 +174,56 @@ export async function GET(request: Request) {
       };
     });
 
+    /* ── 9. Form conversion funnel ───────────────────────────────────── */
+    const formFunnelRaw = await (prisma as any).formEvent.groupBy({
+      by: ["eventType"],
+      where: { createdAt: { gte: cutoff, lte: toDate } },
+      _count: true,
+    });
+
+    const funnelCounts: Record<string, number> = {
+      STARTED: 0, SUBMITTED: 0, ABANDONED: 0, FIELD_ERROR: 0,
+    };
+    for (const f of formFunnelRaw) {
+      if (f.eventType in funnelCounts) funnelCounts[f.eventType] = f._count;
+    }
+
+    // Top fields that trigger validation errors
+    const fieldErrorsRaw = await (prisma as any).formEvent.groupBy({
+      by: ["fieldName"],
+      where: {
+        eventType: "FIELD_ERROR",
+        fieldName: { not: null },
+        createdAt: { gte: cutoff, lte: toDate },
+      },
+      _count: true,
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    });
+
+    const topFieldErrors = fieldErrorsRaw.map((f: any) => ({
+      field: f.fieldName || "unknown",
+      count: f._count,
+    }));
+
+    const conversionRate = funnelCounts.STARTED > 0
+      ? Math.round((funnelCounts.SUBMITTED / funnelCounts.STARTED) * 100)
+      : 0;
+
+    const abandonRate = funnelCounts.STARTED > 0
+      ? Math.round((funnelCounts.ABANDONED / funnelCounts.STARTED) * 100)
+      : 0;
+
+    const formFunnel = {
+      started:        funnelCounts.STARTED,
+      submitted:      funnelCounts.SUBMITTED,
+      abandoned:      funnelCounts.ABANDONED,
+      fieldErrors:    funnelCounts.FIELD_ERROR,
+      conversionRate,
+      abandonRate,
+      topFieldErrors,
+    };
+
     /* ── Response ────────────────────────────────────────────────────── */
     return NextResponse.json(
       {
@@ -199,6 +249,7 @@ export async function GET(request: Request) {
           desktop: 100 - mobilePercent,
         },
         topReferrers,
+        formFunnel,
       },
       { status: 200 }
     );
