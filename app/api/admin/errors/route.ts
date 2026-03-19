@@ -89,3 +89,34 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  const isAuthed = await isAdminAuthenticated();
+  if (!isAuthed) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Missing id parameter" },
+        { status: 400 }
+      );
+    }
+
+    await (prisma as any).errorLog.delete({
+      where: { id: parseInt(id, 10) },
+    });
+
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err: unknown) {
+    console.error("DELETE /api/admin/errors error:", err);
+    return NextResponse.json(
+      { ok: false, error: "Server error deleting error" },
+      { status: 500 }
+    );
+  }
+}

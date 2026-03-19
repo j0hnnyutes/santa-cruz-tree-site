@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 
 type ErrorLogRow = {
   id: number;
@@ -20,261 +20,501 @@ interface Props {
   initialTotal: number;
 }
 
+/* ─── Helpers ─────────────────────────────────────────────────────────── */
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function severityStyle(severity: string) {
+  if (severity === "critical")
+    return { badge: "bg-red-900/60 text-red-200 border border-red-700/50", dot: "#ef4444" };
+  if (severity === "error")
+    return { badge: "bg-orange-900/50 text-orange-300 border border-orange-700/40", dot: "#f97316" };
+  return { badge: "bg-yellow-900/40 text-yellow-300 border border-yellow-700/40", dot: "#eab308" };
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div
+      className="rounded-xl border border-gray-700/60 px-5 py-4"
+      style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+    >
+      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-xs mt-1 font-medium" style={{ color }}>{label}</div>
+    </div>
+  );
+}
+
+/* ─── Main component ──────────────────────────────────────────────────── */
+
+const PAGE_SIZE = 25;
+
 export default function AdminErrorsClient({ initialErrors, initialTotal }: Props) {
+  const [errors, setErrors] = useState<ErrorLogRow[]>(initialErrors);
+  const [total, setTotal] = useState(initialTotal);
+
   const [severity, setSeverity] = useState("");
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
 
-  const filteredErrors = useMemo(() => {
-    return initialErrors.filter((e) => {
-      if (severity && e.severity !== severity) return false;
-      if (type && e.type !== type) return false;
-      if (
-        search &&
-        !e.message.toLowerCase().includes(search.toLowerCase()) &&
-        !e.path?.toLowerCase().includes(search.toLowerCase())
-      ) {
-        return false;
+  /* ── Fetch ── */
+  const fetchErrors = useCallback(async () => {
+    const params = new URLSearchParams({ limit: "500" });
+    if (severity) params.set("severity", severity);
+    if (type) params.set("type", type);
+    if (search) params.set("search", search);
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    try {
+      const res = await fetch(`/api/admin/errors?${params.toString()}`);
+      const data = await res.json();
+      if (data.ok && data.errors) {
+        setErrors(data.errors);
+        setTotal(data.total ?? data.errors.length);
+        setLastRefreshed(new Date());
       }
-      return true;
-    });
-  }, [severity, type, search, initialErrors]);
+    } catch {
+      // ignore
+    }
+  }, [severity, type, search, fromDate, toDate]);
+
+  /* Auto-refresh 30s */
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(fetchErrors, 30_000);
+    return () => clearInterval(id);
+  }, [autoRefresh, fetchErrors]);
+
+  /* Re-fetch on filter change */
+  useEffect(() => {
+    fetchErrors();
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [severity, type, search, fromDate, toDate]);
 
   const paginatedErrors = useMemo(() => {
-    const start = (page - 1) * limit;
-    return filteredErrors.slice(start, start + limit);
-  }, [filteredErrors, page]);
+    const start = (page - 1) * PAGE_SIZE;
+    return errors.slice(start, start + PAGE_SIZE);
+  }, [errors, page]);
 
-  const totalPages = Math.ceil(filteredErrors.length / limit);
+  const totalPages = Math.max(1, Math.ceil(errors.length / PAGE_SIZE));
+
+  /* Stats from initial load */
+  const stats = useMemo(() => ({
+    critical: initialErrors.filter((e) => e.severity === "critical").length,
+    error: initialErrors.filter((e) => e.severity === "error").length,
+    warning: initialErrors.filter((e) => e.severity === "warning").length,
+  }), [initialErrors]);
 
   const severityOptions = [...new Set(initialErrors.map((e) => e.severity))];
   const typeOptions = [...new Set(initialErrors.map((e) => e.type))];
+  const hasActiveFilters = severity || type || search || fromDate || toDate;
+
+  /* Delete single */
+  async function deleteError(id: number) {
+    setDeletingId(id);
+    try {
+      await fetch(`/api/admin/errors?id=${id}`, { method: "DELETE" });
+      setErrors((prev) => prev.filter((e) => e.id !== id));
+      setTotal((t) => Math.max(0, t - 1));
+      if (expandedId === id) setExpandedId(null);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  /* Clear all visible */
+  async function clearAll() {
+    setClearing(true);
+    try {
+      const params = new URLSearchParams();
+      if (severity) params.set("severity", severity);
+      if (type) params.set("type", type);
+      if (fromDate) params.set("from_date", fromDate);
+      if (toDate) params.set("to_date", toDate);
+      await fetch(`/api/admin/errors/clear?${params.toString()}`, { method: "DELETE" });
+      await fetchErrors();
+      setConfirmClear(false);
+      setExpandedId(null);
+      setPage(1);
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  /* Copy full error */
+  function copyError(err: ErrorLogRow) {
+    const text = [
+      `Time:     ${new Date(err.createdAt).toLocaleString()}`,
+      `Severity: ${err.severity}`,
+      `Type:     ${err.type}`,
+      `Message:  ${err.message}`,
+      `Path:     ${err.path || "-"}`,
+      `IP:       ${err.ip || "-"}`,
+      err.stack ? `\nStack:\n${err.stack}` : "",
+      err.userAgent ? `\nUser-Agent: ${err.userAgent}` : "",
+      err.metadata ? `\nMetadata:\n${err.metadata}` : "",
+    ].filter(Boolean).join("\n");
+    navigator.clipboard.writeText(text);
+    setCopied(err.id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  function resetFilters() {
+    setSeverity(""); setType(""); setSearch(""); setFromDate(""); setToDate("");
+    setPage(1);
+  }
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Total Logged" value={total} color="#9ca3af" />
+        <StatCard label="Critical" value={stats.critical} color="#ef4444" />
+        <StatCard label="Errors" value={stats.error} color="#f97316" />
+        <StatCard label="Warnings" value={stats.warning} color="#eab308" />
+      </div>
+
+      {/* ── Filters ── */}
+      <div
+        className="rounded-xl border border-gray-700/60 p-4 space-y-3"
+        style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1 font-medium">
-              Severity
-            </label>
+            <label className="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">Severity</label>
             <select
               value={severity}
-              onChange={(e) => {
-                setSeverity(e.target.value);
-                setPage(1);
-              }}
-              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/50"
+              onChange={(e) => { setSeverity(e.target.value); setPage(1); }}
+              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600"
             >
               <option value="">All</option>
-              {severityOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
+              {severityOptions.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm text-gray-300 mb-1 font-medium">Type</label>
+            <label className="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">Type</label>
             <select
               value={type}
-              onChange={(e) => {
-                setType(e.target.value);
-                setPage(1);
-              }}
-              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/50"
+              onChange={(e) => { setType(e.target.value); setPage(1); }}
+              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600"
             >
               <option value="">All</option>
-              {typeOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
+              {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="block text-sm text-gray-300 mb-1 font-medium">
-              Search
-            </label>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">From</label>
             <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search message or path..."
-              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600/50"
+              type="date"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wide">To</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+              className="w-full rounded-lg bg-gray-900 text-white px-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600"
             />
           </div>
         </div>
 
-        <div className="text-xs text-gray-400">
-          {filteredErrors.length} errors {search || severity || type ? "found" : "total"}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* Search */}
+          <div className="relative flex-1">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+              width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx={11} cy={11} r={8} /><line x1={21} y1={21} x2={16.65} y2={16.65} />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search message or path…"
+              className="w-full rounded-lg bg-gray-900 text-white pl-8 pr-3 py-2 border border-gray-700 text-sm outline-none focus:border-green-600"
+            />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {hasActiveFilters && (
+              <button onClick={resetFilters}
+                className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200 transition-colors">
+                ✕ Clear filters
+              </button>
+            )}
+            <button onClick={fetchErrors}
+              className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-700 text-gray-300 hover:border-green-700 hover:text-green-400 transition-colors"
+              title="Refresh now">
+              ↻ Refresh
+            </button>
+            <button
+              onClick={() => setAutoRefresh((v) => !v)}
+              className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                autoRefresh
+                  ? "border-green-700 bg-green-900/30 text-green-400"
+                  : "border-gray-700 text-gray-400 hover:border-gray-500"
+              }`}>
+              {autoRefresh ? "⏸ Auto" : "▶ Auto"}
+            </button>
+            {errors.length > 0 && !confirmClear && (
+              <button onClick={() => setConfirmClear(true)}
+                className="px-3 py-2 rounded-lg text-xs font-medium border border-red-900/50 text-red-400 hover:border-red-700 hover:bg-red-900/20 transition-colors">
+                🗑 Clear {hasActiveFilters ? "filtered" : "all"}
+              </button>
+            )}
+            {confirmClear && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-red-400">Delete {errors.length} error{errors.length !== 1 ? "s" : ""}?</span>
+                <button onClick={clearAll} disabled={clearing}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-800/60 text-red-200 hover:bg-red-700/60 transition-colors disabled:opacity-50">
+                  {clearing ? "…" : "Yes, delete"}
+                </button>
+                <button onClick={() => setConfirmClear(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs border border-gray-700 text-gray-400 hover:border-gray-500 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{errors.length} {hasActiveFilters ? "matching" : "total"} error{errors.length !== 1 ? "s" : ""}</span>
+          <span>
+            Refreshed {relativeTime(lastRefreshed.toISOString())}
+            {autoRefresh && <span className="ml-2 text-green-500">● live</span>}
+          </span>
         </div>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       {paginatedErrors.length > 0 ? (
-        <div className="overflow-x-auto rounded-lg border border-gray-700">
-          <table className="w-full text-sm">
-            <thead>
-              <tr
-                className="border-b border-gray-700"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.02)" }}
-              >
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  Time
-                </th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  Severity
-                </th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  Type
-                </th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  Message
-                </th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  Path
-                </th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                  IP
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedErrors.map((err) => (
-                <tbody key={err.id}>
-                  <tr
-                    className="border-b border-gray-700/50 cursor-pointer hover:bg-gray-900/30 transition-colors"
-                    onClick={() =>
-                      setExpandedId(expandedId === err.id ? null : err.id)
-                    }
-                  >
-                    <td className="py-3 px-4 text-gray-400 text-xs">
-                      {new Date(err.createdAt).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                          err.severity === "critical"
-                            ? "bg-red-900/50 text-red-200"
-                            : err.severity === "error"
-                            ? "bg-red-900/30 text-red-300"
-                            : "bg-yellow-900/30 text-yellow-300"
+        <div className="rounded-xl border border-gray-700/60 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-gray-700" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                  {["Time", "Severity", "Type", "Message", "Path", "IP", ""].map((h) => (
+                    <th key={h} className="text-left py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedErrors.map((err) => {
+                  const { badge, dot } = severityStyle(err.severity);
+                  const isExpanded = expandedId === err.id;
+                  return (
+                    <>
+                      {/* Main row */}
+                      <tr
+                        key={`row-${err.id}`}
+                        className={`border-b border-gray-700/40 cursor-pointer transition-colors ${
+                          isExpanded ? "bg-gray-800/40" : "hover:bg-gray-900/30"
                         }`}
+                        onClick={() => setExpandedId(isExpanded ? null : err.id)}
                       >
-                        {err.severity}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300 text-xs">{err.type}</td>
-                    <td className="py-3 px-4 text-gray-400 truncate max-w-xs">
-                      {err.message.length > 80
-                        ? `${err.message.slice(0, 80)}...`
-                        : err.message}
-                    </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs truncate">
-                      {err.path || "-"}
-                    </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">{err.ip}</td>
-                  </tr>
-
-                  {expandedId === err.id && (
-                    <tr className="border-b border-gray-700/50 bg-gray-900/20">
-                      <td colSpan={6} className="py-4 px-4">
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="text-xs font-semibold text-gray-300 mb-2">
-                              Full Message
-                            </h4>
-                            <p className="text-sm text-gray-400 break-words">
-                              {err.message}
-                            </p>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          <div className="text-gray-300 font-medium">{relativeTime(err.createdAt)}</div>
+                          <div className="text-gray-600 mt-0.5">{new Date(err.createdAt).toLocaleString()}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold ${badge}`}>
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />
+                            {err.severity}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-xs font-mono text-gray-300 bg-gray-800/60 px-2 py-1 rounded">
+                            {err.type}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-300 max-w-xs">
+                          <div className="truncate" title={err.message}>
+                            {err.message.length > 80 ? `${err.message.slice(0, 80)}…` : err.message}
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-xs font-mono text-gray-500">
+                          {err.path || <span className="text-gray-700">—</span>}
+                        </td>
+                        <td className="py-3 px-4 text-xs font-mono text-gray-500">
+                          {err.ip || <span className="text-gray-700">—</span>}
+                        </td>
+                        <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => deleteError(err.id)}
+                            disabled={deletingId === err.id}
+                            className="p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-40"
+                            title="Delete"
+                          >
+                            {deletingId === err.id ? "…" : "✕"}
+                          </button>
+                        </td>
+                      </tr>
 
-                          {err.stack && (
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-xs font-semibold text-gray-300">
-                                  Stack Trace
-                                </h4>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(err.stack || "");
-                                  }}
-                                  className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
-                                >
-                                  Copy
-                                </button>
+                      {/* Expanded detail row — uses a React fragment to avoid nested tbody */}
+                      {isExpanded && (
+                        <tr key={`detail-${err.id}`} className="border-b border-gray-700/40">
+                          <td colSpan={7} className="p-0">
+                            <div className="bg-gray-950/70 border-t border-gray-800 p-5 space-y-4">
+                              {/* Header */}
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-white">Error Detail</h4>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => copyError(err)}
+                                    className="text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition-colors"
+                                  >
+                                    {copied === err.id ? "✓ Copied!" : "Copy all"}
+                                  </button>
+                                  <button
+                                    onClick={() => setExpandedId(null)}
+                                    className="text-xs px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700 transition-colors"
+                                  >
+                                    Close
+                                  </button>
+                                </div>
                               </div>
-                              <pre className="text-xs bg-gray-950 p-3 rounded border border-gray-700 text-gray-400 overflow-x-auto max-h-48 overflow-y-auto">
-                                {err.stack}
-                              </pre>
-                            </div>
-                          )}
 
-                          {err.userAgent && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-300 mb-2">
-                                User Agent
-                              </h4>
-                              <p className="text-xs text-gray-500 break-words">
-                                {err.userAgent}
-                              </p>
-                            </div>
-                          )}
+                              {/* Full message */}
+                              <div>
+                                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Message</p>
+                                <p className="text-sm text-gray-200 break-words leading-relaxed">{err.message}</p>
+                              </div>
 
-                          {err.metadata && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-gray-300 mb-2">
-                                Metadata
-                              </h4>
-                              <pre className="text-xs bg-gray-950 p-3 rounded border border-gray-700 text-gray-400 overflow-x-auto max-h-48 overflow-y-auto">
-                                {err.metadata}
-                              </pre>
+                              {/* Meta grid */}
+                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
+                                {[
+                                  { label: "Severity", value: err.severity },
+                                  { label: "Type", value: err.type },
+                                  { label: "Path", value: err.path || "—" },
+                                  { label: "IP", value: err.ip || "—" },
+                                ].map(({ label, value }) => (
+                                  <div key={label} className="rounded-lg bg-gray-900/60 px-3 py-2 border border-gray-800">
+                                    <div className="text-gray-500 mb-0.5">{label}</div>
+                                    <div className="text-gray-200 font-mono break-all">{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Stack trace */}
+                              {err.stack && (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Stack Trace</p>
+                                    <button
+                                      onClick={() => navigator.clipboard.writeText(err.stack || "")}
+                                      className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700 transition-colors"
+                                    >
+                                      Copy
+                                    </button>
+                                  </div>
+                                  <pre className="text-xs bg-gray-950 p-3 rounded-lg border border-gray-800 text-gray-400 overflow-x-auto max-h-52 overflow-y-auto leading-relaxed">
+                                    {err.stack}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {/* User Agent */}
+                              {err.userAgent && (
+                                <div>
+                                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">User Agent</p>
+                                  <p className="text-xs text-gray-500 font-mono break-all">{err.userAgent}</p>
+                                </div>
+                              )}
+
+                              {/* Metadata */}
+                              {err.metadata && (
+                                <div>
+                                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Metadata</p>
+                                  <pre className="text-xs bg-gray-950 p-3 rounded-lg border border-gray-800 text-gray-400 overflow-x-auto max-h-48 overflow-y-auto">
+                                    {(() => {
+                                      try { return JSON.stringify(JSON.parse(err.metadata ?? ""), null, 2); }
+                                      catch { return err.metadata; }
+                                    })()}
+                                  </pre>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              ))}
-            </tbody>
-          </table>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400">No errors found</div>
+        <div
+          className="rounded-xl border border-gray-700/60 py-16 text-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.02)" }}
+        >
+          <div className="text-4xl mb-3">✓</div>
+          <div className="text-gray-400 font-medium">No errors found</div>
+          <div className="text-gray-600 text-sm mt-1">
+            {hasActiveFilters ? "Try adjusting your filters" : "System is running clean"}
+          </div>
+          {hasActiveFilters && (
+            <button onClick={resetFilters} className="mt-4 text-xs text-green-500 hover:text-green-400 underline">
+              Clear all filters
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Pagination */}
+      {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="px-3 py-2 rounded bg-gray-800 text-gray-300 text-sm font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-gray-400">
-            Page {page} of {totalPages}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, errors.length)} of {errors.length}
           </span>
-          <button
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-2 rounded bg-gray-800 text-gray-300 text-sm font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors"
-          >
-            Next
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="px-3 py-2 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium disabled:opacity-40 hover:bg-gray-700 border border-gray-700 transition-colors"
+            >
+              ← Prev
+            </button>
+            <span className="text-xs text-gray-400 px-2">{page} / {totalPages}</span>
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-2 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium disabled:opacity-40 hover:bg-gray-700 border border-gray-700 transition-colors"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
