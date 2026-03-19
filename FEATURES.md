@@ -1,7 +1,7 @@
 # Santa Cruz Tree Pros — Features & Functionality Reference
 
 > **Keep this file up to date** when new features are added or changed.
-> Last updated: 2026-03-12 (Phase 5 complete)
+> Last updated: 2026-03-19 (Phase 7 complete)
 
 ---
 
@@ -207,6 +207,120 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 
 ---
 
+### Phase 6 — Admin Errors Page Overhaul & Severity Rename (Claude)
+
+**Severity taxonomy rename (codebase-wide)**
+- `"error"` severity renamed to `"high"`, `"warning"` renamed to `"medium"` across all 14 files
+- New scale: `critical > high > medium > low` (was `critical > error > warning`)
+- DB migration (`20260319000000_rename_severity_values`) — `UPDATE "ErrorLog"` patches existing rows
+- `lib/logError.ts` type updated; all `logError()` call sites updated; `severityCounts` defaults updated
+
+**Errors API additions**
+- `DELETE /api/admin/errors?id=X` — deletes a single error log entry by ID
+- `DELETE /api/admin/errors/clear` — bulk-deletes errors with optional filters: `severity`, `type`, `from_date`, `to_date`
+
+**Shared admin component library (`components/AdminShared.tsx`)**
+- `StatCard` — value + optional trend arrow (↑↓ green/red), icon, sub-text, color label; `trendGoodWhenUp` prop for direction-aware coloring
+- `AdminCard` — dark card wrapper with `border-gray-700/60` border and `rgba(255,255,255,0.02)` background
+- `SectionHeader` — uppercase title + gray-400 subtitle + optional actions slot
+- `TimePresets` — pill toggle buttons; active = green border/bg; inactive = gray hover
+- `LoadingDots` — animated bouncing dots
+- `Skeleton` — pulse placeholder for loading states
+- `formatDuration(ms)` — "2m 14s" format
+- `formatNumber(n)` — "1.2k" abbreviation format
+
+**Admin Errors page complete rebuild (`components/AdminErrorsClient.tsx`)**
+- Replaced native date inputs with time preset pills: Any time / Last 24h / Last 7d / Last 30d
+- Custom date range picker: "Custom" button reveals From/To date inputs with `colorScheme: "dark"` for native dark picker; pre-fills last 7 days
+- Severity and type dropdowns hardcoded (no longer dynamic): severity = `[critical, high, medium, low]`; type = `[client_js, server_api, captcha, email_delivery, client_error, rate_limit, auth, form_validation, not_found]`
+- Stat cards for total errors, critical count, error rate, top type
+- Auto-refresh toggle with pulsing green dot indicator and 60-second interval
+- Delete single error inline (button on each row)
+- Bulk-clear button with confirmation dialog respecting active filters
+- `hasActiveFilters` detection including custom date mode; "Clear filters" reset button
+- Fixed nested `<tbody>` HTML bug that caused blank columns in Firefox/Safari
+
+---
+
+### Phase 7 — Analytics Overhaul, UTM Tracking, Geo, Bot Filtering & Observability (Claude)
+
+**Analytics page complete rebuild**
+- `components/AdminShared.tsx` shared component library used throughout (see Phase 6)
+- `components/AdminAnalyticsClient.tsx` — full rewrite with modular sub-components
+
+**Analytics — UI components**
+- `ViewsChart` — dual green/blue bar chart (views + sessions), hover tooltip per day, legend
+- `HourlyChart` — 24-column heatmap with color intensity proportional to traffic; hour labels at 0/3/6/9/12/15/18/21; hover tooltip
+- `FormFunnelCard` — KPI row (Form Starts / Submissions / Conversion Rate), three horizontal funnel bars (Started / Submitted / Abandoned), field error chips (orange badges with count)
+- `InfoTip` — hover `ⓘ` tooltip icon; used on Conversion Rate, Abandoned row, and Common Validation Errors header
+- `GeoCard` — Countries/Cities tab switcher with emoji flags, human-readable country names for ~45 common codes, progress bars, total tracked count
+- `UtmTable` — ranked bar list for UTM sources/mediums/campaigns
+- `PageDrillDown` — slide-in panel (fixed right, blur backdrop, Escape + click-out to dismiss, scroll-lock body) showing per-page: KPI row (views/sessions/avg time/site share %), daily bar chart, hourly heatmap, referrers to this page, next pages visited (session self-join within 30 min), device split
+
+**Analytics — controls & UX**
+- Time preset pills: Last 24h / Last 7d / Last 30d / Last 90d
+- Custom date range: "Custom" button reveals From/To date inputs (`colorScheme: "dark"`), shows "X days selected"
+- Auto-refresh every 60 seconds with pulsing green dot; respects custom date mode
+- "Updated X ago" relative timestamp
+- Manual refresh button (↻)
+- Top Pages rows converted to clickable `<button>` with ↗ indicator — opens drill-down panel
+
+**Analytics — CSV export**
+- Client-side Blob generation; multi-section CSV: Summary, Daily Views, Top Pages, Top Referrers, Traffic by Hour, Form Conversions, Common Validation Errors, Visitor Locations, Campaign Tracking (UTM)
+- Filename: `analytics-7d-2026-03-19.csv`
+
+**Analytics API (`/api/admin/analytics`) — major upgrade**
+- Accepts `?days=N` OR `?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD`
+- Summary stats: `totalViews`, `totalSessions`, `avgDuration` (excludes outliers > 10 min), `bounceRate`
+- Previous-period trend comparison: `%` change in views and sessions vs prior equivalent window
+- Top pages, hourly breakdown (all 24 hours filled), form funnel, referrers — all scoped to date range
+- UTM breakdown: top sources, mediums, campaigns with view count and % share
+- Geo breakdown: top countries (ISO codes + views), top cities (city + country + views)
+- BigInt literals replaced with `BigInt(0) as bigint` for ES2019 TypeScript target compatibility
+
+**Page drill-down API (`GET /api/admin/analytics/page`)**
+- New endpoint scoped to a single page path + date range
+- Returns: summary (views, sessions, avg duration, site share %), daily views, hourly heatmap, top referrers to this page, next pages visited (SQL self-join on sessionId within 30-minute window), device split
+
+**UTM parameter tracking**
+- `PageView` schema: added `utmSource`, `utmMedium`, `utmCampaign` columns (migration `20260319000001`)
+- `SiteAnalytics.tsx` reads `?utm_source`, `?utm_medium`, `?utm_campaign` from URL on mount and sends to pageview endpoint
+- Pageview API stores the three UTM fields
+- Analytics dashboard: "Campaign Tracking (UTM)" card with three-column breakdown; empty state shows example URL format
+- UTM data included in CSV export
+
+**Geographic breakdown**
+- `PageView` schema: added `country`, `region`, `city` columns (migration `20260319000002`)
+- Pageview API reads Vercel edge headers: `x-vercel-ip-country`, `x-vercel-ip-country-region`, `x-vercel-ip-city` (URL-decoded) — zero dependencies, available on all Vercel plans, null in local dev
+- Analytics dashboard: "Visitor Locations" card with Countries/Cities tabs, emoji flags, human-readable country names
+- Geo data included in CSV export
+
+**Bot filtering**
+- `isBot(ua)` — 35+ user-agent substring patterns: search crawlers (Googlebot, Bingbot, Baidu, Yandex, SEMrush, Ahrefs…), HTTP clients (curl, wget, python-requests, axios, node-fetch…), uptime monitors (Pingdom, UptimeRobot, Datadog…), headless browsers (HeadlessChrome, PhantomJS)
+- Bots silently dropped before rate limiting or any DB write; return silent 200 to prevent retries
+- SEO crawlers unaffected — they never reach this JS-executed endpoint; actual HTML pages are untouched
+- Client-side visibility + delay guard in `SiteAnalytics.tsx`:
+  - Pageview only logged after **1.5 s AND `document.visibilityState === "visible"`** — filters prefetch hits and immediate bounces
+  - `visibilitychange` fallback for tabs opened via middle-click (background → foreground)
+  - Duration only sent on unmount if the initial pageview was logged (prevents orphan rows)
+
+**Observability gaps closed**
+- **404 pages**: `app/not-found.tsx` created with on-brand UI; `NotFoundTracker` client component sends full path + referrer to new `POST /api/log/not-found` endpoint; logged as `severity=low`, `type=not_found`
+- **Rate limit hits**: `/api/log/pageview` rate limit now logs `severity=low, type=rate_limit`; `/api/lead` rate limit logs `severity=medium, type=rate_limit` (flags possible form spam)
+- **Admin auth failures**: `/api/admin/login` logs every failed password attempt (`severity=low` for attempts 1–2, `severity=medium` for 3–4, `severity=high` on lockout) with attempt count in metadata
+- **Pageview DB write failures**: `.catch()` now calls `logError` in addition to `console.error` (best-effort — both fail if DB is fully down, but transient errors are captured)
+
+**Updated error type taxonomy**
+- `client_js` — unhandled browser JS errors and React crashes
+- `server_api` — unexpected throws in API route handlers
+- `email_delivery` — Resend API failures
+- `captcha` — Cloudflare Turnstile failures
+- `rate_limit` — rate limit hits on public endpoints *(new)*
+- `auth` — admin login failures and lockouts *(new)*
+- `not_found` — 404 page hits with path and referrer *(new)*
+
+---
+
 ## Table of Contents
 1. [Tech Stack](#tech-stack)
 2. [Pages & Routes](#pages--routes)
@@ -272,6 +386,7 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 | `/privacy-policy` | Privacy Policy page |
 | `/sitemap.xml` | Dynamic XML sitemap (auto-generated) |
 | `/robots.txt` | Robots file (auto-generated via `robots.ts`) |
+| `/*` (unmatched) | Custom 404 page — on-brand UI with "Back to home" link; hit logged to ErrorLog |
 
 ### Admin Pages (auth-protected)
 
@@ -301,11 +416,15 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 | `/api/admin/leads/export` | GET | CSV export of all leads |
 | `/api/admin/leads/set-status` | POST | Update lead status |
 | `/api/admin/leads/notes` | POST | Update admin notes on a lead |
-| `/api/admin/analytics` | GET | Analytics data (page views by day, devices, referrers) |
+| `/api/admin/analytics` | GET | Analytics data — views, sessions, bounce rate, top pages, hourly, referrers, form funnel, UTM, geo; supports `?days=N` or `?from_date`/`?to_date` |
+| `/api/admin/analytics/page` | GET | Per-page drill-down: summary, daily trend, hourly, referrers, next pages, device split; requires `?path=` |
 | `/api/admin/stats` | GET | Summary stats for dashboard (leads, errors, form funnel, top pages) |
-| `/api/admin/errors` | GET | Error log entries with filters |
+| `/api/admin/errors` | GET | Error log entries with filters (severity, type, date range, search) |
+| `/api/admin/errors` | DELETE | Delete a single error log entry by `?id=X` |
+| `/api/admin/errors/clear` | DELETE | Bulk-delete errors with optional filters: severity, type, from_date, to_date |
 | `/api/admin/change-password` | POST | Admin password update |
 | `/api/admin/debug-env` | GET | Environment variable diagnostics (dev only) |
+| `/api/log/not-found` | POST | 404 page hit ingestion — logs path + referrer to ErrorLog |
 
 ---
 
@@ -473,14 +592,14 @@ Three endpoints write to `ErrorLog`:
 |---|---|---|
 | `id` | Int | Auto-increment |
 | `createdAt` | DateTime | Auto-set |
-| `severity` | String | error, warning, critical |
-| `type` | String | client_js, server_api, email_delivery, captcha, form_validation, rate_limit, auth, etc. |
+| `severity` | String | `critical`, `high`, `medium`, `low` (renamed from error/warning in Phase 6) |
+| `type` | String | `client_js`, `server_api`, `email_delivery`, `captcha`, `rate_limit`, `auth`, `not_found`, `form_validation`, etc. |
 | `message` | String | |
 | `stack` | String? | Stack trace |
 | `path` | String? | URL path where error occurred |
 | `ip` | String? | Client IP |
 | `userAgent` | String? | Browser/client user agent |
-| `metadata` | String? | JSON string — source, filename, lineno, digest, errorCodes, etc. |
+| `metadata` | String? | JSON string — source, filename, lineno, digest, errorCodes, attemptCount, referrer, etc. |
 
 #### `PageView`
 | Field | Type | Notes |
@@ -493,6 +612,12 @@ Three endpoints write to `ErrorLog`:
 | `userAgent` | String? | Browser user agent |
 | `sessionId` | String? | Session UUID from sessionStorage |
 | `duration` | Int? | Time on page in milliseconds |
+| `utmSource` | String? | `utm_source` query param (Phase 7) |
+| `utmMedium` | String? | `utm_medium` query param (Phase 7) |
+| `utmCampaign` | String? | `utm_campaign` query param (Phase 7) |
+| `country` | String? | ISO 3166-1 alpha-2 country code from `x-vercel-ip-country` (Phase 7) |
+| `region` | String? | State/region code from `x-vercel-ip-country-region` (Phase 7) |
+| `city` | String? | City name (URL-decoded) from `x-vercel-ip-city` (Phase 7) |
 
 #### `FormEvent`
 | Field | Type | Notes |
@@ -533,10 +658,19 @@ Three endpoints write to `ErrorLog`:
 - Click-to-call phone link
 
 ### Analytics (`/admin/analytics`)
-- Lead volume over time
-- Device breakdown (mobile vs desktop)
-- Top service types requested
-- Top cities
+- KPI stat cards: Page Views, Unique Sessions, Avg. Time on Page, Bounce Rate (with prior-period trend arrows)
+- Daily Views & Sessions dual bar chart with hover tooltips
+- Top Pages bar list — click any row to open per-page drill-down panel
+- Per-page drill-down panel: views/sessions/avg time/site share KPIs, daily trend chart, hourly heatmap, referrers to this page, next pages visited, device split
+- Device split proportion bar (mobile vs desktop %)
+- Hourly traffic heatmap (24 columns, intensity-coded green)
+- Form Conversions funnel: Form Starts / Submissions / Conversion Rate KPIs, proportional bars for Started/Submitted/Abandoned, field error chips, `ⓘ` tooltips
+- Visitor Locations card: Countries tab (flag + name + bar) and Cities tab
+- Campaign Tracking (UTM) card: Sources / Mediums / Campaigns three-column breakdown; empty state with example URL
+- Top Referrers bar list
+- Time range controls: preset pills (24h / 7d / 30d / 90d) + Custom date range picker
+- Auto-refresh (60s interval) with pulsing indicator
+- CSV export (multi-section, client-side Blob)
 
 ### Dashboard (`/admin/dashboard`)
 - Summary stat cards: Total Leads, New Leads (30d), Errors (30d), Form Conversion
@@ -548,9 +682,15 @@ Three endpoints write to `ErrorLog`:
 
 ### Error Log (`/admin/errors`)
 - Chronological error log viewer
-- Severity and type filters
-- Full stack trace expansion
-- Metadata display (source, filename, error codes, etc.)
+- Severity filter (`critical / high / medium / low`) and type filter (hardcoded dropdown)
+- Time preset pills (Any / Last 24h / Last 7d / Last 30d) + Custom date range picker with `colorScheme: "dark"` native inputs
+- Stat cards: total errors, critical count, error rate, top type
+- Full stack trace expansion per row
+- Metadata display (source, filename, error codes, attempt count, referrer, etc.)
+- Delete single error inline (per-row button)
+- Bulk-clear button with confirmation dialog — respects active filters (clears only what's visible)
+- Auto-refresh toggle (60s interval) with pulsing green dot
+- "Clear filters" reset button when any filter is active
 
 ### Settings (`/admin/settings`)
 - Password change form
@@ -624,14 +764,49 @@ Three endpoints write to `ErrorLog`:
 - Checks `phoneDigits` AND `email` against leads created in the last 24 hours
 - Flags duplicate in DB and email — does not silently discard
 
+### Rate Limiting
+- In-memory rate limiter (`lib/rateLimit.ts`) on all public-facing endpoints
+- `/api/lead`: 10 requests/min per IP
+- `/api/log/pageview`: 100 requests/min per IP
+- `/api/log/not-found`: 60 requests/min per IP
+- Rate limit hits logged to `ErrorLog` (`type=rate_limit`) for visibility
+
+### Bot Filtering
+- Server-side UA blocklist (`isBot()`) on `/api/log/pageview` — 35+ patterns covering search crawlers, HTTP clients, uptime monitors, headless browsers
+- Bots dropped before rate limiting or any DB write; receive silent 200 (no retry storms)
+- SEO crawlers unaffected — HTML pages fully open, only the analytics logging endpoint is filtered
+- Client-side guard in `SiteAnalytics`: pageview only logged after 1.5 s and `document.visibilityState === "visible"` (filters prefetch hits and immediate bounces); `visibilitychange` fallback for background-opened tabs
+
 ### Error Logging & Observability
 - `GlobalErrorTracker` captures all unhandled browser JS errors and promise rejections
 - `ErrorBoundary` catches React component tree crashes
 - `app/error.tsx` and `app/global-error.tsx` handle Next.js route/layout-level crashes
+- `app/not-found.tsx` — custom 404 page; `NotFoundTracker` client component logs path + referrer (`type=not_found, severity=low`)
 - Server-side: all API route catch blocks call `logError()` — persistent DB record with severity, type, message, stack, path, IP, user agent, metadata
 - Email delivery failures logged as `critical` — ensures missed lead notifications are detectable
-- Turnstile failures logged as `warning` — repeated warnings can indicate bot activity or misconfigured key
-- All errors viewable at `/admin/errors` with severity/type filters
+- Turnstile failures logged as `medium` — repeated warnings can indicate bot activity or misconfigured key
+- Admin login failures logged per-attempt (`severity=low` → `medium` → `high` on lockout) with IP and attempt count in metadata
+- Rate limit hits logged on lead form (`medium`) and pageview endpoint (`low`)
+- Pageview DB write failures logged best-effort via `logError`
+- All errors viewable at `/admin/errors` with severity/type filters, time presets, custom date range, stat cards, inline delete, bulk-clear
+
+**Complete error event coverage:**
+| Event | Severity | Type |
+|---|---|---|
+| Unhandled JS error / promise rejection | `high` | `client_js` |
+| React component crash (ErrorBoundary) | `high` | `client_js` |
+| Next.js route render error (error.tsx) | `high` | `client_js` |
+| Root layout crash (global-error.tsx) | `critical` | `client_js` |
+| API route unexpected throw | `high` | `server_api` |
+| Email delivery failure | `critical` | `email_delivery` |
+| Turnstile CAPTCHA failure | `medium` | `captcha` |
+| Admin login failed (1–2 attempts) | `low` | `auth` |
+| Admin login failed (3–4 attempts) | `medium` | `auth` |
+| Admin login locked out (5+ attempts) | `high` | `auth` |
+| 404 page hit | `low` | `not_found` |
+| Pageview endpoint rate limit | `low` | `rate_limit` |
+| Lead form rate limit | `medium` | `rate_limit` |
+| Pageview DB write failure | `medium` | `server_api` |
 
 ---
 
@@ -644,7 +819,7 @@ Three endpoints write to `ErrorLog`:
 | Domain | `santacruztreepros.com` (pending DNS cutover) |
 | Current staging URL | `santa-cruz-tree-site-git-main-jon-lawtons-projects.vercel.app` |
 | Build command | `prisma generate && next build` |
-| Environment variables | `DATABASE_URL`, `DIRECT_URL`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `ADMIN_PASSWORD_HASH`, `SITE_URL` |
+| Environment variables | `DATABASE_URL`, `DIRECT_URL`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `SITE_URL` |
 
 ### Pending Before Go-Live
 - [ ] Replace `tel:+1XXXXXXXXXX` with real phone number (ServiceCta, all service pages, LocalBusiness schema)
