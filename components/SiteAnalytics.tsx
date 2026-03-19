@@ -22,10 +22,23 @@ function getOrCreateSessionId(): string {
   }
 }
 
+function getUtmParams(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const src  = p.get("utm_source")   ?? undefined;
+    const med  = p.get("utm_medium")   ?? undefined;
+    const camp = p.get("utm_campaign") ?? undefined;
+    return { utmSource: src, utmMedium: med, utmCampaign: camp };
+  } catch {
+    return {};
+  }
+}
+
 export default function SiteAnalytics() {
   useEffect(() => {
     const sessionId = getOrCreateSessionId();
     const startTime = Date.now();
+    const utm = getUtmParams();
 
     // Log page view on mount
     fetch("/api/log/pageview", {
@@ -35,6 +48,7 @@ export default function SiteAnalytics() {
         path: window.location.pathname,
         referrer: document.referrer,
         sessionId,
+        ...utm,
       }),
     }).catch(() => {});
 

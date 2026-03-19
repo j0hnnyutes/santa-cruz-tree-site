@@ -67,18 +67,22 @@ model ErrorLog {
 }
 
 model PageView {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  path      String
-  referrer  String?
-  ip        String?
-  userAgent String?
-  sessionId String?
-  duration  Int?     // milliseconds on page
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  path        String
+  referrer    String?
+  ip          String?
+  userAgent   String?
+  sessionId   String?
+  duration    Int?     // milliseconds on page
+  utmSource   String?  // utm_source query param
+  utmMedium   String?  // utm_medium query param
+  utmCampaign String?  // utm_campaign query param
 
   @@index([createdAt])
   @@index([path, createdAt])
   @@index([sessionId, createdAt])
+  @@index([utmSource, createdAt])
 }
 
 model FormEvent {

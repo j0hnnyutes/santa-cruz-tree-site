@@ -28,6 +28,7 @@ export default async function AnalyticsPage() {
     topReferrers:     [],
     topPages:         [],
     hourlyBreakdown:  [],
+    utmBreakdown:     { totalTracked: 0, sources: [], mediums: [], campaigns: [] },
     summary: {
       totalViews:    0,
       totalSessions: 0,

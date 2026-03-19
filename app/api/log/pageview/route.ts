@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       body = {};
     }
 
-    const { path, referrer, sessionId, duration } = body;
+    const { path, referrer, sessionId, duration, utmSource, utmMedium, utmCampaign } = body;
 
     // Write to database (fire-and-forget)
     (prisma as any).pageView
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
           sessionId: sessionId || "",
           duration: typeof duration === "number" ? duration : null,
           userAgent: request.headers.get("user-agent"),
+          utmSource:   utmSource   || null,
+          utmMedium:   utmMedium   || null,
+          utmCampaign: utmCampaign || null,
         },
       })
       .catch((err: unknown) => console.error("Failed to log pageview:", err));

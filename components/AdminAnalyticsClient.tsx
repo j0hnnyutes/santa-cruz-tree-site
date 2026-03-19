@@ -29,6 +29,14 @@ interface FormFunnel {
   topFieldErrors: FieldError[];
 }
 
+interface UtmRow    { label: string; views: number; pct: number }
+interface UtmBreakdown {
+  totalTracked: number;
+  sources:   UtmRow[];
+  mediums:   UtmRow[];
+  campaigns: UtmRow[];
+}
+
 interface AnalyticsData {
   ok: boolean;
   days?: number;
@@ -45,6 +53,7 @@ interface AnalyticsData {
   deviceBreakdown:  { mobile: number; desktop: number };
   topReferrers:     Referrer[];
   formFunnel?:      FormFunnel;
+  utmBreakdown?:    UtmBreakdown;
 }
 
 interface Props { initialData: AnalyticsData }
@@ -177,13 +186,59 @@ function HourlyChart({ data, loading }: { data: HourlyBucket[]; loading: boolean
   );
 }
 
+/* ─── Inline tooltip (hover "i" icon) ───────────────────────────────── */
+function InfoTip({ text }: { text: string }) {
+  return (
+    <span className="relative group/tip inline-flex items-center ml-1">
+      <span className="w-3.5 h-3.5 rounded-full border border-gray-600 text-gray-500 text-[9px] flex items-center justify-center cursor-default select-none hover:border-gray-400 hover:text-gray-300 transition-colors">
+        i
+      </span>
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 leading-snug opacity-0 group-hover/tip:opacity-100 pointer-events-none transition-opacity z-30 shadow-xl whitespace-normal text-left">
+        {text}
+      </span>
+    </span>
+  );
+}
+
+/* ─── UTM breakdown table ────────────────────────────────────────────── */
+function UtmTable({ rows, color }: { rows: UtmRow[]; color: string }) {
+  if (!rows.length) {
+    return <p className="text-gray-500 text-xs italic">No data for this period</p>;
+  }
+  return (
+    <div className="space-y-1.5">
+      {rows.map((r) => (
+        <div key={r.label}>
+          <div className="flex items-center justify-between text-xs mb-0.5">
+            <span className="font-mono text-gray-300 truncate mr-2">{r.label}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-gray-500">{r.pct}%</span>
+              <span className="text-gray-300 font-semibold w-8 text-right">{r.views}</span>
+            </div>
+          </div>
+          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${r.pct}%`, backgroundColor: color, opacity: 0.75 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Form funnel card ───────────────────────────────────────────────── */
 
 function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
+  const convColor = funnel.conversionRate >= 50 ? "#22c55e" : funnel.conversionRate >= 25 ? "#eab308" : "#ef4444";
+
   const steps = [
     { label: "Started",   value: funnel.started,   color: "#3b82f6", desc: "opened form" },
-    { label: "Submitted", value: funnel.submitted,  color: "#22c55e", desc: "completed & sent" },
-    { label: "Abandoned", value: funnel.abandoned,  color: "#f97316", desc: "left without submitting" },
+    {
+      label: "Submitted", value: funnel.submitted,  color: "#22c55e", desc: "completed & sent",
+    },
+    {
+      label: "Abandoned", value: funnel.abandoned,  color: "#f97316", desc: "left without submitting",
+      tip: "Explicitly tracked when someone closes or navigates away mid-form — not just inactivity.",
+    },
   ];
   const maxVal = Math.max(1, funnel.started);
 
@@ -199,20 +254,33 @@ function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
     <div className="space-y-5">
       {/* KPI row */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Form Starts",      value: funnel.started,        color: "#3b82f6" },
-          { label: "Submissions",      value: funnel.submitted,      color: "#22c55e" },
-          { label: "Conversion Rate",  value: `${funnel.conversionRate}%`, color: funnel.conversionRate >= 50 ? "#22c55e" : funnel.conversionRate >= 25 ? "#eab308" : "#ef4444" },
-        ].map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="rounded-xl border border-gray-700/60 px-4 py-3 text-center"
-            style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-          >
-            <div className="text-xl font-bold text-white">{value}</div>
-            <div className="text-xs font-semibold mt-1" style={{ color }}>{label}</div>
+        {/* Form Starts */}
+        <div
+          className="rounded-xl border border-gray-700/60 px-4 py-3 text-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+        >
+          <div className="text-xl font-bold text-white">{funnel.started}</div>
+          <div className="text-xs font-semibold mt-1" style={{ color: "#3b82f6" }}>Form Starts</div>
+        </div>
+        {/* Submissions */}
+        <div
+          className="rounded-xl border border-gray-700/60 px-4 py-3 text-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+        >
+          <div className="text-xl font-bold text-white">{funnel.submitted}</div>
+          <div className="text-xs font-semibold mt-1" style={{ color: "#22c55e" }}>Submissions</div>
+        </div>
+        {/* Conversion Rate with tooltip */}
+        <div
+          className="rounded-xl border border-gray-700/60 px-4 py-3 text-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+        >
+          <div className="text-xl font-bold text-white">{funnel.conversionRate}%</div>
+          <div className="flex items-center justify-center text-xs font-semibold mt-1" style={{ color: convColor }}>
+            Conversion Rate
+            <InfoTip text="What % of people who touched the form actually submitted it. Green ≥50%, yellow ≥25%, red <25%." />
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Funnel bars */}
@@ -228,6 +296,7 @@ function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
                     style={{ backgroundColor: step.color }}
                   />
                   <span className="text-gray-300 font-medium">{step.label}</span>
+                  {"tip" in step && step.tip && <InfoTip text={step.tip} />}
                   <span className="text-gray-500">{step.desc}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -249,8 +318,9 @@ function FormFunnelCard({ funnel }: { funnel: FormFunnel }) {
       {/* Field errors */}
       {funnel.topFieldErrors.length > 0 && (
         <div>
-          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">
+          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2 flex items-center gap-1">
             Common Validation Errors
+            <InfoTip text="Which specific form fields cause the most friction — great for knowing which fields to simplify or relabel." />
           </p>
           <div className="flex flex-wrap gap-2">
             {funnel.topFieldErrors.map((fe) => (
@@ -289,6 +359,7 @@ function exportCSV(data: AnalyticsData, days: number) {
   const refs     = data.topReferrers ?? [];
   const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
   const funnel   = data.formFunnel;
+  const utm      = data.utmBreakdown;
 
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const row = (...cols: (string | number)[]) => cols.map(esc).join(",");
@@ -351,7 +422,26 @@ function exportCSV(data: AnalyticsData, days: number) {
         row("COMMON VALIDATION ERRORS"),
         row("Field", "Error Count"),
         ...funnel.topFieldErrors.map((fe) => row(fe.field, fe.count)),
-      ] : []),
+        blank,
+      ] : [blank]),
+    ] : []),
+
+    // ── UTM / Campaign tracking
+    ...(utm && utm.totalTracked > 0 ? [
+      row("CAMPAIGN TRACKING (UTM)"),
+      row("Total Tracked Visits", utm.totalTracked),
+      blank,
+      row("UTM SOURCES"),
+      row("Source", "Visits", "% of Tagged"),
+      ...utm.sources.map((r) => row(r.label, r.views, `${r.pct}%`)),
+      blank,
+      row("UTM MEDIUMS"),
+      row("Medium", "Visits", "% of Tagged"),
+      ...utm.mediums.map((r) => row(r.label, r.views, `${r.pct}%`)),
+      blank,
+      row("UTM CAMPAIGNS"),
+      row("Campaign", "Visits", "% of Tagged"),
+      ...utm.campaigns.map((r) => row(r.label, r.views, `${r.pct}%`)),
     ] : []),
   ];
 
@@ -434,6 +524,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const referrers = data.topReferrers ?? [];
   const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
   const funnel    = data.formFunnel;
+  const utm       = data.utmBreakdown;
 
   const relTime = (d: Date) => {
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -725,6 +816,58 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
           </div>
         ) : (
           <p className="text-gray-400 text-sm">No referrer data for this period</p>
+        )}
+      </AdminCard>
+
+      {/* ── UTM / Campaign tracking ───────────────────────────────── */}
+      <AdminCard>
+        <SectionHeader
+          title="Campaign Tracking (UTM)"
+          sub="Visits tagged with utm_source / utm_medium / utm_campaign parameters"
+        />
+        {utm && utm.totalTracked > 0 ? (
+          <div className="space-y-1">
+            {/* Totals banner */}
+            <p className="text-xs text-gray-500 mb-4">
+              <span className="text-white font-semibold">{utm.totalTracked}</span> tracked visit{utm.totalTracked !== 1 ? "s" : ""} with UTM parameters in this period
+            </p>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              {/* Sources */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "#a78bfa" }} />
+                  Sources
+                  <InfoTip text="utm_source — identifies who sent the traffic (e.g. google, newsletter, instagram)." />
+                </p>
+                <UtmTable rows={utm.sources} color="#a78bfa" />
+              </div>
+              {/* Mediums */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "#38bdf8" }} />
+                  Mediums
+                  <InfoTip text="utm_medium — the marketing channel (e.g. cpc, email, social, organic)." />
+                </p>
+                <UtmTable rows={utm.mediums} color="#38bdf8" />
+              </div>
+              {/* Campaigns */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: "#f59e0b" }} />
+                  Campaigns
+                  <InfoTip text="utm_campaign — specific campaign name (e.g. spring-promo, google-ads-2026)." />
+                </p>
+                <UtmTable rows={utm.campaigns} color="#f59e0b" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 space-y-2">
+            <p className="text-gray-400 text-sm">No UTM-tagged visits yet for this period.</p>
+            <p className="text-gray-600 text-xs max-w-sm mx-auto">
+              Add <span className="font-mono text-gray-500">?utm_source=google&utm_medium=cpc&utm_campaign=spring</span> to your links to start tracking campaigns.
+            </p>
+          </div>
         )}
       </AdminCard>
 

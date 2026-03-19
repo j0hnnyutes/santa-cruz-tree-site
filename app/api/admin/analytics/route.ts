@@ -224,6 +224,51 @@ export async function GET(request: Request) {
       topFieldErrors,
     };
 
+    /* ── 10. UTM breakdown ───────────────────────────────────────────── */
+    const utmSourceRaw = await prisma.$queryRaw<Array<{ source: string | null; views: bigint }>>`
+      SELECT "utmSource" as source, COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "utmSource" IS NOT NULL AND "utmSource" <> ''
+      GROUP BY "utmSource"
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+
+    const utmMediumRaw = await prisma.$queryRaw<Array<{ medium: string | null; views: bigint }>>`
+      SELECT "utmMedium" as medium, COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "utmMedium" IS NOT NULL AND "utmMedium" <> ''
+      GROUP BY "utmMedium"
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+
+    const utmCampaignRaw = await prisma.$queryRaw<Array<{ campaign: string | null; views: bigint }>>`
+      SELECT "utmCampaign" as campaign, COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "utmCampaign" IS NOT NULL AND "utmCampaign" <> ''
+      GROUP BY "utmCampaign"
+      ORDER BY views DESC
+      LIMIT 10
+    `;
+
+    const utmTotalRaw = await prisma.$queryRaw<Array<{ total: bigint }>>`
+      SELECT COUNT(*) as total FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "utmSource" IS NOT NULL AND "utmSource" <> ''
+    `;
+    const utmTotal = Number((utmTotalRaw[0] || { total: BigInt(0) as bigint }).total);
+
+    const utmBreakdown = {
+      totalTracked: utmTotal,
+      sources:   utmSourceRaw.map((r) => ({ label: r.source ?? "", views: Number(r.views), pct: utmTotal > 0 ? Math.round((Number(r.views) / utmTotal) * 100) : 0 })),
+      mediums:   utmMediumRaw.map((r) => ({ label: r.medium ?? "", views: Number(r.views), pct: utmTotal > 0 ? Math.round((Number(r.views) / utmTotal) * 100) : 0 })),
+      campaigns: utmCampaignRaw.map((r) => ({ label: r.campaign ?? "", views: Number(r.views), pct: utmTotal > 0 ? Math.round((Number(r.views) / utmTotal) * 100) : 0 })),
+    };
+
     /* ── Response ────────────────────────────────────────────────────── */
     return NextResponse.json(
       {
@@ -250,6 +295,7 @@ export async function GET(request: Request) {
         },
         topReferrers,
         formFunnel,
+        utmBreakdown,
       },
       { status: 200 }
     );
