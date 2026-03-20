@@ -107,13 +107,14 @@ export async function GET(request: Request) {
     const submitted = funnelCounts.SUBMITTED || 0;
     const conversionRate = started > 0 ? Math.round((submitted / started) * 1000) / 10 : null;
 
-    // Top pages (all-time, by view count + avg duration)
+    // Top pages for the selected period
     const topPagesRaw = await prisma.$queryRaw<
       Array<{ path: string; views: bigint; avg_duration: number | null }>
     >`
       SELECT "path", COUNT(*) as views,
              AVG(CASE WHEN duration > 0 AND duration < 600000 THEN duration END) as avg_duration
       FROM "PageView"
+      WHERE "createdAt" >= ${cutoff}
       GROUP BY "path"
       ORDER BY views DESC
       LIMIT 5

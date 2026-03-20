@@ -3,6 +3,12 @@ import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/logError";
 
+// Report time-zone for daily/hourly groupings.  All page-views are stored as
+// UTC in the DB; applying AT TIME ZONE means "2am Pacific" won't spill into
+// the next UTC calendar day and hourly charts match the local clock the admin
+// sees.  Santa Cruz, CA → America/Los_Angeles.
+const REPORT_TZ = "America/Los_Angeles";
+
 export async function GET(request: Request) {
   const isAuthed = await isAdminAuthenticated();
   if (!isAuthed) {
@@ -42,7 +48,7 @@ export async function GET(request: Request) {
     const pageViewsByDayRaw = await prisma.$queryRaw<
       Array<{ date: string; views: bigint; sessions: bigint }>
     >`
-      SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') as date,
+      SELECT TO_CHAR("createdAt" AT TIME ZONE ${REPORT_TZ}, 'YYYY-MM-DD') as date,
              COUNT(*) as views,
              COUNT(DISTINCT "sessionId") as sessions
       FROM "PageView"
@@ -119,7 +125,7 @@ export async function GET(request: Request) {
 
     /* ── 6. Hourly breakdown (0–23) ──────────────────────────────────── */
     const hourlyRaw = await prisma.$queryRaw<Array<{ hour: number; views: bigint }>>`
-      SELECT EXTRACT(HOUR FROM "createdAt")::int as hour, COUNT(*) as views
+      SELECT EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${REPORT_TZ})::int as hour, COUNT(*) as views
       FROM "PageView"
       WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
       GROUP BY hour
