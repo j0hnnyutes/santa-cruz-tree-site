@@ -133,31 +133,39 @@ export async function GET(request: Request) {
     }));
 
     /* ── 7. Device breakdown ─────────────────────────────────────────── */
-    const allPageViews = await (prisma as any).pageView.findMany({
-      where: { createdAt: { gte: cutoff, lte: toDate } },
-      select: { userAgent: true },
-    });
-
-    const mobileKeywords = ["mobile", "android", "iphone", "ipad", "tablet", "windows phone"];
-    let mobileCount = 0;
-    for (const pv of allPageViews) {
-      const ua = (pv.userAgent || "").toLowerCase();
-      if (mobileKeywords.some((kw) => ua.includes(kw))) mobileCount++;
-    }
-    const totalForDevice = allPageViews.length;
+    // Detect mobile via ILIKE in SQL — no in-memory loop, no ORM needed.
+    const deviceRaw = await prisma.$queryRaw<
+      Array<{ total_views: bigint; mobile_views: bigint }>
+    >`
+      SELECT
+        COUNT(*) as total_views,
+        COUNT(CASE
+          WHEN "userAgent" ILIKE '%mobile%'       OR "userAgent" ILIKE '%android%'
+            OR "userAgent" ILIKE '%iphone%'       OR "userAgent" ILIKE '%ipad%'
+            OR "userAgent" ILIKE '%tablet%'       OR "userAgent" ILIKE '%windows phone%'
+          THEN 1 END) as mobile_views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+    `;
+    const totalForDevice = Number(deviceRaw[0]?.total_views  ?? BigInt(0));
+    const mobileCount    = Number(deviceRaw[0]?.mobile_views ?? BigInt(0));
     const mobilePercent  = totalForDevice > 0 ? Math.round((mobileCount / totalForDevice) * 100) : 0;
 
     /* ── 8. Top referrers ────────────────────────────────────────────── */
-    const topReferrersRaw = await (prisma as any).pageView.groupBy({
-      by: ["referrer"],
-      _count: true,
-      where: { createdAt: { gte: cutoff, lte: toDate } },
-      orderBy: { _count: { id: "desc" } },
-      take: 10,
-    });
+    const topReferrersRaw = await prisma.$queryRaw<
+      Array<{ referrer: string | null; views: bigint }>
+    >`
+      SELECT "referrer", COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+      GROUP BY "referrer"
+      ORDER BY views DESC
+      LIMIT 10
+    `;
 
-    const topReferrers = topReferrersRaw.map((r: any) => {
-      const referrer = r.referrer || "";
+    const topReferrers = topReferrersRaw.map((r) => {
+      const referrer = r.referrer ?? "";
+      const count    = Number(r.views);
       let label = "Direct / None";
       if (referrer) {
         try {
@@ -169,41 +177,45 @@ export async function GET(request: Request) {
       }
       return {
         referrer: label,
-        count: r._count,
-        pct: totalViews > 0 ? Math.round((r._count / totalViews) * 100) : 0,
+        count,
+        pct: totalViews > 0 ? Math.round((count / totalViews) * 100) : 0,
       };
     });
 
     /* ── 9. Form conversion funnel ───────────────────────────────────── */
-    const formFunnelRaw = await (prisma as any).formEvent.groupBy({
-      by: ["eventType"],
-      where: { createdAt: { gte: cutoff, lte: toDate } },
-      _count: true,
-    });
+    const formFunnelRaw = await prisma.$queryRaw<
+      Array<{ eventType: string; count: bigint }>
+    >`
+      SELECT "eventType", COUNT(*) as count
+      FROM "FormEvent"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+      GROUP BY "eventType"
+    `;
 
     const funnelCounts: Record<string, number> = {
       STARTED: 0, SUBMITTED: 0, ABANDONED: 0, FIELD_ERROR: 0,
     };
     for (const f of formFunnelRaw) {
-      if (f.eventType in funnelCounts) funnelCounts[f.eventType] = f._count;
+      if (f.eventType in funnelCounts) funnelCounts[f.eventType] = Number(f.count);
     }
 
     // Top fields that trigger validation errors
-    const fieldErrorsRaw = await (prisma as any).formEvent.groupBy({
-      by: ["fieldName"],
-      where: {
-        eventType: "FIELD_ERROR",
-        fieldName: { not: null },
-        createdAt: { gte: cutoff, lte: toDate },
-      },
-      _count: true,
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
-    });
+    const fieldErrorsRaw = await prisma.$queryRaw<
+      Array<{ fieldName: string | null; count: bigint }>
+    >`
+      SELECT "fieldName", COUNT(*) as count
+      FROM "FormEvent"
+      WHERE "eventType" = 'FIELD_ERROR'
+        AND "fieldName" IS NOT NULL
+        AND "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+      GROUP BY "fieldName"
+      ORDER BY count DESC
+      LIMIT 5
+    `;
 
-    const topFieldErrors = fieldErrorsRaw.map((f: any) => ({
+    const topFieldErrors = fieldErrorsRaw.map((f) => ({
       field: f.fieldName || "unknown",
-      count: f._count,
+      count: Number(f.count),
     }));
 
     const conversionRate = funnelCounts.STARTED > 0

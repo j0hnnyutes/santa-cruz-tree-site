@@ -80,26 +80,44 @@ export async function POST(request: Request) {
     // City header is URL-encoded (e.g. "San%20Jose")
     const city = rawCity ? decodeURIComponent(rawCity) : null;
 
-    // Write to database using raw SQL to avoid any Prisma client schema-sync issues.
-    // prisma.$executeRaw sends parameterized SQL directly — bypasses ORM validation.
-    const resolvedPath = path || "/";
-    const resolvedReferrer = referrer || null;
-    const resolvedSessionId = sessionId || "";
-    const resolvedDuration = typeof duration === "number" ? duration : null;
-    const resolvedUtmSource   = utmSource   || null;
-    const resolvedUtmMedium   = utmMedium   || null;
-    const resolvedUtmCampaign = utmCampaign || null;
+    // All DB writes use raw SQL to bypass Prisma ORM client schema-sync issues.
 
-    prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","duration","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${resolvedDuration},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},NOW())`
-      .catch((err: unknown) => {
-        console.error("Failed to log pageview:", err);
-        logError(null, {
-          severity: "medium",
-          type: "server_api",
-          message: `Pageview DB write failed: ${err instanceof Error ? err.message : String(err)}`,
-          path: "/api/log/pageview",
+    if (typeof duration === "number" && duration > 0 && sessionId && path) {
+      // Duration update: UPDATE the existing row for this session rather than
+      // inserting a second row. This prevents pageview double-counting in analytics.
+      const resolvedSessionId = sessionId || "";
+      const resolvedPath      = path || "/";
+      prisma.$executeRaw`
+        UPDATE "PageView" SET "duration" = ${duration}
+        WHERE id = (
+          SELECT id FROM "PageView"
+          WHERE "sessionId" = ${resolvedSessionId}
+            AND "path" = ${resolvedPath}
+            AND "duration" IS NULL
+          ORDER BY "createdAt" DESC
+          LIMIT 1
+        )
+      `.catch((err: unknown) => console.error("Failed to update pageview duration:", err));
+    } else {
+      // Fresh pageview INSERT
+      const resolvedPath      = path || "/";
+      const resolvedReferrer  = referrer || null;
+      const resolvedSessionId = sessionId || null;
+      const resolvedUtmSource   = utmSource   || null;
+      const resolvedUtmMedium   = utmMedium   || null;
+      const resolvedUtmCampaign = utmCampaign || null;
+
+      prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},NOW())`
+        .catch((err: unknown) => {
+          console.error("Failed to log pageview:", err);
+          logError(null, {
+            severity: "medium",
+            type: "server_api",
+            message: `Pageview DB write failed: ${err instanceof Error ? err.message : String(err)}`,
+            path: "/api/log/pageview",
+          });
         });
-      });
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err: unknown) {
