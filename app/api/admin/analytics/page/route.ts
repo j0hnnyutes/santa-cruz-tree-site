@@ -152,22 +152,39 @@ export async function GET(request: Request) {
     }));
 
     /* ── 6. Device split for this page ───────────────────────────────── */
-    const uaRows = await (prisma as any).pageView.findMany({
-      where: { createdAt: { gte: cutoff, lte: toDate }, path },
-      select: { userAgent: true },
-    });
-    const mobileKw = ["mobile", "android", "iphone", "ipad", "tablet", "windows phone"];
-    let mobileCount = 0;
-    for (const pv of uaRows) {
-      const ua = (pv.userAgent || "").toLowerCase();
-      if (mobileKw.some((kw) => ua.includes(kw))) mobileCount++;
-    }
-    const mobilePercent = uaRows.length > 0 ? Math.round((mobileCount / uaRows.length) * 100) : 0;
+    const deviceRaw = await prisma.$queryRaw<
+      Array<{ total_views: bigint; ios_views: bigint; android_views: bigint; other_mobile_views: bigint }>
+    >`
+      SELECT
+        COUNT(*) as total_views,
+        COUNT(CASE WHEN "userAgent" ILIKE '%iphone%' OR "userAgent" ILIKE '%ipad%' THEN 1 END) as ios_views,
+        COUNT(CASE WHEN "userAgent" ILIKE '%android%' THEN 1 END) as android_views,
+        COUNT(CASE
+          WHEN ("userAgent" ILIKE '%mobile%' OR "userAgent" ILIKE '%tablet%' OR "userAgent" ILIKE '%windows phone%')
+            AND "userAgent" NOT ILIKE '%iphone%'
+            AND "userAgent" NOT ILIKE '%ipad%'
+            AND "userAgent" NOT ILIKE '%android%'
+          THEN 1 END) as other_mobile_views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND path = ${path}
+    `;
+    const totalForDevice   = Number(deviceRaw[0]?.total_views        ?? BigInt(0));
+    const iosCount         = Number(deviceRaw[0]?.ios_views          ?? BigInt(0));
+    const androidCount     = Number(deviceRaw[0]?.android_views      ?? BigInt(0));
+    const otherMobileCount = Number(deviceRaw[0]?.other_mobile_views ?? BigInt(0));
+    const mobileCount      = iosCount + androidCount + otherMobileCount;
+    const mobilePercent    = totalForDevice > 0 ? Math.round((mobileCount       / totalForDevice) * 100) : 0;
+    const iosPercent       = totalForDevice > 0 ? Math.round((iosCount         / totalForDevice) * 100) : 0;
+    const androidPercent   = totalForDevice > 0 ? Math.round((androidCount     / totalForDevice) * 100) : 0;
+    const otherMobilePct   = totalForDevice > 0 ? Math.round((otherMobileCount / totalForDevice) * 100) : 0;
 
     /* ── 7. Site-wide % share for this page ──────────────────────────── */
-    const siteTotal = await (prisma as any).pageView.count({
-      where: { createdAt: { gte: cutoff, lte: toDate } },
-    });
+    const siteTotalRaw = await prisma.$queryRaw<Array<{ total: bigint }>>`
+      SELECT COUNT(*) as total FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+    `;
+    const siteTotal    = Number(siteTotalRaw[0]?.total ?? BigInt(0));
     const siteSharePct = siteTotal > 0 ? Math.round((totalViews / siteTotal) * 100) : 0;
 
     return NextResponse.json({
@@ -185,8 +202,11 @@ export async function GET(request: Request) {
       topReferrers,
       nextPages,
       deviceBreakdown: {
-        mobile:  mobilePercent,
-        desktop: 100 - mobilePercent,
+        mobile:      mobilePercent,
+        desktop:     100 - mobilePercent,
+        ios:         iosPercent,
+        android:     androidPercent,
+        otherMobile: otherMobilePct,
       },
     });
   } catch (err: unknown) {

@@ -58,7 +58,7 @@ interface AnalyticsData {
   pageViewsByDay:   PageViewDay[];
   topPages?:        TopPage[];
   hourlyBreakdown?: HourlyBucket[];
-  deviceBreakdown:  { mobile: number; desktop: number };
+  deviceBreakdown:  { mobile: number; desktop: number; ios: number; android: number; otherMobile: number };
   topReferrers:     Referrer[];
   formFunnel?:      FormFunnel;
   utmBreakdown?:    UtmBreakdown;
@@ -489,7 +489,7 @@ interface PageDrillDownData {
   hourlyBreakdown: Array<{ hour: number; views: number }>;
   topReferrers:    Array<{ referrer: string; count: number; pct: number }>;
   nextPages:       NextPage[];
-  deviceBreakdown: { mobile: number; desktop: number };
+  deviceBreakdown: { mobile: number; desktop: number; ios: number; android: number; otherMobile: number };
 }
 
 function PageDrillDown({
@@ -723,12 +723,26 @@ function PageDrillDown({
                   Device Split
                 </p>
                 <div className="flex rounded-lg overflow-hidden h-4 mb-2">
-                  <div style={{ width: `${data.deviceBreakdown.mobile}%`, backgroundColor: "#a78bfa" }} />
-                  <div style={{ width: `${data.deviceBreakdown.desktop}%`, backgroundColor: "#22c55e" }} />
+                  <div style={{ width: `${data.deviceBreakdown.ios}%`,         backgroundColor: "#a78bfa" }} title={`iOS ${data.deviceBreakdown.ios}%`} />
+                  <div style={{ width: `${data.deviceBreakdown.android}%`,     backgroundColor: "#34d399" }} title={`Android ${data.deviceBreakdown.android}%`} />
+                  <div style={{ width: `${data.deviceBreakdown.otherMobile}%`, backgroundColor: "#60a5fa" }} title={`Other mobile ${data.deviceBreakdown.otherMobile}%`} />
+                  <div style={{ width: `${data.deviceBreakdown.desktop}%`,     backgroundColor: "#4b5563" }} title={`Desktop ${data.deviceBreakdown.desktop}%`} />
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>📱 Mobile {data.deviceBreakdown.mobile}%</span>
-                  <span>🖥 Desktop {data.deviceBreakdown.desktop}%</span>
+                <div className="space-y-1 mt-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>🍎 iOS</span><span>{data.deviceBreakdown.ios}%</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>🤖 Android</span><span>{data.deviceBreakdown.android}%</span>
+                  </div>
+                  {data.deviceBreakdown.otherMobile > 0 && (
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>📱 Other mobile</span><span>{data.deviceBreakdown.otherMobile}%</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>🖥 Desktop</span><span>{data.deviceBreakdown.desktop}%</span>
+                  </div>
                 </div>
               </div>
             </>
@@ -760,7 +774,7 @@ function exportCSV(data: AnalyticsData, days: number) {
   const topPages = data.topPages ?? [];
   const hourly   = data.hourlyBreakdown ?? [];
   const refs     = data.topReferrers ?? [];
-  const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+  const device   = data.deviceBreakdown ?? { mobile: 0, desktop: 100, ios: 0, android: 0, otherMobile: 0 };
   const funnel   = data.formFunnel;
   const utm      = data.utmBreakdown;
   const geo      = data.geoBreakdown;
@@ -783,8 +797,11 @@ function exportCSV(data: AnalyticsData, days: number) {
     row("Unique Sessions",    summary.totalSessions),
     row("Avg. Time on Page",  summary.avgDuration ? formatDuration(summary.avgDuration) : "—"),
     row("Bounce Rate",        `${summary.bounceRate}%`),
-    row("Mobile Traffic",     `${device.mobile}%`),
-    row("Desktop Traffic",    `${device.desktop}%`),
+    row("Mobile Traffic",       `${device.mobile}%`),
+    row("  — iOS (iPhone/iPad)", `${device.ios}%`),
+    row("  — Android",           `${device.android}%`),
+    row("  — Other mobile",      `${device.otherMobile}%`),
+    row("Desktop Traffic",       `${device.desktop}%`),
     blank,
 
     // ── Daily views
@@ -971,7 +988,7 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const hourly    = data.hourlyBreakdown ?? Array.from({ length: 24 }, (_, h) => ({ hour: h, views: 0 }));
   const pvByDay   = data.pageViewsByDay ?? [];
   const referrers = data.topReferrers ?? [];
-  const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100 };
+  const device    = data.deviceBreakdown ?? { mobile: 0, desktop: 100, ios: 0, android: 0, otherMobile: 0 };
   const funnel    = data.formFunnel;
   const utm       = data.utmBreakdown;
   const geo       = data.geoBreakdown;
@@ -1196,26 +1213,33 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
         <AdminCard>
           <SectionHeader title="Device Split" />
           <div className="space-y-5">
-            {/* Visual proportion bar */}
+            {/* Stacked proportion bar: iOS / Android / other mobile / desktop */}
             <div>
               <div className="flex rounded-lg overflow-hidden h-5 mb-2">
-                <div style={{ width: `${device.mobile}%`, backgroundColor: "#a78bfa" }} />
-                <div style={{ width: `${device.desktop}%`, backgroundColor: "#22c55e" }} />
+                <div style={{ width: `${device.ios}%`,         backgroundColor: "#a78bfa" }} title={`iOS ${device.ios}%`} />
+                <div style={{ width: `${device.android}%`,     backgroundColor: "#34d399" }} title={`Android ${device.android}%`} />
+                <div style={{ width: `${device.otherMobile}%`, backgroundColor: "#60a5fa" }} title={`Other mobile ${device.otherMobile}%`} />
+                <div style={{ width: `${device.desktop}%`,     backgroundColor: "#4b5563" }} title={`Desktop ${device.desktop}%`} />
               </div>
               <div className="flex justify-between text-xs text-gray-500">
-                <span>Mobile</span>
-                <span>Desktop</span>
+                <span>Mobile ({device.mobile}%)</span>
+                <span>Desktop ({device.desktop}%)</span>
               </div>
             </div>
             {/* Stat rows */}
             <div className="space-y-3">
               {[
-                { label: "📱 Mobile",  value: device.mobile,  color: "#a78bfa" },
-                { label: "🖥 Desktop", value: device.desktop, color: "#22c55e" },
+                { label: "🍎 iOS (iPhone/iPad)", value: device.ios,         color: "#a78bfa" },
+                { label: "🤖 Android",            value: device.android,     color: "#34d399" },
+                { label: "📱 Other mobile",        value: device.otherMobile, color: "#60a5fa" },
+                { label: "🖥 Desktop",             value: device.desktop,     color: "#9ca3af" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">{label}</span>
-                  <span className="text-xl font-bold text-white">
+                  <div className="flex items-center gap-2">
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+                    <span className="text-sm text-gray-400">{label}</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">
                     {value}
                     <span className="text-sm font-normal text-gray-500 ml-0.5">%</span>
                   </span>

@@ -133,23 +133,36 @@ export async function GET(request: Request) {
     }));
 
     /* ── 7. Device breakdown ─────────────────────────────────────────── */
-    // Detect mobile via ILIKE in SQL — no in-memory loop, no ORM needed.
+    // Broken out by iOS (iPhone/iPad), Android, other mobile, and desktop.
     const deviceRaw = await prisma.$queryRaw<
-      Array<{ total_views: bigint; mobile_views: bigint }>
+      Array<{ total_views: bigint; ios_views: bigint; android_views: bigint; other_mobile_views: bigint }>
     >`
       SELECT
         COUNT(*) as total_views,
         COUNT(CASE
-          WHEN "userAgent" ILIKE '%mobile%'       OR "userAgent" ILIKE '%android%'
-            OR "userAgent" ILIKE '%iphone%'       OR "userAgent" ILIKE '%ipad%'
-            OR "userAgent" ILIKE '%tablet%'       OR "userAgent" ILIKE '%windows phone%'
-          THEN 1 END) as mobile_views
+          WHEN "userAgent" ILIKE '%iphone%' OR "userAgent" ILIKE '%ipad%'
+          THEN 1 END) as ios_views,
+        COUNT(CASE
+          WHEN "userAgent" ILIKE '%android%'
+          THEN 1 END) as android_views,
+        COUNT(CASE
+          WHEN ("userAgent" ILIKE '%mobile%' OR "userAgent" ILIKE '%tablet%' OR "userAgent" ILIKE '%windows phone%')
+            AND "userAgent" NOT ILIKE '%iphone%'
+            AND "userAgent" NOT ILIKE '%ipad%'
+            AND "userAgent" NOT ILIKE '%android%'
+          THEN 1 END) as other_mobile_views
       FROM "PageView"
       WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
     `;
-    const totalForDevice = Number(deviceRaw[0]?.total_views  ?? BigInt(0));
-    const mobileCount    = Number(deviceRaw[0]?.mobile_views ?? BigInt(0));
-    const mobilePercent  = totalForDevice > 0 ? Math.round((mobileCount / totalForDevice) * 100) : 0;
+    const totalForDevice    = Number(deviceRaw[0]?.total_views       ?? BigInt(0));
+    const iosCount          = Number(deviceRaw[0]?.ios_views         ?? BigInt(0));
+    const androidCount      = Number(deviceRaw[0]?.android_views     ?? BigInt(0));
+    const otherMobileCount  = Number(deviceRaw[0]?.other_mobile_views ?? BigInt(0));
+    const mobileCount       = iosCount + androidCount + otherMobileCount;
+    const mobilePercent     = totalForDevice > 0 ? Math.round((mobileCount       / totalForDevice) * 100) : 0;
+    const iosPercent        = totalForDevice > 0 ? Math.round((iosCount         / totalForDevice) * 100) : 0;
+    const androidPercent    = totalForDevice > 0 ? Math.round((androidCount     / totalForDevice) * 100) : 0;
+    const otherMobilePct    = totalForDevice > 0 ? Math.round((otherMobileCount / totalForDevice) * 100) : 0;
 
     /* ── 8. Top referrers ────────────────────────────────────────────── */
     const topReferrersRaw = await prisma.$queryRaw<
@@ -345,8 +358,11 @@ export async function GET(request: Request) {
         topPages,
         hourlyBreakdown,
         deviceBreakdown: {
-          mobile:  mobilePercent,
-          desktop: 100 - mobilePercent,
+          mobile:      mobilePercent,
+          desktop:     100 - mobilePercent,
+          ios:         iosPercent,
+          android:     androidPercent,
+          otherMobile: otherMobilePct,
         },
         topReferrers,
         formFunnel,
