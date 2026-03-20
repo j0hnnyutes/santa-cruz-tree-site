@@ -24,7 +24,7 @@ export default async function AnalyticsPage() {
   let initialData: any = {
     ok: false,
     pageViewsByDay:   [],
-    deviceBreakdown:  { mobile: 0, desktop: 100 },
+    deviceBreakdown:  { mobile: 0, desktop: 100, ios: 0, android: 0, otherMobile: 0 },
     topReferrers:     [],
     topPages:         [],
     hourlyBreakdown:  [],

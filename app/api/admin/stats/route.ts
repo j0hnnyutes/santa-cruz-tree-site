@@ -68,9 +68,9 @@ export async function GET(request: Request) {
 
     // Top recurring errors (grouped by message+type+severity)
     const recentErrorsRaw = await prisma.$queryRaw<
-      Array<{ message: string; type: string; severity: string; count: bigint }>
+      Array<{ message: string; type: string; severity: string; count: bigint; last_seen: Date }>
     >`
-      SELECT "message", "type", "severity", COUNT(*) as count
+      SELECT "message", "type", "severity", COUNT(*) as count, MAX("createdAt") as last_seen
       FROM "ErrorLog"
       WHERE "createdAt" >= ${cutoff}
       GROUP BY "message", "type", "severity"
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       type:     e.type,
       severity: e.severity,
       count:    Number(e.count),
-      lastSeen: new Date().toISOString(),
+      lastSeen: e.last_seen instanceof Date ? e.last_seen.toISOString() : String(e.last_seen),
     }));
 
     // Form funnel

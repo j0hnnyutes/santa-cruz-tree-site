@@ -19,7 +19,7 @@ interface StatsData {
   errors: {
     lastNDays: number;
     bySeverity: Record<string, number>;
-    recent: Array<{ message: string; type: string; severity: string; count: number }>;
+    recent: Array<{ message: string; type: string; severity: string; count: number; lastSeen: string }>;
   };
   formFunnel: {
     started: number;
@@ -209,6 +209,9 @@ export default async function DashboardPage() {
                     <th className="text-right py-3 px-4 text-gray-400 font-medium">
                       Count
                     </th>
+                    <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                      Last seen
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -235,6 +238,11 @@ export default async function DashboardPage() {
                       </td>
                       <td className="py-3 px-4 text-right text-gray-300 font-medium">
                         {err.count}
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-500 text-xs">
+                        {err.lastSeen
+                          ? new Date(err.lastSeen).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                          : "—"}
                       </td>
                     </tr>
                   ))}

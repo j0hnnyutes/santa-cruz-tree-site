@@ -759,6 +759,14 @@ function PageDrillDown({
   );
 }
 
+/* ─── Local date helper ──────────────────────────────────────────────── */
+// Returns YYYY-MM-DD in the browser's local timezone, not UTC.
+// Without this, new Date().toISOString().slice(0,10) gives UTC date which
+// is "tomorrow" for Pacific users after ~4-5pm.
+function localDateStr(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /* ─── Shared constants ───────────────────────────────────────────────── */
 
 const EMPTY_SUMMARY = {
@@ -887,7 +895,7 @@ function exportCSV(data: AnalyticsData, days: number) {
   const blob   = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url    = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-  const fname  = `analytics-${days}d-${new Date().toISOString().slice(0, 10)}.csv`;
+  const fname  = `analytics-${days}d-${localDateStr()}.csv`;
   anchor.href  = url;
   anchor.download = fname;
   anchor.click();
@@ -1000,8 +1008,8 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
     return `${Math.floor(s / 60)}m ago`;
   };
 
-  // Today's date string for max attribute on date inputs
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Today's date string for max attribute on date inputs — use local date, not UTC
+  const todayStr = localDateStr();
 
   return (
     <div className="space-y-6">
@@ -1033,8 +1041,8 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
                   // Default: last 7 days as starting point
                   const t = new Date();
                   const f = new Date(t.getTime() - 7 * 24 * 60 * 60 * 1000);
-                  setCustomFrom(f.toISOString().slice(0, 10));
-                  setCustomTo(t.toISOString().slice(0, 10));
+                  setCustomFrom(localDateStr(f));
+                  setCustomTo(localDateStr(t));
                 }
               }}
               disabled={loading}
