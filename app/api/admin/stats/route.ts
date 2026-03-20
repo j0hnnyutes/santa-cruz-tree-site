@@ -111,7 +111,8 @@ export async function GET(request: Request) {
     const topPagesRaw = await prisma.$queryRaw<
       Array<{ path: string; views: bigint; avg_duration: number | null }>
     >`
-      SELECT "path", COUNT(*) as views, AVG("duration") as avg_duration
+      SELECT "path", COUNT(*) as views,
+             AVG(CASE WHEN duration > 0 AND duration < 600000 THEN duration END) as avg_duration
       FROM "PageView"
       GROUP BY "path"
       ORDER BY views DESC

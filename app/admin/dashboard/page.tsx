@@ -148,11 +148,20 @@ export default async function DashboardPage() {
                   Math.max(...statsData.topPages.map((p) => p.views))
                 );
                 const barWidth = (page.views / maxViews) * 100;
+                const avgMs = page.avgDuration;
+                let avgLabel = "—";
+                if (avgMs && avgMs > 0) {
+                  const s = Math.round(avgMs / 1000);
+                  avgLabel = s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+                }
                 return (
                   <div key={idx} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-300">{page.path}</span>
-                      <span className="text-gray-400">{page.views} views</span>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <span className="text-gray-500 text-xs">avg {avgLabel}</span>
+                        <span className="text-gray-400">{page.views} views</span>
+                      </div>
                     </div>
                     <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                       <div

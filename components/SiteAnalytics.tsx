@@ -48,6 +48,7 @@ export default function SiteAnalytics() {
     const startTime = Date.now();
     const utm = getUtmParams();
     let logged = false;
+    let durationSent = false;
     let timerId: ReturnType<typeof setTimeout>;
 
     function doLog() {
@@ -65,30 +66,42 @@ export default function SiteAnalytics() {
       });
     }
 
+    function sendDuration() {
+      if (!logged || durationSent) return;
+      durationSent = true;
+      logPageview({
+        path: window.location.pathname,
+        referrer: document.referrer,
+        sessionId,
+        duration: Date.now() - startTime,
+      });
+    }
+
     // Primary trigger: 1.5 s after mount, if page is visible.
     // Real users are still on the page; bounces and prefetch hits are gone.
     timerId = setTimeout(doLog, 1500);
 
-    // Fallback: if the tab was in the background on load (e.g. opened via
-    // middle-click) log as soon as it becomes visible.
-    function onVisible() {
-      if (document.visibilityState === "visible") doLog();
+    // Handles both:
+    //  - tab becoming visible (middle-click open in background → log initial view)
+    //  - tab becoming hidden (close, switch, or external navigation → send duration)
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        doLog();
+      } else {
+        // Page is hidden — fire duration now because unmount may never run
+        // (tab close, cmd+L to new URL, switch to another app, etc.)
+        sendDuration();
+      }
     }
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-    // Log duration on unmount (only if the initial view was recorded)
+    // Also send duration on unmount (SPA navigation within the app).
+    // The durationSent flag prevents double-sending if visibilitychange
+    // already fired (e.g. user switched tabs then navigated in-app).
     return () => {
       clearTimeout(timerId);
-      document.removeEventListener("visibilitychange", onVisible);
-      if (logged) {
-        const duration = Date.now() - startTime;
-        logPageview({
-          path: window.location.pathname,
-          referrer: document.referrer,
-          sessionId,
-          duration,
-        });
-      }
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      sendDuration();
     };
   }, []);
 
