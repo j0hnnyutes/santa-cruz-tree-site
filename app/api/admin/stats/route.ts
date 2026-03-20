@@ -45,79 +45,83 @@ export async function GET(request: Request) {
     });
 
     // Errors by severity
-    const errorsBySeverity = await (prisma as any).errorLog.groupBy({
-      by: ["severity"],
-      where: { createdAt: { gte: cutoff } },
-      _count: true,
-    });
+    const errorsBySeverityRaw = await prisma.$queryRaw<
+      Array<{ severity: string; count: bigint }>
+    >`
+      SELECT "severity", COUNT(*) as count
+      FROM "ErrorLog"
+      WHERE "createdAt" >= ${cutoff}
+      GROUP BY "severity"
+    `;
 
     const severityCounts: Record<string, number> = {
-      critical: 0,
-      high: 0,
-      medium: 0,
-      low: 0,
+      critical: 0, high: 0, medium: 0, low: 0,
     };
-    for (const item of errorsBySeverity) {
-      severityCounts[item.severity] = item._count;
+    for (const item of errorsBySeverityRaw) {
+      severityCounts[item.severity] = Number(item.count);
     }
 
-    const errorsLastNDays = await (prisma as any).errorLog.count({
-      where: { createdAt: { gte: cutoff } },
-    });
+    const errorsCountRaw = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*) as count FROM "ErrorLog" WHERE "createdAt" >= ${cutoff}
+    `;
+    const errorsLastNDays = Number(errorsCountRaw[0]?.count ?? BigInt(0));
 
-    // Recent errors
-    const recentErrors = await (prisma as any).errorLog.groupBy({
-      by: ["message", "type", "severity"],
-      where: { createdAt: { gte: cutoff } },
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
-    });
+    // Top recurring errors (grouped by message+type+severity)
+    const recentErrorsRaw = await prisma.$queryRaw<
+      Array<{ message: string; type: string; severity: string; count: bigint }>
+    >`
+      SELECT "message", "type", "severity", COUNT(*) as count
+      FROM "ErrorLog"
+      WHERE "createdAt" >= ${cutoff}
+      GROUP BY "message", "type", "severity"
+      ORDER BY count DESC
+      LIMIT 5
+    `;
 
-    const recentErrorsList = recentErrors.map((e: any) => ({
-      message: e.message,
-      type: e.type,
+    const recentErrorsList = recentErrorsRaw.map((e) => ({
+      message:  e.message,
+      type:     e.type,
       severity: e.severity,
-      count: e._count.id,
+      count:    Number(e.count),
       lastSeen: new Date().toISOString(),
     }));
 
     // Form funnel
-    const formFunnelRaw = await (prisma as any).formEvent.groupBy({
-      by: ["eventType"],
-      where: { createdAt: { gte: cutoff } },
-      _count: true,
-    });
+    const formFunnelRaw = await prisma.$queryRaw<
+      Array<{ eventType: string; count: bigint }>
+    >`
+      SELECT "eventType", COUNT(*) as count
+      FROM "FormEvent"
+      WHERE "createdAt" >= ${cutoff}
+      GROUP BY "eventType"
+    `;
 
     const funnelCounts: Record<string, number> = {
-      STARTED: 0,
-      FIELD_ERROR: 0,
-      ABANDONED: 0,
-      SUBMITTED: 0,
+      STARTED: 0, FIELD_ERROR: 0, ABANDONED: 0, SUBMITTED: 0,
     };
     for (const item of formFunnelRaw) {
-      if (item.eventType in funnelCounts) {
-        funnelCounts[item.eventType] = item._count;
-      }
+      if (item.eventType in funnelCounts) funnelCounts[item.eventType] = Number(item.count);
     }
 
     const started = funnelCounts.STARTED || 0;
     const submitted = funnelCounts.SUBMITTED || 0;
     const conversionRate = started > 0 ? Math.round((submitted / started) * 1000) / 10 : null;
 
-    // Top pages
-    const topPagesRaw = await (prisma as any).pageView.groupBy({
-      by: ["path"],
-      _count: { id: true },
-      _avg: { duration: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
-    });
+    // Top pages (all-time, by view count + avg duration)
+    const topPagesRaw = await prisma.$queryRaw<
+      Array<{ path: string; views: bigint; avg_duration: number | null }>
+    >`
+      SELECT "path", COUNT(*) as views, AVG("duration") as avg_duration
+      FROM "PageView"
+      GROUP BY "path"
+      ORDER BY views DESC
+      LIMIT 5
+    `;
 
-    const topPages = topPagesRaw.map((p: any) => ({
-      path: p.path,
-      views: p._count.id,
-      avgDuration: Math.round(p._avg.duration || 0),
+    const topPages = topPagesRaw.map((p) => ({
+      path:        p.path,
+      views:       Number(p.views),
+      avgDuration: Math.round(Number(p.avg_duration) || 0),
     }));
 
     return NextResponse.json(

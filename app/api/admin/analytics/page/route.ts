@@ -97,19 +97,21 @@ export async function GET(request: Request) {
     }));
 
     /* ── 4. Top referrers to this page ───────────────────────────────── */
-    const referrersRaw = await (prisma as any).pageView.groupBy({
-      by: ["referrer"],
-      _count: true,
-      where: {
-        createdAt: { gte: cutoff, lte: toDate },
-        path,
-      },
-      orderBy: { _count: { id: "desc" } },
-      take: 8,
-    });
+    const referrersRaw = await prisma.$queryRaw<
+      Array<{ referrer: string | null; views: bigint }>
+    >`
+      SELECT "referrer", COUNT(*) as views
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "path" = ${path}
+      GROUP BY "referrer"
+      ORDER BY views DESC
+      LIMIT 8
+    `;
 
-    const topReferrers = referrersRaw.map((r: any) => {
-      const ref = r.referrer || "";
+    const topReferrers = referrersRaw.map((r) => {
+      const ref   = r.referrer ?? "";
+      const count = Number(r.views);
       let label = "Direct / None";
       if (ref) {
         try {
@@ -121,8 +123,8 @@ export async function GET(request: Request) {
       }
       return {
         referrer: label,
-        count:    r._count,
-        pct:      totalViews > 0 ? Math.round((r._count / totalViews) * 100) : 0,
+        count,
+        pct: totalViews > 0 ? Math.round((count / totalViews) * 100) : 0,
       };
     });
 
