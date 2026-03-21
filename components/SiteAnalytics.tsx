@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -22,12 +23,49 @@ function getOrCreateSessionId(): string {
   }
 }
 
+// Computed once per page-load (module scope) so all pageviews in a session
+// report the same value. localStorage persists across sessions; sessionStorage
+// does not — so we use localStorage for the "has visited before" flag and
+// sessionStorage to remember the resolved value for this session.
+function resolveIsNewVisitor(): boolean {
+  try {
+    // Fast path: already resolved for this session
+    const cached = sessionStorage.getItem("__site_is_new");
+    if (cached !== null) return cached === "1";
+
+    const visited = !!localStorage.getItem("__site_visited");
+    if (!visited) {
+      localStorage.setItem("__site_visited", "1");
+    }
+    const isNew = !visited;
+    sessionStorage.setItem("__site_is_new", isNew ? "1" : "0");
+    return isNew;
+  } catch {
+    return false;
+  }
+}
+
 function getUtmParams(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
   try {
     const p = new URLSearchParams(window.location.search);
     const src  = p.get("utm_source")   ?? undefined;
     const med  = p.get("utm_medium")   ?? undefined;
     const camp = p.get("utm_campaign") ?? undefined;
+
+    // Persist UTM params in sessionStorage so the contact form can read them
+    // even if the user navigates to another page before submitting.
+    // Only overwrite if new UTM params are present in the current URL.
+    if (src || med || camp) {
+      const stored = { utmSource: src, utmMedium: med, utmCampaign: camp };
+      sessionStorage.setItem("__utm", JSON.stringify(stored));
+    }
+
+    // Fall back to previously stored UTMs if none in current URL
+    if (!src && !med && !camp) {
+      const raw = sessionStorage.getItem("__utm");
+      if (raw) return JSON.parse(raw);
+    }
+
     return { utmSource: src, utmMedium: med, utmCampaign: camp };
   } catch {
     return {};
@@ -43,13 +81,45 @@ function logPageview(payload: Record<string, unknown>) {
 }
 
 export default function SiteAnalytics() {
+  // usePathname changes on every SPA navigation in Next.js App Router.
+  // Using it as a dependency means this effect re-runs on each route change,
+  // which correctly tracks multi-page sessions and inherits UTM params.
+  const pathname = usePathname();
+
   useEffect(() => {
-    const sessionId = getOrCreateSessionId();
-    const startTime = Date.now();
+    const sessionId    = getOrCreateSessionId();
+    const isNewVisitor = resolveIsNewVisitor();
+    const startTime    = Date.now();
+    // Read UTMs on every page — getUtmParams falls back to sessionStorage so
+    // params captured on the landing URL are inherited by subsequent pages.
     const utm = getUtmParams();
+    // Snapshot the path and referrer at effect-run time so they always reflect
+    // the current route, not a stale closure value from a previous navigation.
+    const currentPath     = window.location.pathname;
+    const currentReferrer = document.referrer;
+
     let logged = false;
     let durationSent = false;
     let timerId: ReturnType<typeof setTimeout>;
+
+    // ── Scroll depth tracking ────────────────────────────────────────────
+    // Track the maximum scroll percentage reached on this page (0–100).
+    // Resets to 0 on every route change (new useEffect run).
+    let maxScrollPct = 0;
+
+    function measureScroll() {
+      const scrolled = window.scrollY + window.innerHeight;
+      const total    = document.documentElement.scrollHeight;
+      if (total <= 0) return;
+      const pct = Math.min(100, Math.round((scrolled / total) * 100));
+      if (pct > maxScrollPct) maxScrollPct = pct;
+    }
+
+    // Passive listener — no layout thrashing, no forced reflows.
+    window.addEventListener("scroll", measureScroll, { passive: true });
+    // Capture the initial position immediately (catches "100%" for short pages).
+    measureScroll();
+    // ────────────────────────────────────────────────────────────────────
 
     function doLog() {
       if (logged) return;
@@ -59,9 +129,10 @@ export default function SiteAnalytics() {
       if (document.visibilityState !== "visible") return;
       logged = true;
       logPageview({
-        path: window.location.pathname,
-        referrer: document.referrer,
+        path: currentPath,
+        referrer: currentReferrer,
         sessionId,
+        isNewVisitor,
         ...utm,
       });
     }
@@ -70,14 +141,15 @@ export default function SiteAnalytics() {
       if (!logged || durationSent) return;
       durationSent = true;
       logPageview({
-        path: window.location.pathname,
-        referrer: document.referrer,
+        path: currentPath,
+        referrer: currentReferrer,
         sessionId,
         duration: Date.now() - startTime,
+        scrollDepth: maxScrollPct,
       });
     }
 
-    // Primary trigger: 1.5 s after mount, if page is visible.
+    // Primary trigger: 1.5 s after route change, if page is visible.
     // Real users are still on the page; bounces and prefetch hits are gone.
     timerId = setTimeout(doLog, 1500);
 
@@ -88,22 +160,25 @@ export default function SiteAnalytics() {
       if (document.visibilityState === "visible") {
         doLog();
       } else {
-        // Page is hidden — fire duration now because unmount may never run
+        // Page is hidden — fire duration now because cleanup may never run
         // (tab close, cmd+L to new URL, switch to another app, etc.)
         sendDuration();
       }
     }
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    // Also send duration on unmount (SPA navigation within the app).
+    // Cleanup runs on every SPA navigation (pathname change) and on unmount.
+    // sendDuration fires here to capture time on page before route changes.
     // The durationSent flag prevents double-sending if visibilitychange
     // already fired (e.g. user switched tabs then navigated in-app).
     return () => {
       clearTimeout(timerId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("scroll", measureScroll);
       sendDuration();
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return null;
 }

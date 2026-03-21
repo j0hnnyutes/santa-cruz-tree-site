@@ -146,19 +146,21 @@ export async function POST(req: NextRequest) {
   // Successful login resets attempts
   attempts.delete(ip);
 
-  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24h
+  const SESSION_TTL  = 8 * 60 * 60;                         // 8 h absolute max
+  const exp          = Math.floor(Date.now() / 1000) + SESSION_TTL;
   const sessionToken = signSession(secret, { exp });
   const csrfToken = newCsrfToken();
 
   const res = NextResponse.json({ ok: true, next }, { status: 200 });
 
   res.cookies.set({
-    name: ADMIN_SESSION_COOKIE,
-    value: sessionToken,
+    name:     ADMIN_SESSION_COOKIE,
+    value:    sessionToken,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    secure:   process.env.NODE_ENV === "production",
+    path:     "/",
+    maxAge:   SESSION_TTL, // cookie expires with the session token
   });
 
   res.cookies.set({

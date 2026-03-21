@@ -171,12 +171,27 @@ export async function GET(request: Request) {
     const otherMobilePct    = totalForDevice > 0 ? Math.round((otherMobileCount / totalForDevice) * 100) : 0;
 
     /* ── 8. Top referrers ────────────────────────────────────────────── */
+    // Derive the site's own hostname from SITE_URL (or fall back to a known
+    // production hostname) so we can exclude internal referrers that were
+    // written before the write-time null-out was in place.
+    const siteHostname = (() => {
+      try {
+        return new URL(process.env.SITE_URL || "https://santacruztreepros.com").hostname;
+      } catch {
+        return "santacruztreepros.com";
+      }
+    })();
+
     const topReferrersRaw = await prisma.$queryRaw<
       Array<{ referrer: string | null; views: bigint }>
     >`
       SELECT "referrer", COUNT(*) as views
       FROM "PageView"
       WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND (
+          "referrer" IS NULL
+          OR "referrer" NOT LIKE ${'%' + siteHostname + '%'}
+        )
       GROUP BY "referrer"
       ORDER BY views DESC
       LIMIT 10
@@ -343,6 +358,64 @@ export async function GET(request: Request) {
       })),
     };
 
+    /* ── 12. Scroll depth distribution ──────────────────────────────── */
+    // Counts pageviews (with recorded scroll depth) that reached each
+    // threshold. Threshold buckets are cumulative — a 75% reader is also
+    // counted in the 25% and 50% buckets.
+    const scrollRaw = await prisma.$queryRaw<
+      Array<{ avg_depth: number | null; reached_25: bigint; reached_50: bigint; reached_75: bigint; reached_100: bigint; total: bigint }>
+    >`
+      SELECT
+        AVG("maxScrollDepth")                                              AS avg_depth,
+        COUNT(CASE WHEN "maxScrollDepth" >= 25  THEN 1 END)               AS reached_25,
+        COUNT(CASE WHEN "maxScrollDepth" >= 50  THEN 1 END)               AS reached_50,
+        COUNT(CASE WHEN "maxScrollDepth" >= 75  THEN 1 END)               AS reached_75,
+        COUNT(CASE WHEN "maxScrollDepth" >= 100 THEN 1 END)               AS reached_100,
+        COUNT(*)                                                           AS total
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "maxScrollDepth" IS NOT NULL
+    `;
+
+    const sd      = scrollRaw[0];
+    const sdTotal = Number(sd?.total ?? BigInt(0));
+    const scrollDepthStats = {
+      avgDepth:    sd?.avg_depth != null ? Math.round(Number(sd.avg_depth)) : null,
+      totalWithData: sdTotal,
+      thresholds: {
+        pct25:  sdTotal > 0 ? Math.round((Number(sd?.reached_25  ?? BigInt(0)) / sdTotal) * 100) : 0,
+        pct50:  sdTotal > 0 ? Math.round((Number(sd?.reached_50  ?? BigInt(0)) / sdTotal) * 100) : 0,
+        pct75:  sdTotal > 0 ? Math.round((Number(sd?.reached_75  ?? BigInt(0)) / sdTotal) * 100) : 0,
+        pct100: sdTotal > 0 ? Math.round((Number(sd?.reached_100 ?? BigInt(0)) / sdTotal) * 100) : 0,
+      },
+    };
+
+    /* ── 13. New vs returning visitor breakdown ──────────────────────── */
+    const visitorTypeRaw = await prisma.$queryRaw<
+      Array<{ is_new: boolean | null; sessions: bigint }>
+    >`
+      SELECT "isNewVisitor" as is_new, COUNT(DISTINCT "sessionId") as sessions
+      FROM "PageView"
+      WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
+        AND "sessionId" IS NOT NULL
+        AND "isNewVisitor" IS NOT NULL
+      GROUP BY "isNewVisitor"
+    `;
+
+    let newSessions       = 0;
+    let returningSessions = 0;
+    for (const r of visitorTypeRaw) {
+      if (r.is_new === true)  newSessions       = Number(r.sessions);
+      if (r.is_new === false) returningSessions = Number(r.sessions);
+    }
+    const visitorTotal = newSessions + returningSessions;
+    const visitorBreakdown = {
+      new:       newSessions,
+      returning: returningSessions,
+      newPct:       visitorTotal > 0 ? Math.round((newSessions       / visitorTotal) * 100) : 0,
+      returningPct: visitorTotal > 0 ? Math.round((returningSessions / visitorTotal) * 100) : 0,
+    };
+
     /* ── Response ────────────────────────────────────────────────────── */
     return NextResponse.json(
       {
@@ -374,6 +447,8 @@ export async function GET(request: Request) {
         formFunnel,
         utmBreakdown,
         geoBreakdown,
+        scrollDepthStats,
+        visitorBreakdown,
       },
       { status: 200 }
     );

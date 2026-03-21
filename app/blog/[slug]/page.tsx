@@ -4,6 +4,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { getAllPosts, getPost, formatDate } from "@/lib/blog";
 import { markdownToHtml } from "@/lib/markdown";
+import { blogBreadcrumb } from "@/lib/jsonld";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -77,6 +78,10 @@ export default async function BlogPostPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogBreadcrumb(post.title, post.slug)) }}
       />
 
       {/* ── Article Hero ── */}

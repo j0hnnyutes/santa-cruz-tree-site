@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       body = {};
     }
 
-    const { path, referrer, sessionId, duration, utmSource, utmMedium, utmCampaign } = body;
+    const { path, referrer, sessionId, duration, scrollDepth, utmSource, utmMedium, utmCampaign, isNewVisitor } = body;
 
     // Geolocation from Vercel edge headers (available on all Vercel plans, null in local dev)
     const country = request.headers.get("x-vercel-ip-country") || null;
@@ -87,27 +87,62 @@ export async function POST(request: Request) {
       // inserting a second row. This prevents pageview double-counting in analytics.
       const resolvedSessionId = sessionId || "";
       const resolvedPath      = path || "/";
-      prisma.$executeRaw`
-        UPDATE "PageView" SET "duration" = ${duration}
-        WHERE id = (
-          SELECT id FROM "PageView"
-          WHERE "sessionId" = ${resolvedSessionId}
-            AND "path" = ${resolvedPath}
-            AND "duration" IS NULL
-          ORDER BY "createdAt" DESC
-          LIMIT 1
-        )
-      `.catch((err: unknown) => console.error("Failed to update pageview duration:", err));
+      // Clamp scrollDepth to 0–100 integer; null if not provided or out of range.
+      const resolvedScrollDepth =
+        typeof scrollDepth === "number" && scrollDepth >= 0 && scrollDepth <= 100
+          ? Math.round(scrollDepth)
+          : null;
+
+      if (resolvedScrollDepth !== null) {
+        prisma.$executeRaw`
+          UPDATE "PageView" SET "duration" = ${duration}, "maxScrollDepth" = ${resolvedScrollDepth}
+          WHERE id = (
+            SELECT id FROM "PageView"
+            WHERE "sessionId" = ${resolvedSessionId}
+              AND "path" = ${resolvedPath}
+              AND "duration" IS NULL
+            ORDER BY "createdAt" DESC
+            LIMIT 1
+          )
+        `.catch((err: unknown) => console.error("Failed to update pageview duration+scroll:", err));
+      } else {
+        prisma.$executeRaw`
+          UPDATE "PageView" SET "duration" = ${duration}
+          WHERE id = (
+            SELECT id FROM "PageView"
+            WHERE "sessionId" = ${resolvedSessionId}
+              AND "path" = ${resolvedPath}
+              AND "duration" IS NULL
+            ORDER BY "createdAt" DESC
+            LIMIT 1
+          )
+        `.catch((err: unknown) => console.error("Failed to update pageview duration:", err));
+      }
     } else {
       // Fresh pageview INSERT
       const resolvedPath      = path || "/";
-      const resolvedReferrer  = referrer || null;
       const resolvedSessionId = sessionId || null;
+
+      // Null out internal referrers — navigating within the site shouldn't
+      // count as an external traffic source. Compare against the Host header
+      // so this works on any domain (prod, preview, localhost, etc.).
+      let resolvedReferrer: string | null = referrer || null;
+      if (resolvedReferrer) {
+        try {
+          const refHost  = new URL(resolvedReferrer).hostname;
+          const ownHost  = request.headers.get("host")?.split(":")[0] ?? "";
+          if (refHost === ownHost) resolvedReferrer = null;
+        } catch {
+          // Malformed referrer — keep as-is so we don't silently drop it
+        }
+      }
       const resolvedUtmSource   = utmSource   || null;
       const resolvedUtmMedium   = utmMedium   || null;
       const resolvedUtmCampaign = utmCampaign || null;
+      // Only store a boolean if the client sent an explicit true/false
+      const resolvedIsNewVisitor = typeof isNewVisitor === "boolean" ? isNewVisitor : null;
 
-      prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},NOW())`
+      prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","isNewVisitor","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},${resolvedIsNewVisitor},NOW())`
         .catch((err: unknown) => {
           console.error("Failed to log pageview:", err);
           logError(null, {

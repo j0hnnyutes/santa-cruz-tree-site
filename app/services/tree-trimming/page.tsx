@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
+import { serviceBreadcrumb } from "@/lib/jsonld";
 import {
   ChevronDown,
   FaqBlock,
@@ -184,6 +185,10 @@ export default function TreeTrimmingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldFaq) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceBreadcrumb("Tree Trimming & Pruning", "tree-trimming")) }}
       />
     </main>
   );

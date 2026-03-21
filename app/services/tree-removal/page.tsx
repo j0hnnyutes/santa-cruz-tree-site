@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
+import { serviceBreadcrumb } from "@/lib/jsonld";
 import {
   ChevronDown,
   FaqBlock,
@@ -186,6 +187,10 @@ export default function TreeRemovalPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldFaq) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceBreadcrumb("Tree Removal", "tree-removal")) }}
       />
     </main>
   );

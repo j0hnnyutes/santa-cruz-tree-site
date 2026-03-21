@@ -58,11 +58,17 @@ interface AnalyticsData {
   pageViewsByDay:   PageViewDay[];
   topPages?:        TopPage[];
   hourlyBreakdown?: HourlyBucket[];
-  deviceBreakdown:  { mobile: number; desktop: number; ios: number; android: number; otherMobile: number };
-  topReferrers:     Referrer[];
-  formFunnel?:      FormFunnel;
-  utmBreakdown?:    UtmBreakdown;
-  geoBreakdown?:    GeoBreakdown;
+  deviceBreakdown:   { mobile: number; desktop: number; ios: number; android: number; otherMobile: number };
+  topReferrers:      Referrer[];
+  formFunnel?:       FormFunnel;
+  utmBreakdown?:     UtmBreakdown;
+  geoBreakdown?:     GeoBreakdown;
+  visitorBreakdown?: { new: number; returning: number; newPct: number; returningPct: number };
+  scrollDepthStats?: {
+    avgDepth: number | null;
+    totalWithData: number;
+    thresholds: { pct25: number; pct50: number; pct75: number; pct100: number };
+  };
 }
 
 interface Props { initialData: AnalyticsData }
@@ -786,6 +792,8 @@ function exportCSV(data: AnalyticsData, days: number) {
   const funnel   = data.formFunnel;
   const utm      = data.utmBreakdown;
   const geo      = data.geoBreakdown;
+  const scrollCsv = data.scrollDepthStats;
+  const visitors  = data.visitorBreakdown;
 
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const row = (...cols: (string | number)[]) => cols.map(esc).join(",");
@@ -810,6 +818,17 @@ function exportCSV(data: AnalyticsData, days: number) {
     row("  — Android",           `${device.android}%`),
     row("  — Other mobile",      `${device.otherMobile}%`),
     row("Desktop Traffic",       `${device.desktop}%`),
+    ...(visitors ? [
+      row("New Visitors",       `${visitors.newPct}%`),
+      row("Returning Visitors", `${visitors.returningPct}%`),
+    ] : []),
+    ...(scrollCsv && scrollCsv.totalWithData > 0 ? [
+      row("Avg Scroll Depth",   `${scrollCsv.avgDepth ?? "—"}%`),
+      row("Reached 25%",        `${scrollCsv.thresholds.pct25}%`),
+      row("Reached 50%",        `${scrollCsv.thresholds.pct50}%`),
+      row("Reached 75%",        `${scrollCsv.thresholds.pct75}%`),
+      row("Reached 100%",       `${scrollCsv.thresholds.pct100}%`),
+    ] : []),
     blank,
 
     // ── Daily views
@@ -1000,6 +1019,8 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
   const funnel    = data.formFunnel;
   const utm       = data.utmBreakdown;
   const geo       = data.geoBreakdown;
+  const visitors  = data.visitorBreakdown;
+  const scroll    = data.scrollDepthStats;
 
   const relTime = (d: Date) => {
     const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -1256,7 +1277,104 @@ export default function AdminAnalyticsClient({ initialData }: Props) {
             </div>
           </div>
         </AdminCard>
+
+        {/* New vs Returning — 1/3 */}
+        {visitors && (visitors.new > 0 || visitors.returning > 0) && (
+          <AdminCard>
+            <SectionHeader title="New vs Returning" />
+            <div className="space-y-5">
+              {/* Proportion bar */}
+              <div>
+                <div className="flex rounded-lg overflow-hidden h-5 mb-2">
+                  <div style={{ width: `${visitors.newPct}%`, backgroundColor: "#34d399" }} title={`New ${visitors.newPct}%`} />
+                  <div style={{ width: `${visitors.returningPct}%`, backgroundColor: "#60a5fa" }} title={`Returning ${visitors.returningPct}%`} />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>New ({visitors.newPct}%)</span>
+                  <span>Returning ({visitors.returningPct}%)</span>
+                </div>
+              </div>
+              {/* Stat rows */}
+              <div className="space-y-3">
+                {[
+                  { label: "🆕 New visitors",       value: visitors.newPct,       count: visitors.new,       color: "#34d399" },
+                  { label: "🔄 Returning visitors",  value: visitors.returningPct, count: visitors.returning, color: "#60a5fa" },
+                ].map(({ label, value, count, color }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+                      <span className="text-sm text-gray-400">{label}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-white">
+                        {value}
+                        <span className="text-sm font-normal text-gray-500 ml-0.5">%</span>
+                      </span>
+                      <div className="text-xs text-gray-600">{count.toLocaleString()} sessions</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600">Based on sessions with tracking data. Historical sessions before this feature was deployed show as unknown.</p>
+            </div>
+          </AdminCard>
+        )}
       </div>
+
+      {/* ── Scroll depth ──────────────────────────────────────────── */}
+      {scroll && scroll.totalWithData > 0 && (
+        <AdminCard>
+          <SectionHeader
+            title="Scroll Depth"
+            sub="How far visitors read before leaving — based on pageviews with recorded scroll data"
+          />
+          <div className="space-y-5">
+            {/* Average depth callout */}
+            <div className="flex items-center gap-4">
+              <div style={{
+                width: 72, height: 72, borderRadius: "50%",
+                border: "3px solid #a78bfa",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 22, fontWeight: 700, color: "#a78bfa", lineHeight: 1 }}>
+                  {scroll.avgDepth ?? "—"}
+                </span>
+                <span style={{ fontSize: 10, color: "#9ca3af" }}>avg %</span>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Average scroll depth across <strong className="text-white">{scroll.totalWithData.toLocaleString()}</strong> pageviews.</p>
+                <p className="text-xs text-gray-600 mt-1">Bounced pages (zero time on page) are excluded — they don&apos;t record scroll data.</p>
+              </div>
+            </div>
+
+            {/* Threshold funnel bars */}
+            <div className="space-y-3">
+              {([
+                { label: "25%",  pct: scroll.thresholds.pct25,  color: "#34d399" },
+                { label: "50%",  pct: scroll.thresholds.pct50,  color: "#60a5fa" },
+                { label: "75%",  pct: scroll.thresholds.pct75,  color: "#f59e0b" },
+                { label: "100%", pct: scroll.thresholds.pct100, color: "#f87171" },
+              ] as const).map(({ label, pct, color }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-8 text-right shrink-0">{label}</span>
+                  <div className="flex-1 bg-gray-800 rounded-full h-3 overflow-hidden">
+                    <div
+                      style={{ width: `${pct}%`, backgroundColor: color, height: "100%", borderRadius: 9999,
+                        transition: "width 0.4s ease" }}
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-white w-10 shrink-0">{pct}%</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-600">
+              Each bar shows the % of tracked pageviews that scrolled <em>at least</em> that far.
+              A 100% bar near 50%+ means content is engaging enough to scroll through entirely.
+            </p>
+          </div>
+        </AdminCard>
+      )}
 
       {/* ── Hourly traffic heatmap ────────────────────────────────── */}
       <AdminCard>

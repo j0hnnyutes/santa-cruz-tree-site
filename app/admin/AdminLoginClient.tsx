@@ -7,15 +7,21 @@ import Image from "next/image";
 type Props = {
   next: string;
   loggedOut?: boolean;
+  timedOut?: boolean;
 };
 
-export default function AdminLoginClient({ next, loggedOut }: Props) {
+export default function AdminLoginClient({ next, loggedOut, timedOut }: Props) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    loggedOut ? "You've been logged out." : null
-  );
+
+  function initialMessage() {
+    if (timedOut)   return "Your session expired due to inactivity. Please sign in again.";
+    if (loggedOut)  return "You've been logged out.";
+    return null;
+  }
+
+  const [error, setError] = useState<string | null>(initialMessage);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -126,11 +132,29 @@ export default function AdminLoginClient({ next, loggedOut }: Props) {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-                <svg className="h-4 w-4 shrink-0 mt-0.5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
-                </svg>
-                <p className="text-sm text-red-700 font-medium">{error}</p>
+              <div
+                className="flex items-start gap-2.5 rounded-lg px-4 py-3"
+                style={
+                  timedOut && error === initialMessage()
+                    ? { background: "#fefce8", border: "1px solid #fde68a" }
+                    : { background: "#fef2f2", border: "1px solid #fecaca" }
+                }
+              >
+                {timedOut && error === initialMessage() ? (
+                  <svg className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4 shrink-0 mt-0.5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                  </svg>
+                )}
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: timedOut && error === initialMessage() ? "#92400e" : "#b91c1c" }}
+                >
+                  {error}
+                </p>
               </div>
             )}
 

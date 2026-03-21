@@ -191,6 +191,27 @@ export default function FreeEstimatePage() {
         fd.append("photos", photo);
       }
 
+      // Attach UTM attribution from sessionStorage (set by SiteAnalytics on landing)
+      try {
+        const raw = sessionStorage.getItem("__utm");
+        if (raw) {
+          const utm = JSON.parse(raw) as Record<string, string>;
+          if (utm.utmSource)   fd.append("utmSource",   utm.utmSource);
+          if (utm.utmMedium)   fd.append("utmMedium",   utm.utmMedium);
+          if (utm.utmCampaign) fd.append("utmCampaign", utm.utmCampaign);
+        }
+      } catch {
+        // sessionStorage unavailable — skip UTM
+      }
+
+      // Attach session ID so the lead can be joined to its PageView journey
+      try {
+        const sid = sessionStorage.getItem("__site_session_id");
+        if (sid) fd.append("sessionId", sid);
+      } catch {
+        // sessionStorage unavailable — skip
+      }
+
       const res = await fetch("/api/lead", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
 

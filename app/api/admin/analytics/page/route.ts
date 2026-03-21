@@ -99,6 +99,14 @@ export async function GET(request: Request) {
     }));
 
     /* ── 4. Top referrers to this page ───────────────────────────────── */
+    const siteHostname = (() => {
+      try {
+        return new URL(process.env.SITE_URL || "https://santacruztreepros.com").hostname;
+      } catch {
+        return "santacruztreepros.com";
+      }
+    })();
+
     const referrersRaw = await prisma.$queryRaw<
       Array<{ referrer: string | null; views: bigint }>
     >`
@@ -106,6 +114,10 @@ export async function GET(request: Request) {
       FROM "PageView"
       WHERE "createdAt" >= ${cutoff} AND "createdAt" <= ${toDate}
         AND "path" = ${path}
+        AND (
+          "referrer" IS NULL
+          OR "referrer" NOT LIKE ${'%' + siteHostname + '%'}
+        )
       GROUP BY "referrer"
       ORDER BY views DESC
       LIMIT 8

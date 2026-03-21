@@ -33,6 +33,15 @@ model Lead {
   contactedAt  DateTime?
   adminNotes   String?
   archivedAt   DateTime?
+  photoUrls    String[]    @default([])  // Vercel Blob URLs for customer-uploaded photos
+
+  // UTM attribution — captured from query params at time of form submission
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+
+  // Session linkage — joins to PageView.sessionId for conversion path analysis
+  sessionId    String?
 
   // Audit trail
   events       LeadEvent[]
@@ -78,9 +87,11 @@ model PageView {
   utmSource   String?  // utm_source query param
   utmMedium   String?  // utm_medium query param
   utmCampaign String?  // utm_campaign query param
-  country     String?  // ISO 3166-1 alpha-2 country code (from x-vercel-ip-country)
-  region      String?  // state/region code (from x-vercel-ip-country-region)
-  city        String?  // city name (from x-vercel-ip-city)
+  country      String?  // ISO 3166-1 alpha-2 country code (from x-vercel-ip-country)
+  region       String?  // state/region code (from x-vercel-ip-country-region)
+  city         String?  // city name (from x-vercel-ip-city)
+  isNewVisitor    Boolean? // true = first ever visit in this browser (via localStorage flag)
+  maxScrollDepth  Int?     // 0–100 — furthest scroll % reached before leaving
 
   @@index([createdAt])
   @@index([path, createdAt])
@@ -99,6 +110,38 @@ model FormEvent {
 
   @@index([eventType, createdAt])
   @@index([sessionId, createdAt])
+}
+
+// Pre-aggregated daily stats — populated by the nightly cron before raw
+// PageView rows are purged. Preserves historical trends without retaining
+// every individual pageview indefinitely.
+model DailyRollup {
+  id             Int    @id @default(autoincrement())
+  date           String // "YYYY-MM-DD" (America/Los_Angeles local date)
+
+  // Core metrics
+  views          Int
+  sessions       Int
+  avgDuration    Int?   // average ms on page (null if no durations recorded)
+  bounceCount    Int
+
+  // Visitor type
+  newSessions    Int    @default(0)
+  returnSessions Int    @default(0)
+
+  // Device split
+  mobileViews    Int    @default(0)
+  desktopViews   Int    @default(0)
+
+  // Top-N lists stored as JSON strings (arrays, up to 10 entries each)
+  topPages     String @default("[]") // [{path, views}]
+  topReferrers String @default("[]") // [{referrer, views}]
+  utmSources   String @default("[]") // [{source, medium, campaign, views}]
+
+  archivedAt   DateTime @default(now())
+
+  @@unique([date])
+  @@index([date])
 }
 
 // Key-value store for admin configuration (e.g. password hash override)

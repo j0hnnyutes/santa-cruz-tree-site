@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
 import { FaqBlock } from "@/components/ServicePageKit";
+import { serviceBreadcrumb } from "@/lib/jsonld";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -145,6 +146,10 @@ export default function EmergencyTreeServicePage() {
       />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceBreadcrumb("Emergency Tree Service", "emergency-tree-service")) }}
+      />
     </main>
   );
 }

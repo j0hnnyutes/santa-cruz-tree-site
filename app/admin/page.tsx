@@ -23,5 +23,9 @@ export default async function AdminLoginPage({
     typeof sp.loggedOut === "string" &&
     (sp.loggedOut === "1" || sp.loggedOut === "true");
 
-  return <AdminLoginClient next={next} loggedOut={loggedOut} />;
+  const timedOut =
+    typeof sp.timedOut === "string" &&
+    (sp.timedOut === "1" || sp.timedOut === "true");
+
+  return <AdminLoginClient next={next} loggedOut={loggedOut} timedOut={timedOut} />;
 }

@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 /* ─── Helpers ─── */
 
@@ -362,6 +361,11 @@ export async function POST(request: Request) {
   const phoneRaw = fields.phone ?? fields.phoneNumber ?? fields.phoneDigits ?? fields.mobile ?? "";
   const phoneDigits = digitsOnly(phoneRaw);
 
+  const utmSource   = toStr(fields.utmSource).trim()   || null;
+  const utmMedium   = toStr(fields.utmMedium).trim()   || null;
+  const utmCampaign = toStr(fields.utmCampaign).trim() || null;
+  const sessionId   = toStr(fields.sessionId).trim()   || null;
+
   const errors: Record<string, string> = {};
   if (!fullName) errors.fullName = "Name is required.";
   if (!email) errors.email = "Email is required.";
@@ -389,6 +393,25 @@ export async function POST(request: Request) {
     const isDuplicate = !!duplicate;
     const photoCount = photoAttachments.length;
 
+    // Upload photos to Vercel Blob before creating the lead record
+    const photoUrls: string[] = [];
+    if (photoCount > 0) {
+      for (const att of photoAttachments) {
+        try {
+          const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const blob = await put(`leads/${leadId}/${safeName}`, Buffer.from(att.content, "base64"), {
+            access: "public",
+            contentType: att.contentType,
+            addRandomSuffix: false,
+          });
+          photoUrls.push(blob.url);
+        } catch (err) {
+          console.error("Failed to upload photo to Vercel Blob:", err);
+          // Don't block lead creation if a photo upload fails
+        }
+      }
+    }
+
     const lead = await prisma.lead.create({
       data: {
         leadId,
@@ -400,12 +423,18 @@ export async function POST(request: Request) {
         service,
         details: details || null,
         status: "NEW",
+        photoUrls,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        sessionId,
       },
       select: { leadId: true },
     });
 
     // Log creation event
-    const photoNote = photoCount > 0 ? ` · ${photoCount} photo${photoCount > 1 ? "s" : ""}` : "";
+    const savedPhotoCount = photoUrls.length;
+    const photoNote = savedPhotoCount > 0 ? ` · ${savedPhotoCount} photo${savedPhotoCount > 1 ? "s" : ""}` : "";
     const eventDetail = isDuplicate
       ? `Possible duplicate of ${duplicate.fullName} (${duplicate.leadId.slice(0, 8)}...) from ${duplicate.createdAt.toISOString()}`
       : `${service} — ${city}${photoNote}`;
@@ -427,22 +456,6 @@ export async function POST(request: Request) {
           detail: `New submission from ${fullName} (${lead.leadId.slice(0, 8)}...) may be a duplicate`,
         },
       }).catch(() => {});
-    }
-
-    // Save photos to disk so they can be viewed in the admin detail page
-    if (photoCount > 0) {
-      const uploadsDir = path.join(process.cwd(), "lead-uploads", lead.leadId);
-      try {
-        await mkdir(uploadsDir, { recursive: true });
-        for (const att of photoAttachments) {
-          // Sanitize filename to prevent path traversal
-          const safeName = path.basename(att.filename).replace(/[^a-zA-Z0-9._-]/g, "_");
-          await writeFile(path.join(uploadsDir, safeName), Buffer.from(att.content, "base64"));
-        }
-      } catch (err) {
-        console.error("Failed to save lead photos to disk:", err);
-        // Don't block lead creation if photo save fails
-      }
     }
 
     // Await email so Vercel doesn't shut down the function before it sends
