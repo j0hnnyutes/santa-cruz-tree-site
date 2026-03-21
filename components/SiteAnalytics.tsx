@@ -1,7 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+
+/**
+ * Re-fire a GA4 page_view event on SPA navigations.
+ * The initial pageview is already fired by the gtag('config', ...) call in
+ * layout.tsx, so we skip the first render and only fire on subsequent
+ * route changes.  Silently no-ops when GA4 is not loaded (no GA_ID set).
+ */
+function fireGa4PageView(path: string) {
+  try {
+    if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+      (window as any).gtag("event", "page_view", {
+        page_path:  path,
+        page_title: document.title,
+      });
+    }
+  } catch {
+    // gtag unavailable — safe to ignore
+  }
+}
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -86,7 +105,18 @@ export default function SiteAnalytics() {
   // which correctly tracks multi-page sessions and inherits UTM params.
   const pathname = usePathname();
 
+  // Track first render so we don't double-fire GA4 on initial page load
+  // (layout.tsx already calls gtag('config', ...) which fires the first view).
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    // GA4 SPA re-fire — skip initial mount, fire on every subsequent navigation.
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    } else {
+      fireGa4PageView(window.location.pathname);
+    }
+
     const sessionId    = getOrCreateSessionId();
     const isNewVisitor = resolveIsNewVisitor();
     const startTime    = Date.now();
