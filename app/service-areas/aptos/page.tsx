@@ -10,7 +10,7 @@ const pagePath = "/service-areas/aptos";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Aptos, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Aptos, CA",
   description:
     "Professional tree removal, trimming, and emergency services in Aptos. Storm damage, hazard assessment, and coastal wind management for Aptos Village and Rio del Mar.",
   alternates: { canonical: pageUrl },

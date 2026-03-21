@@ -4,7 +4,7 @@ import BlogFilters from "@/components/BlogFilters";
 import { getAllPosts } from "@/lib/blog";
 
 export const metadata = {
-  title: "Tree Care Blog | Santa Cruz Tree Pros",
+  title: "Tree Care Blog",
   description:
     "Expert tree care advice, local guides, and seasonal tips for Santa Cruz County homeowners. Learn when to trim, when to remove, and how to protect your trees.",
   alternates: { canonical: "https://santacruztreepros.com/blog" },

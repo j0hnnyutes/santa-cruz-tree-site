@@ -16,7 +16,7 @@ const pagePath = "/services/tree-trimming";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Trimming & Pruning in Santa Cruz, CA | Santa Cruz Tree Pros",
+  title: "Tree Trimming & Pruning in Santa Cruz, CA",
   description:
     "Tree trimming and pruning to improve safety, structure, clearance, and tree health in Santa Cruz County—ideal for coastal winds and winter storms.",
   alternates: { canonical: pageUrl },

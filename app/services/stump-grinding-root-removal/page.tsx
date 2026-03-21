@@ -16,7 +16,7 @@ const pagePath = "/services/stump-grinding-root-removal";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Stump Grinding in Santa Cruz, CA | Santa Cruz Tree Pros",
+  title: "Stump Grinding in Santa Cruz, CA",
   description:
     "Stump grinding to remove stumps below grade, reduce hazards, and prep for landscaping across Santa Cruz County. Optional chip haul-away.",
   alternates: { canonical: pageUrl },

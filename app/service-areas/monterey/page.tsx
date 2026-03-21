@@ -10,7 +10,7 @@ const pagePath = "/service-areas/monterey";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Monterey, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Monterey, CA",
   description:
     "Specialized tree care for Monterey's native Cypress and Pine, heritage tree management, and coastal urban forest preservation.",
   alternates: { canonical: pageUrl },

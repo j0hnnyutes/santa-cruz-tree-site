@@ -10,7 +10,7 @@ const pagePath = "/service-areas/santa-cruz";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Santa Cruz, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Santa Cruz, CA",
   description:
     "Professional tree removal, trimming, and emergency services in Santa Cruz. Expert coastal tree care for West Cliff, Downtown, Seabright, and Westside neighborhoods.",
   alternates: { canonical: pageUrl },

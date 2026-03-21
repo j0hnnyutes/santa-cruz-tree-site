@@ -10,7 +10,7 @@ const pagePath = "/service-areas/capitola";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Capitola, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Capitola, CA",
   description:
     "Professional tree removal and emergency services in Capitola village. Specialists in creek erosion, tight lot access, and heritage tree preservation.",
   alternates: { canonical: pageUrl },

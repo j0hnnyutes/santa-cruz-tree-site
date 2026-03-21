@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props) {
   if (!post) return {};
   const url = `https://santacruztreepros.com/blog/${slug}`;
   return {
-    title: `${post.title} | Santa Cruz Tree Pros`,
+    title: post.title,
     description: post.description,
     alternates: { canonical: url },
     openGraph: {

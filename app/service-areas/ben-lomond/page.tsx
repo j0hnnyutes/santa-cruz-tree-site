@@ -10,7 +10,7 @@ const pagePath = "/service-areas/ben-lomond";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Ben Lomond, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Ben Lomond, CA",
   description:
     "Specialized tree care for Ben Lomond's redwood forests and mountain terrain. Expert rigging on slopes, storm recovery, and forest health consulting.",
   alternates: { canonical: pageUrl },

@@ -10,7 +10,7 @@ const pagePath = "/service-areas/felton";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Felton, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Felton, CA",
   description:
     "Professional tree service in Felton—removal, trimming, and emergency care in dense redwood forest. San Lorenzo Valley specialists with experience in tight access and flood-prone terrain.",
   alternates: { canonical: pageUrl },

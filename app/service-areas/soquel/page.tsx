@@ -10,7 +10,7 @@ const pagePath = "/service-areas/soquel";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Soquel, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Soquel, CA",
   description:
     "Professional tree removal and emergency services in Soquel. Specialists in hillside properties, redwood groves, and wildfire risk mitigation.",
   alternates: { canonical: pageUrl },

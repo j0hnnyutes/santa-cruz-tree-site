@@ -16,7 +16,7 @@ const pagePath = "/services/tree-removal";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Removal in Santa Cruz, CA | Santa Cruz Tree Pros",
+  title: "Tree Removal in Santa Cruz, CA",
   description:
     "Safe, controlled tree removal for hazardous, dead, storm-damaged, or unwanted trees in Santa Cruz County. Free estimates and thorough cleanup.",
   alternates: { canonical: pageUrl },

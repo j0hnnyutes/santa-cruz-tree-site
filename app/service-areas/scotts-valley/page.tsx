@@ -10,7 +10,7 @@ const pagePath = "/service-areas/scotts-valley";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Scotts Valley, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Scotts Valley, CA",
   description:
     "Professional tree removal, trimming, defensible space, and fire mitigation in Scotts Valley. Power line clearance and wildfire risk management for Highway 17 corridor.",
   alternates: { canonical: pageUrl },

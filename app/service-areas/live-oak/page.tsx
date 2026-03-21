@@ -10,7 +10,7 @@ const pagePath = "/service-areas/live-oak";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Live Oak, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Live Oak, CA",
   description:
     "Professional tree removal, trimming, and care for Live Oak's dense residential neighborhoods and aging Monterey Pines. Coastal wind and salt exposure specialists.",
   alternates: { canonical: pageUrl },

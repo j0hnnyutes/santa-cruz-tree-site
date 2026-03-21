@@ -10,7 +10,7 @@ const pagePath = "/service-areas/watsonville";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Watsonville, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Watsonville, CA",
   description:
     "Professional tree removal and pruning services in Watsonville. Specialists in agricultural windbreak management and Pajaro Valley flood-risk assessment.",
   alternates: { canonical: pageUrl },

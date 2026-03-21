@@ -10,7 +10,7 @@ const pagePath = "/service-areas/boulder-creek";
 const pageUrl = `${siteUrl}${pagePath}`;
 
 export const metadata: Metadata = {
-  title: "Tree Service in Boulder Creek, CA | Santa Cruz Tree Pros",
+  title: "Tree Service in Boulder Creek, CA",
   description:
     "Professional tree removal and fire mitigation in Boulder Creek—post-CZU fire recovery, defensible space, and mountain terrain specialists.",
   alternates: { canonical: pageUrl },
