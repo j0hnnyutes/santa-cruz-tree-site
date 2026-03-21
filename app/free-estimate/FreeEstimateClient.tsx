@@ -209,10 +209,15 @@ export default function FreeEstimateClient() {
   }
 
   // ── Validation ────────────────────────────────────────────────────────────
+  function isValidEmail(v: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+  }
+
   function validateStep1(): Errors {
     const e: Errors = {};
     if (!fullName.trim()) e.fullName = "Full name is required.";
     if (!email.trim()) e.email = "Email is required.";
+    else if (!isValidEmail(email)) e.email = "Enter a valid email address.";
     // Phone optional — only validate format if something was entered
     if (phone && digitsOnly(phone).length !== 10)
       e.phone = "Enter a 10-digit phone number.";
@@ -223,6 +228,7 @@ export default function FreeEstimateClient() {
     const e: Errors = {};
     if (!fullName.trim()) e.fullName = "Full name is required.";
     if (!email.trim()) e.email = "Email is required.";
+    else if (!isValidEmail(email)) e.email = "Enter a valid email address.";
     if (phone && digitsOnly(phone).length !== 10)
       e.phone = "Enter a 10-digit phone number.";
     if (!address.trim()) e.address = "Address is required.";
