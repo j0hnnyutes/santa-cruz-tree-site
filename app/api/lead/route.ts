@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
-import { put } from "@vercel/blob";
+// @vercel/blob is loaded dynamically to avoid compile errors in local dev
+// where the package may not be installed; in production it's always present
 
 /* ─── Helpers ─── */
 
@@ -396,18 +397,26 @@ export async function POST(request: Request) {
     // Upload photos to Vercel Blob before creating the lead record
     const photoUrls: string[] = [];
     if (photoCount > 0) {
-      for (const att of photoAttachments) {
-        try {
-          const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const blob = await put(`leads/${leadId}/${safeName}`, Buffer.from(att.content, "base64"), {
-            access: "public",
-            contentType: att.contentType,
-            addRandomSuffix: false,
-          });
-          photoUrls.push(blob.url);
-        } catch (err) {
-          console.error("Failed to upload photo to Vercel Blob:", err);
-          // Don't block lead creation if a photo upload fails
+      let put: typeof import("@vercel/blob").put | undefined;
+      try {
+        ({ put } = await import("@vercel/blob"));
+      } catch {
+        console.warn("@vercel/blob not available — skipping photo uploads");
+      }
+      if (put) {
+        for (const att of photoAttachments) {
+          try {
+            const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+            const blob = await put(`leads/${leadId}/${safeName}`, Buffer.from(att.content, "base64"), {
+              access: "public",
+              contentType: att.contentType,
+              addRandomSuffix: false,
+            });
+            photoUrls.push(blob.url);
+          } catch (err) {
+            console.error("Failed to upload photo to Vercel Blob:", err);
+            // Don't block lead creation if a photo upload fails
+          }
         }
       }
     }
