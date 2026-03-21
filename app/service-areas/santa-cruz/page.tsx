@@ -21,6 +21,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
+    images: [
+      {
+        url: `${siteUrl}/api/og?title=Tree+Service+in+Santa+Cruz%2C+CA&photo=tree-removal-with-crane`,
+        width: 1200,
+        height: 630,
+        alt: "Tree Service in Santa Cruz, CA — Santa Cruz Tree Pros",
+      },
+    ],
   },
   robots: { index: true, follow: true },
 };

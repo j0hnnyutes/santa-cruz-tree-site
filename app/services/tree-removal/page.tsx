@@ -27,7 +27,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
-    images: [{ url: `${siteUrl}/assets/tree-removal-with-crane.webp`, width: 1200, alt: "Professional tree removal using a crane in Santa Cruz" }],
+    images: [
+      {
+        url: `https://santacruztreepros.com/api/og?title=Tree+Removal+Services&photo=tree-removal-with-crane`,
+        width: 1200,
+        height: 630,
+        alt: "Tree Removal Services — Santa Cruz Tree Pros",
+      },
+    ],
   },
   twitter: { card: "summary_large_image", title: "Tree Removal in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Safe, controlled tree removal for hazardous, dead, storm-damaged, or unwanted trees in Santa Cruz County. Free estimates and thorough cleanup." },
   robots: { index: true, follow: true },

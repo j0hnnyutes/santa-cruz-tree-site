@@ -27,7 +27,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
-    images: [{ url: `${siteUrl}/assets/chainsaw-2.webp`, width: 1200, alt: "Tree trimming with a chainsaw in Santa Cruz" }],
+    images: [
+      {
+        url: `https://santacruztreepros.com/api/og?title=Tree+Trimming+%26+Pruning&photo=tree-trimming`,
+        width: 1200,
+        height: 630,
+        alt: "Tree Trimming & Pruning — Santa Cruz Tree Pros",
+      },
+    ],
   },
   twitter: { card: "summary_large_image", title: "Tree Trimming & Pruning in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Tree trimming and pruning to improve safety, structure, clearance, and tree health in Santa Cruz County—ideal for coastal winds and winter storms." },
   robots: { index: true, follow: true },

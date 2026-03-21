@@ -21,7 +21,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
-    images: [{ url: `${siteUrl}/assets/emergency-tree-removal.webp`, width: 1200, alt: "Emergency tree removal after storm damage in Santa Cruz" }],
+    images: [
+      {
+        url: `https://santacruztreepros.com/api/og?title=Emergency+Tree+Service&photo=emergency-tree-removal-with-crane`,
+        width: 1200,
+        height: 630,
+        alt: "Emergency Tree Service — Santa Cruz Tree Pros",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

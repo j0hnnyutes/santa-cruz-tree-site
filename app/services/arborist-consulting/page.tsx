@@ -21,7 +21,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
-    images: [{ url: `${siteUrl}/assets/tree-moving.webp`, width: 1200, alt: "Arborist consulting and tree evaluation in Santa Cruz" }],
+    images: [
+      {
+        url: `https://santacruztreepros.com/api/og?title=Arborist+Consulting&photo=tree-inspection`,
+        width: 1200,
+        height: 630,
+        alt: "Arborist Consulting — Santa Cruz Tree Pros",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",

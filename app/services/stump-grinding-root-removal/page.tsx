@@ -27,7 +27,14 @@ export const metadata: Metadata = {
     url: pageUrl,
     type: "website",
     siteName,
-    images: [{ url: `${siteUrl}/assets/stump-removal.webp`, width: 1200, alt: "Stump grinding and removal in Santa Cruz" }],
+    images: [
+      {
+        url: `https://santacruztreepros.com/api/og?title=Stump+Grinding+%26+Root+Removal&photo=stump-removal`,
+        width: 1200,
+        height: 630,
+        alt: "Stump Grinding & Root Removal — Santa Cruz Tree Pros",
+      },
+    ],
   },
   twitter: { card: "summary_large_image", title: "Stump Grinding in Santa Cruz, CA | Santa Cruz Tree Pros", description: "Stump grinding to remove stumps below grade, reduce hazards, and prep for landscaping across Santa Cruz County. Optional chip haul-away." },
   robots: { index: true, follow: true },

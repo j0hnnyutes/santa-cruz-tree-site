@@ -23,9 +23,10 @@ export const metadata: Metadata = {
     siteName: "Santa Cruz Tree Pros",
     images: [
       {
-        url: `${siteUrl}/assets/tree-removal-with-crane.webp`,
+        url: `${siteUrl}/api/og?title=Get+a+Free+Estimate`,
         width: 1200,
-        alt: "Santa Cruz Tree Pros free estimate consultation",
+        height: 630,
+        alt: "Get a Free Estimate — Santa Cruz Tree Pros",
       },
     ],
   },
