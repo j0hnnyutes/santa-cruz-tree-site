@@ -158,6 +158,22 @@ export default function FreeEstimateClient() {
   const [tsToken, setTsToken] = useState("");
   // ≥1024 = desktop split layout, <1024 = mobile single-column
   const [isDesktop, setIsDesktop] = useState(false);
+  // Track which fields have been blurred — drives on-blur validation display
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+
+  function touch(field: string) {
+    setTouched((prev) => new Set([...prev, field]));
+  }
+
+  function clearApiError(field: string) {
+    if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  }
+
+  // Returns the visible error for a field: API error always shows;
+  // client-side error shows only after the field has been blurred or submitted.
+  function fieldError(field: string): string {
+    return errors[field] || (touched.has(field) ? validationErrors[field] || "" : "");
+  }
 
   useEffect(() => {
     trackStart();
@@ -238,8 +254,9 @@ export default function FreeEstimateClient() {
   }, [fullName, phone, email, address, city, service]);
 
   function advanceToStep2() {
+    // Touch all step-1 fields so any unblurred errors become visible
+    setTouched((prev) => new Set([...prev, "fullName", "email", "phone"]));
     const errs = validateStep1();
-    setErrors(errs);
     if (Object.keys(errs).length > 0) {
       trackFieldError(Object.keys(errs)[0]);
       return;
@@ -254,10 +271,10 @@ export default function FreeEstimateClient() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBanner(null);
+    // Touch every field so all unblurred errors become visible
+    setTouched(new Set(["fullName", "email", "phone", "service", "address", "city"]));
 
     const nextErrors = validationErrors;
-    setErrors(nextErrors);
-
     if (Object.keys(nextErrors).length > 0) {
       const firstKey = Object.keys(nextErrors)[0];
       trackFieldError(firstKey);
@@ -470,12 +487,13 @@ export default function FreeEstimateClient() {
                 <label style={dk.label}>Full Name *</label>
                 <input
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => { setFullName(e.target.value); clearApiError("fullName"); }}
+                  onBlur={() => touch("fullName")}
                   placeholder="Jane Smith"
                   autoComplete="name"
-                  style={{ ...dk.input, ...(errors.fullName ? dk.inputError : {}) }}
+                  style={{ ...dk.input, ...(fieldError("fullName") ? dk.inputError : {}) }}
                 />
-                {errors.fullName && <div style={dk.err}>{errors.fullName}</div>}
+                {fieldError("fullName") && <div style={dk.err}>{fieldError("fullName")}</div>}
               </div>
 
               {/* Email */}
@@ -484,13 +502,14 @@ export default function FreeEstimateClient() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearApiError("email"); }}
+                  onBlur={() => touch("email")}
                   placeholder="jane@email.com"
                   autoComplete="email"
                   inputMode="email"
-                  style={{ ...dk.input, ...(errors.email ? dk.inputError : {}) }}
+                  style={{ ...dk.input, ...(fieldError("email") ? dk.inputError : {}) }}
                 />
-                {errors.email && <div style={dk.err}>{errors.email}</div>}
+                {fieldError("email") && <div style={dk.err}>{fieldError("email")}</div>}
               </div>
 
               {/* Phone — optional */}
@@ -502,13 +521,14 @@ export default function FreeEstimateClient() {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(formatPhoneUS(e.target.value))}
+                  onChange={(e) => { setPhone(formatPhoneUS(e.target.value)); clearApiError("phone"); }}
+                  onBlur={() => touch("phone")}
                   placeholder="(831) 555-0100"
                   autoComplete="tel"
                   inputMode="tel"
-                  style={{ ...dk.input, ...(errors.phone ? dk.inputError : {}) }}
+                  style={{ ...dk.input, ...(fieldError("phone") ? dk.inputError : {}) }}
                 />
-                {errors.phone && <div style={dk.err}>{errors.phone}</div>}
+                {fieldError("phone") && <div style={dk.err}>{fieldError("phone")}</div>}
               </div>
 
               <button
@@ -554,13 +574,14 @@ export default function FreeEstimateClient() {
                 <label style={dk.label}>Service Needed *</label>
                 <select
                   value={service}
-                  onChange={(e) => setService(e.target.value as typeof service)}
-                  style={{ ...dk.input, ...(errors.service ? dk.inputError : {}) }}
+                  onChange={(e) => { setService(e.target.value as typeof service); touch("service"); clearApiError("service"); }}
+                  onBlur={() => touch("service")}
+                  style={{ ...dk.input, ...(fieldError("service") ? dk.inputError : {}) }}
                 >
                   <option value="">Select a service…</option>
                   {SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                {errors.service && <div style={dk.err}>{errors.service}</div>}
+                {fieldError("service") && <div style={dk.err}>{fieldError("service")}</div>}
               </div>
 
               {/* Address — full width */}
@@ -568,12 +589,13 @@ export default function FreeEstimateClient() {
                 <label style={dk.label}>Street Address *</label>
                 <input
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => { setAddress(e.target.value); clearApiError("address"); }}
+                  onBlur={() => touch("address")}
                   placeholder="123 Main St"
                   autoComplete="street-address"
-                  style={{ ...dk.input, ...(errors.address ? dk.inputError : {}) }}
+                  style={{ ...dk.input, ...(fieldError("address") ? dk.inputError : {}) }}
                 />
-                {errors.address && <div style={dk.err}>{errors.address}</div>}
+                {fieldError("address") && <div style={dk.err}>{fieldError("address")}</div>}
               </div>
 
               {/* City — full width */}
@@ -581,12 +603,13 @@ export default function FreeEstimateClient() {
                 <label style={dk.label}>City *</label>
                 <input
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => { setCity(e.target.value); clearApiError("city"); }}
+                  onBlur={() => touch("city")}
                   placeholder="Santa Cruz"
                   autoComplete="address-level2"
-                  style={{ ...dk.input, ...(errors.city ? dk.inputError : {}) }}
+                  style={{ ...dk.input, ...(fieldError("city") ? dk.inputError : {}) }}
                 />
-                {errors.city && <div style={dk.err}>{errors.city}</div>}
+                {fieldError("city") && <div style={dk.err}>{fieldError("city")}</div>}
               </div>
 
               {/* Details */}
