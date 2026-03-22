@@ -3,6 +3,16 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { StatCard } from "@/components/AdminShared";
 
+function getCsrfHeaders(): Record<string, string> {
+  const token = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("admin_csrf="))
+    ?.split("=")[1] ?? "";
+  return token
+    ? { "x-admin-csrf": token, "x-admin-csrf-token": token, "x-csrf-token": token }
+    : {};
+}
+
 type ErrorLogRow = {
   id: number;
   createdAt: string;
@@ -174,7 +184,7 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
   async function deleteError(id: number) {
     setDeletingId(id);
     try {
-      await fetch(`/api/admin/errors?id=${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/errors?id=${id}`, { method: "DELETE", headers: getCsrfHeaders() });
       setErrors((prev) => prev.filter((e) => e.id !== id));
       setTotal((t) => Math.max(0, t - 1));
       if (expandedId === id) setExpandedId(null);
@@ -192,7 +202,7 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
       if (type)     params.set("type", type);
       if (fromDate) params.set("from_date", fromDate);
       if (toDate)   params.set("to_date", toDate);
-      await fetch(`/api/admin/errors/clear?${params.toString()}`, { method: "DELETE" });
+      await fetch(`/api/admin/errors/clear?${params.toString()}`, { method: "DELETE", headers: getCsrfHeaders() });
       await fetchErrors();
       setConfirmClear(false);
       setExpandedId(null);

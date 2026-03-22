@@ -5,8 +5,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 const COOKIE_SESSION = "admin_session";
 const COOKIE_CSRF = "admin_csrf";
 
-// 14 days
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
+// 8 hours
+const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 type SessionPayload = {
   iat: number; // issued at (sec)

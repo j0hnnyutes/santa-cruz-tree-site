@@ -1,7 +1,7 @@
 # Santa Cruz Tree Pros — Features & Functionality Reference
 
 > **Keep this file up to date** when new features are added or changed.
-> Last updated: 2026-03-19 (Phase 7 complete)
+> Last updated: 2026-03-22 (Phase 8 complete)
 
 ---
 
@@ -318,6 +318,42 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - `rate_limit` — rate limit hits on public endpoints *(new)*
 - `auth` — admin login failures and lockouts *(new)*
 - `not_found` — 404 page hits with path and referrer *(new)*
+
+---
+
+### Phase 8 — Free Estimate Page UX & Layout Polish (Claude)
+
+**SEO strip (Option B) — `/free-estimate`**
+- Replaced `sr-only` H1 with a visible thin strip rendered above the split-panel layout (server component in `app/free-estimate/page.tsx`)
+- Strip: dark bg `rgba(5,20,8,0.96)`, 13 px bold white H1 always visible, 11 px tagline hidden on mobile (`hidden sm:block`)
+- Tagline text: "No obligation · Serving Santa Cruz County · Response usually within 1–2 business days"
+
+**Footer z-index fix**
+- Footer was invisible on `/free-estimate` because fixed-position background overlays (z-index 0/1) covered it
+- Fixed by adding `relative z-[2]` to `<footer>` in `components/Footer.tsx`
+
+**Hero panel viewport-responsive positioning**
+- Hero left-panel content (brand pill, headline, bullets) was below the fold on most screen heights
+- Changed `padding` from `"0 56px 64px"` to `"0 56px 20vh"` — content now floats 20 vh from the bottom, always above the fold
+
+**Form panel repositioning**
+- Large empty space at top of form due to `justifyContent: center` with `minHeight: 100vh`
+- Switched to `justifyContent: "flex-start"` with `padding: clamp(20px, 4vh, 48px) 40px 48px` on desktop — form starts near top of panel
+
+**Step 2 compact layout**
+- Step 2 has more fields (textarea, photo upload, 2 buttons) and was overflowing the viewport
+- Reduced field `marginBottom` to 8 px, input padding to `8px 13px`, textarea to `rows={2}` / `minHeight: 60`, photo upload padding slimmed, button row `marginTop: 4`
+- All step 2 compact overrides scoped via IIFE to avoid affecting step 1
+
+**Step indicator label updates (`FreeEstimateClient.tsx`)**
+- Step 2 label: "Project" → "Project Details"
+- Step 3 label: "Done" → "Sent"
+
+**Privacy Policy link — trust badge row**
+- Added Privacy Policy link to both step 1 and step 2
+- Rendered inline as a third item in the existing centered trust badge flex row (same font size/color as other badges)
+- Step 1 row: 🔒 Secure & private · ✓ No spam, ever · Privacy Policy
+- Step 2 row: 🚫 No obligation · ✉ Timely response to estimate requests · Privacy Policy
 
 ---
 
@@ -818,8 +854,26 @@ Three endpoints write to `ErrorLog`:
 | Database | Neon serverless PostgreSQL |
 | Domain | `santacruztreepros.com` (pending DNS cutover) |
 | Current staging URL | `santa-cruz-tree-site-git-main-jon-lawtons-projects.vercel.app` |
-| Build command | `prisma generate && next build` |
-| Environment variables | `DATABASE_URL`, `DIRECT_URL`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `SITE_URL` |
+| Build command | `prisma generate && node scripts/migrate-utm-geo.mjs && next build` |
+| Environment variables | See table below |
+
+#### Required Environment Variables
+
+| Variable | Description | Required |
+|---|---|---|
+| `DATABASE_URL` | Neon PostgreSQL pooled connection URL | ✅ |
+| `DIRECT_URL` | Neon PostgreSQL direct connection URL (for migrations) | ✅ |
+| `RESEND_API_KEY` | Resend API key for lead notification emails | ✅ |
+| `LEAD_TO_EMAIL` | Recipient address for lead notification emails | ✅ |
+| `LEAD_FROM_EMAIL` | Sender address for lead emails (must be a verified Resend domain) | ✅ |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (server-side CAPTCHA verification) | ✅ |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (client-side widget) | ✅ |
+| `ADMIN_PASSWORD_HASH` | bcrypt hash of the admin password | ✅ |
+| `ADMIN_SESSION_SECRET` | Random secret for signing admin session tokens (min 32 chars) | ✅ |
+| `SITE_URL` | Full production URL e.g. `https://santacruztreepros.com` | ✅ |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store token — auto-set when Blob store is linked in Vercel dashboard | ✅ (photos) |
+| `CRON_SECRET` | Secret for securing the `/api/cron/rollup` endpoint. Set a random 32-char string; Vercel sets it automatically if configured in `vercel.json` crons | ✅ (cron) |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics 4 Measurement ID (optional) | ☐ |
 
 ### Pending Before Go-Live
 - [ ] Replace `tel:+1XXXXXXXXXX` with real phone number (ServiceCta, all service pages, LocalBusiness schema)

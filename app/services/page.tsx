@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Tree Services in Santa Cruz, CA | Santa Cruz Tree Pros",
   description:
     "Professional tree removal, trimming, stump grinding, emergency service, and arborist consulting across Santa Cruz County.",
+  alternates: { canonical: "https://santacruztreepros.com/services" },
 };
-
 const services = [
   {
     title: "Tree Removal",

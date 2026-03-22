@@ -1,6 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
+
+export const metadata: Metadata = {
+  title: "Tree Service Areas | Santa Cruz County",
+  description: "Santa Cruz Tree Pros serves all of Santa Cruz County — from Santa Cruz and Capitola to Scotts Valley, Felton, and beyond. Free estimates throughout the region.",
+  alternates: { canonical: "https://santacruztreepros.com/service-areas" },
+  openGraph: {
+    title: "Tree Service Areas | Santa Cruz County",
+    description: "Santa Cruz Tree Pros serves all of Santa Cruz County — from Santa Cruz and Capitola to Scotts Valley, Felton, and beyond.",
+    url: "https://santacruztreepros.com/service-areas",
+    type: "website",
+  },
+};
 
 const cities = [
   {

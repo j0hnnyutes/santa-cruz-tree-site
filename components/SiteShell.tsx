@@ -9,7 +9,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
     <>
       <Header />
 
-      {children}
+      <main id="main-content">{children}</main>
 
       <Footer />
       <StickyEstimateButton />

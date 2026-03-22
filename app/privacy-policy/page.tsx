@@ -4,8 +4,8 @@ export const metadata: Metadata = {
   title: "Privacy Policy | Santa Cruz Tree Pros",
   description: "Privacy Policy for Santa Cruz Tree Pros — how we collect, use, and protect your personal information under California law.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "https://santacruztreepros.com/privacy-policy" },
 };
-
 const EFFECTIVE_DATE = "March 1, 2026";
 const BUSINESS_NAME = "Santa Cruz Tree Pros";
 const CONTACT_EMAIL = "info@santacruztreepros.com";

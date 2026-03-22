@@ -134,9 +134,19 @@ async function sendLeadNotification(lead: {
     return;
   }
 
-  const phoneFormatted = formatPhone(lead.phoneDigits);
+  const phoneFormatted = lead.phoneDigits ? formatPhone(lead.phoneDigits) : null;
   const photoCount = lead.photoAttachments.length;
   const leadUrl = `${siteUrl}/admin/leads/${lead.leadId}`;
+
+  // Safely encode user-supplied text for HTML contexts
+  function escHtml(s: string) {
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
   const isDuplicate = lead.details?.includes("⚠️ POSSIBLE DUPLICATE");
 
   try {
@@ -216,7 +226,10 @@ async function sendLeadNotification(lead: {
                       <td width="50%" style="padding:0 8px 16px 0;vertical-align:top;">
                         <div style="background-color:#f9fafb;border-radius:8px;padding:14px 16px;">
                           <p style="margin:0 0 3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;">Phone</p>
-                          <a href="tel:${lead.phoneDigits}" style="color:#1b5e35;font-size:16px;font-weight:600;text-decoration:none;">${phoneFormatted}</a>
+                          ${phoneFormatted
+                            ? `<a href="tel:${lead.phoneDigits}" style="color:#1b5e35;font-size:16px;font-weight:600;text-decoration:none;">${phoneFormatted}</a>`
+                            : `<span style="color:#9ca3af;font-size:14px;">Not provided</span>`
+                          }
                         </div>
                       </td>
                       <td width="50%" style="padding:0 0 16px 8px;vertical-align:top;">
@@ -243,7 +256,7 @@ async function sendLeadNotification(lead: {
             <!-- Details -->
             <div style="border-top:1px solid #f3f4f6;padding-top:20px;margin-bottom:24px;">
               <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;">Details</p>
-              <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;white-space:pre-line;">${lead.details.replace(/\n/g, "<br>")}</p>
+              <p style="margin:0;font-size:14px;line-height:1.6;color:#374151;white-space:pre-line;">${escHtml(lead.details).replace(/\n/g, "<br>")}</p>
             </div>` : ""}
 
             ${photoCount > 0 ? `
@@ -369,11 +382,15 @@ export async function POST(request: Request) {
 
   const errors: Record<string, string> = {};
   if (!fullName) errors.fullName = "Name is required.";
-  if (!email) errors.email = "Email is required.";
+  if (!email) {
+    errors.email = "Email is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = "Enter a valid email address.";
+  }
   if (!address) errors.address = "Address is required.";
   if (!city) errors.city = "City is required.";
   if (!service) errors.service = "Service is required.";
-  if (phoneDigits.length !== 10) errors.phone = "Phone must be 10 digits.";
+  if (phoneDigits.length > 0 && phoneDigits.length !== 10) errors.phone = "Phone must be 10 digits.";
 
   if (Object.keys(errors).length > 0) {
     return NextResponse.json({ ok: false, errors }, { status: 400 });

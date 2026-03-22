@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { verifyAdminCsrf } from "@/lib/adminCsrf";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -90,10 +91,10 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  const isAuthed = await isAdminAuthenticated();
-  if (!isAuthed) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+export async function DELETE(request: NextRequest) {
+  const csrf = verifyAdminCsrf(request);
+  if (!csrf.ok) {
+    return NextResponse.json({ ok: false, error: csrf.error }, { status: csrf.status });
   }
 
   try {

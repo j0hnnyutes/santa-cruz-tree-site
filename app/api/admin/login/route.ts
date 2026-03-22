@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createHmac } from "crypto";
 import { newCsrfToken } from "@/lib/adminCsrf";
+import { createSessionToken, ADMIN_SESSION_MAX_AGE, ADMIN_COOKIE_NAMES } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logError } from "@/lib/logError";
@@ -18,9 +18,6 @@ async function getAdminConfigValue(key: string): Promise<string | null> {
     return null;
   }
 }
-
-const ADMIN_SESSION_COOKIE = "admin_session";
-const ADMIN_CSRF_COOKIE = "admin_csrf";
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -39,27 +36,6 @@ function getIp(req: NextRequest) {
   return "unknown";
 }
 
-function base64url(input: Buffer) {
-  return input
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function signSession(secret: string, payload: object) {
-  const payloadStr = JSON.stringify(payload);
-  const payloadB64 = base64url(Buffer.from(payloadStr));
-
-  const sig = createHmac("sha256", secret)
-    .update(payloadB64)
-    .digest("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  return `${payloadB64}.${sig}`;
-}
 
 function getAttemptState(ip: string) {
   const now = Date.now();
@@ -146,25 +122,27 @@ export async function POST(req: NextRequest) {
   // Successful login resets attempts
   attempts.delete(ip);
 
-  const SESSION_TTL  = 8 * 60 * 60;                         // 8 h absolute max
-  const exp          = Math.floor(Date.now() / 1000) + SESSION_TTL;
-  const sessionToken = signSession(secret, { exp });
+  const sessionToken = createSessionToken();
   const csrfToken = newCsrfToken();
+
+  if (!sessionToken) {
+    return NextResponse.json({ ok: false, error: "Admin not configured." }, { status: 500 });
+  }
 
   const res = NextResponse.json({ ok: true, next }, { status: 200 });
 
   res.cookies.set({
-    name:     ADMIN_SESSION_COOKIE,
+    name:     ADMIN_COOKIE_NAMES.session,
     value:    sessionToken,
     httpOnly: true,
     sameSite: "lax",
     secure:   process.env.NODE_ENV === "production",
     path:     "/",
-    maxAge:   SESSION_TTL, // cookie expires with the session token
+    maxAge:   ADMIN_SESSION_MAX_AGE,
   });
 
   res.cookies.set({
-    name: ADMIN_CSRF_COOKIE,
+    name: ADMIN_COOKIE_NAMES.csrf,
     value: csrfToken,
     httpOnly: false,
     sameSite: "lax",

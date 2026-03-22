@@ -90,12 +90,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const blogPosts: MetadataRoute.Sitemap = getAllPosts().map((post) => ({
-    url: `${BASE}/blog/${post.slug}`,
-    lastModified: post.date ? new Date(post.date).toISOString() : now,
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
+  const blogPosts: MetadataRoute.Sitemap = getAllPosts().map((post) => {
+    let lastModified = now;
+    if (post.date) {
+      try {
+        const d = new Date(post.date);
+        if (!isNaN(d.getTime())) lastModified = d.toISOString();
+      } catch {
+        // malformed date — fall back to now
+      }
+    }
+    return {
+      url: `${BASE}/blog/${post.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    };
+  });
 
   return [...staticPages, ...servicePages, ...cityPages, ...blogIndex, ...blogPosts];
 }

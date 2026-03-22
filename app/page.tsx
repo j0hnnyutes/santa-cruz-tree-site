@@ -19,8 +19,8 @@ export const metadata = {
     title: "Santa Cruz Tree Pros | Tree Removal, Trimming & Stump Grinding",
     description: "Premium tree services in Santa Cruz County — safe removals, expert pruning, and stump grinding with clean, professional job sites.",
   },
+  alternates: { canonical: "https://santacruztreepros.com" },
 };
-
 // ── DATA ────────────────────────────────────────────────────────────────────
 
 const SERVICES = [
@@ -206,6 +206,27 @@ const LOCAL_BUSINESS_SCHEMA = {
       { "@type": "Offer", itemOffered: { "@type": "Service", name: "Arborist Consulting" } },
     ],
   },
+  // Add Google Business Profile / Yelp URLs here once created:
+  // sameAs: [
+  //   "https://www.google.com/maps/place/YOUR_PLACE_ID",
+  //   "https://www.yelp.com/biz/santa-cruz-tree-pros",
+  // ],
+};
+
+// WebSite schema — enables Google Sitelinks Searchbox (once site is indexed)
+const WEBSITE_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Santa Cruz Tree Pros",
+  url: "https://santacruztreepros.com",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://santacruztreepros.com/blog?q={search_term_string}",
+    },
+    "query-input": "required name=search_term_string",
+  },
 };
 
 // ── PAGE ─────────────────────────────────────────────────────────────────────
@@ -216,6 +237,10 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(LOCAL_BUSINESS_SCHEMA) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_SCHEMA) }}
       />
 
       {/* ── 1. HERO ── */}

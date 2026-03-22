@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Thank You",
   description: "Thank you for contacting Santa Cruz Tree Pros. We'll be in touch within 1–2 business days.",
   robots: { index: false, follow: false },
+  alternates: { canonical: "https://santacruztreepros.com/thank-you" },
 };
-
 export default function ThankYouPage() {
   return (
     <main className="site-container py-16">
