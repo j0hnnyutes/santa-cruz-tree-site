@@ -40,5 +40,18 @@ export const metadata: Metadata = {
 };
 
 export default function FreeEstimatePage() {
-  return <FreeEstimateClient />;
+  return (
+    <>
+      {/* Server-rendered text for SEO & screen readers.
+          Visually hidden — the full-bleed form handles the visual H1. */}
+      <h1 className="sr-only">Get a Free Tree Service Estimate in Santa Cruz</h1>
+      <p className="sr-only">
+        Tell us about your trees and property. We&apos;ll review your details, follow up quickly,
+        and provide a clear, no-obligation estimate. Tree removal, trimming, stump grinding, and
+        emergency service across Santa Cruz County. Photos are helpful but not required — the more
+        detail you share, the faster we can put together an accurate quote.
+      </p>
+      <FreeEstimateClient />
+    </>
+  );
 }
