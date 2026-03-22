@@ -42,15 +42,26 @@ export const metadata: Metadata = {
 export default function FreeEstimatePage() {
   return (
     <>
-      {/* Server-rendered text for SEO & screen readers.
-          Visually hidden — the full-bleed form handles the visual H1. */}
-      <h1 className="sr-only">Get a Free Tree Service Estimate in Santa Cruz</h1>
-      <p className="sr-only">
-        Tell us about your trees and property. We&apos;ll review your details, follow up quickly,
-        and provide a clear, no-obligation estimate. Tree removal, trimming, stump grinding, and
-        emergency service across Santa Cruz County. Photos are helpful but not required — the more
-        detail you share, the faster we can put together an accurate quote.
-      </p>
+      {/* ── SEO intro strip (Option B) ──────────────────────────────────────
+          Server-rendered so Google sees the H1 immediately. Visible to users
+          as a slim bar above the full-bleed layout. Tagline hidden on mobile
+          to keep the strip to a single compact line. */}
+      <div className="
+        relative z-10
+        bg-[rgba(5,20,8,0.96)]
+        border-b border-white/[0.07]
+        px-5 py-2.5
+        flex flex-wrap items-baseline
+        gap-x-2.5 gap-y-0.5
+      ">
+        <h1 className="text-[13px] font-bold text-white leading-none shrink-0 m-0">
+          Get a Free Tree Service Estimate
+        </h1>
+        <p className="hidden sm:block text-[11px] text-white/40 leading-relaxed m-0">
+          No obligation · Serving Santa Cruz County · Response usually within 1–2 business days
+        </p>
+      </div>
+
       <FreeEstimateClient />
     </>
   );

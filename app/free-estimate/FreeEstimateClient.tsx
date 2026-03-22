@@ -399,7 +399,7 @@ export default function FreeEstimateClient() {
         {isDesktop && (
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
-            justifyContent: "flex-end", padding: "0 56px 64px",
+            justifyContent: "flex-end", padding: "0 56px 20vh",
           }}>
             {/* Brand pill */}
             <div style={{
@@ -444,8 +444,8 @@ export default function FreeEstimateClient() {
           borderLeft: isDesktop ? "1px solid rgba(255,255,255,0.09)" : "none",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          padding: isDesktop ? "48px 40px" : "40px 24px 56px",
+          justifyContent: "flex-start",
+          padding: isDesktop ? "clamp(20px, 4vh, 48px) 40px 48px" : "40px 24px 56px",
           boxSizing: "border-box",
         }}>
 
@@ -553,7 +553,7 @@ export default function FreeEstimateClient() {
               <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 4 }}>
                 About your project
               </div>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.50)", marginBottom: 22, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.50)", marginBottom: 14, lineHeight: 1.5 }}>
                 Help us give you an accurate estimate.
               </p>
 
@@ -569,63 +569,72 @@ export default function FreeEstimateClient() {
                 </div>
               )}
 
-              {/* Service */}
-              <div data-field="service" style={dk.field}>
-                <label style={dk.label}>Service Needed *</label>
-                <select
-                  value={service}
-                  onChange={(e) => { setService(e.target.value as typeof service); touch("service"); clearApiError("service"); }}
-                  onBlur={() => touch("service")}
-                  style={{ ...dk.input, ...(fieldError("service") ? dk.inputError : {}) }}
-                >
-                  <option value="">Select a service…</option>
-                  {SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                {fieldError("service") && <div style={dk.err}>{fieldError("service")}</div>}
-              </div>
+              {/* Compact input style for step 2 */}
+              {(() => {
+                const s2input: React.CSSProperties = { ...dk.input, padding: "8px 13px" };
+                const s2field: React.CSSProperties = { ...dk.field, marginBottom: 8 };
+                return (
+                  <>
+                    {/* Service */}
+                    <div data-field="service" style={s2field}>
+                      <label style={dk.label}>Service Needed *</label>
+                      <select
+                        value={service}
+                        onChange={(e) => { setService(e.target.value as typeof service); touch("service"); clearApiError("service"); }}
+                        onBlur={() => touch("service")}
+                        style={{ ...s2input, ...(fieldError("service") ? dk.inputError : {}) }}
+                      >
+                        <option value="">Select a service…</option>
+                        {SERVICES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {fieldError("service") && <div style={dk.err}>{fieldError("service")}</div>}
+                    </div>
 
-              {/* Address — full width */}
-              <div data-field="address" style={dk.field}>
-                <label style={dk.label}>Street Address *</label>
-                <input
-                  value={address}
-                  onChange={(e) => { setAddress(e.target.value); clearApiError("address"); }}
-                  onBlur={() => touch("address")}
-                  placeholder="123 Main St"
-                  autoComplete="street-address"
-                  style={{ ...dk.input, ...(fieldError("address") ? dk.inputError : {}) }}
-                />
-                {fieldError("address") && <div style={dk.err}>{fieldError("address")}</div>}
-              </div>
+                    {/* Address */}
+                    <div data-field="address" style={s2field}>
+                      <label style={dk.label}>Street Address *</label>
+                      <input
+                        value={address}
+                        onChange={(e) => { setAddress(e.target.value); clearApiError("address"); }}
+                        onBlur={() => touch("address")}
+                        placeholder="123 Main St"
+                        autoComplete="street-address"
+                        style={{ ...s2input, ...(fieldError("address") ? dk.inputError : {}) }}
+                      />
+                      {fieldError("address") && <div style={dk.err}>{fieldError("address")}</div>}
+                    </div>
 
-              {/* City — full width */}
-              <div data-field="city" style={dk.field}>
-                <label style={dk.label}>City *</label>
-                <input
-                  value={city}
-                  onChange={(e) => { setCity(e.target.value); clearApiError("city"); }}
-                  onBlur={() => touch("city")}
-                  placeholder="Santa Cruz"
-                  autoComplete="address-level2"
-                  style={{ ...dk.input, ...(fieldError("city") ? dk.inputError : {}) }}
-                />
-                {fieldError("city") && <div style={dk.err}>{fieldError("city")}</div>}
-              </div>
+                    {/* City */}
+                    <div data-field="city" style={s2field}>
+                      <label style={dk.label}>City *</label>
+                      <input
+                        value={city}
+                        onChange={(e) => { setCity(e.target.value); clearApiError("city"); }}
+                        onBlur={() => touch("city")}
+                        placeholder="Santa Cruz"
+                        autoComplete="address-level2"
+                        style={{ ...s2input, ...(fieldError("city") ? dk.inputError : {}) }}
+                      />
+                      {fieldError("city") && <div style={dk.err}>{fieldError("city")}</div>}
+                    </div>
 
-              {/* Details */}
-              <div style={dk.field}>
-                <label style={dk.label}>
-                  Details
-                  <span style={dk.optTag}>optional</span>
-                </label>
-                <textarea
-                  value={details}
-                  onChange={(e) => setDetails(e.target.value)}
-                  placeholder="Describe the tree, the situation, any urgency…"
-                  rows={3}
-                  style={{ ...dk.input, minHeight: 80, resize: "vertical" }}
-                />
-              </div>
+                    {/* Details */}
+                    <div style={{ ...s2field, marginBottom: 10 }}>
+                      <label style={dk.label}>
+                        Details
+                        <span style={dk.optTag}>optional</span>
+                      </label>
+                      <textarea
+                        value={details}
+                        onChange={(e) => setDetails(e.target.value)}
+                        placeholder="Describe the tree, the situation, any urgency…"
+                        rows={2}
+                        style={{ ...s2input, minHeight: 60, resize: "vertical" }}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Photo upload */}
               <div style={{ marginBottom: 11 }}>
@@ -641,8 +650,8 @@ export default function FreeEstimateClient() {
                   }}
                   style={{
                     border: "1.5px dashed rgba(255,255,255,0.18)", borderRadius: 8,
-                    padding: "14px 12px", textAlign: "center", cursor: "pointer",
-                    color: "rgba(255,255,255,0.42)", fontSize: 13,
+                    padding: "9px 12px", textAlign: "center", cursor: "pointer",
+                    color: "rgba(255,255,255,0.42)", fontSize: 12,
                   }}
                 >
                   📷{" "}
@@ -650,9 +659,9 @@ export default function FreeEstimateClient() {
                     Upload photos
                   </span>
                   {" "}for a more accurate estimate
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.26)", marginTop: 4 }}>
-                    JPG, PNG, HEIC · up to {MAX_MB} MB each · {MAX_PHOTOS} max
-                  </div>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.26)", marginLeft: 6 }}>
+                    JPG, PNG, HEIC · up to {MAX_MB} MB · {MAX_PHOTOS} max
+                  </span>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -697,7 +706,7 @@ export default function FreeEstimateClient() {
               </div>
 
               {/* Back + Submit */}
-              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
                   onClick={() => { setErrors({}); setStep(1); }}

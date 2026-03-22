@@ -4,7 +4,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-[var(--header-bg)]">
+    <footer className="relative z-[2] bg-[var(--header-bg)]">
       <div className="site-container py-12">
         {/* Main grid */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
