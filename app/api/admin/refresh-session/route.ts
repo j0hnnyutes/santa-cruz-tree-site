@@ -8,37 +8,19 @@
 // inactivity timeout.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
 import { verifyAdminCsrf } from "@/lib/adminCsrf";
-import { isSessionValid } from "@/lib/adminAuth";
+import {
+  isSessionValid,
+  createSessionToken,
+  ADMIN_COOKIE_NAMES,
+  ADMIN_SESSION_MAX_AGE,
+} from "@/lib/adminAuth";
 import { cookies } from "next/headers";
-
-const ADMIN_SESSION_COOKIE = "admin_session";
-const SESSION_TTL_SECONDS  = 8 * 60 * 60; // 8 hours absolute maximum
-
-function base64url(input: Buffer) {
-  return input
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function signSession(secret: string, payload: object): string {
-  const payloadB64 = base64url(Buffer.from(JSON.stringify(payload)));
-  const sig = createHmac("sha256", secret)
-    .update(payloadB64)
-    .digest("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-  return `${payloadB64}.${sig}`;
-}
 
 export async function POST(req: NextRequest) {
   // 1. Verify the existing session cookie is still valid
   const jar   = await cookies();
-  const token = jar.get(ADMIN_SESSION_COOKIE)?.value;
+  const token = jar.get(ADMIN_COOKIE_NAMES.session)?.value;
   if (!isSessionValid(token)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -49,24 +31,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: csrf.error }, { status: csrf.status });
   }
 
-  // 3. Issue a fresh session token
-  const secret = (process.env.ADMIN_SESSION_SECRET || "").trim();
-  if (!secret) {
+  // 3. Issue a fresh session token (single source of truth in lib/adminAuth.ts)
+  const newToken = createSessionToken();
+  if (!newToken) {
     return NextResponse.json({ ok: false, error: "Server misconfigured" }, { status: 500 });
   }
 
-  const exp      = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  const newToken = signSession(secret, { exp });
-
   const res = NextResponse.json({ ok: true }, { status: 200 });
   res.cookies.set({
-    name:     ADMIN_SESSION_COOKIE,
+    name:     ADMIN_COOKIE_NAMES.session,
     value:    newToken,
     httpOnly: true,
     sameSite: "lax",
     secure:   process.env.NODE_ENV === "production",
     path:     "/",
-    maxAge:   SESSION_TTL_SECONDS,
+    maxAge:   ADMIN_SESSION_MAX_AGE,
   });
 
   return res;

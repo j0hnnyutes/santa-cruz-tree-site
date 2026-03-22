@@ -1,17 +1,22 @@
 /**
- * Idempotent migration script — adds columns that Prisma migrate can't handle
- * cleanly due to the SQLite-format migration history in this project.
+ * ─── DE-FACTO MIGRATION SYSTEM ──────────────────────────────────────────────
  *
- * Uses prisma.$executeRawUnsafe so it works against any Postgres database
- * without touching _prisma_migrations or requiring prisma migrate deploy.
- * All statements use IF NOT EXISTS so it is safe to run multiple times.
+ * This script IS the migration system for this project. It runs on every
+ * Vercel build (via `npm run build`) and keeps the PostgreSQL DB in sync.
  *
- * Covers:
- *   - PageView: utmSource, utmMedium, utmCampaign, country, region, city + indexes
- *   - Lead: photoUrls (TEXT[] for Vercel Blob URLs)
+ * Why not `prisma migrate deploy`?
+ *   The migration history files (prisma/migrations/) were written in SQLite
+ *   syntax and cannot be applied to the Neon PostgreSQL production database.
+ *   This script bypasses that by running idempotent raw SQL directly.
+ *
+ * HOW TO ADD A NEW FIELD OR TABLE:
+ *   Add a new entry to the `steps` array below, following the existing pattern.
+ *   Use IF NOT EXISTS so every statement is safe to run multiple times.
+ *   Also update prisma/schema.prisma with the same change.
  *
  * Usage: node scripts/migrate-utm-geo.mjs
  * Vercel build: called automatically via `npm run build`.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 
 import { PrismaClient } from "@prisma/client";

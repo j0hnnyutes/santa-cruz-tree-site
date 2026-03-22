@@ -8,8 +8,17 @@ function processInline(text: string): string {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     // Italic
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    // Links  [text](url)
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="blog-link">$1</a>');
+    // Links  [text](url) — only allow safe URL schemes to prevent XSS
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const safe =
+        /^https?:\/\//i.test(url) ||
+        /^mailto:/i.test(url) ||
+        url.startsWith("/") ||
+        url.startsWith("#");
+      return safe
+        ? `<a href="${url}" class="blog-link">${text}</a>`
+        : `<span class="blog-link">${text}</span>`;
+    });
 }
 
 export function markdownToHtml(markdown: string): string {

@@ -1,4 +1,18 @@
 // prisma/schema.prisma
+//
+// ⚠️  MIGRATION RULE — READ BEFORE ADDING FIELDS ⚠️
+//
+// This project uses a custom migration approach instead of `prisma migrate deploy`.
+// The migration history files in prisma/migrations/ use SQLite syntax and are NOT
+// applied to production (the production DB is PostgreSQL on Neon).
+//
+// HOW TO ADD A NEW FIELD OR TABLE:
+//   1. Add it to this schema file as normal.
+//   2. Also add a corresponding `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` or
+//      `CREATE TABLE IF NOT EXISTS` step to: scripts/migrate-utm-geo.mjs
+//   3. Vercel runs that script on every build, so the DB stays in sync automatically.
+//
+// Both files must be updated together in the same commit.
 
 generator client {
   provider = "prisma-client-js"
