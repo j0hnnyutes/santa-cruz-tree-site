@@ -130,10 +130,63 @@ const dk = {
   } as React.CSSProperties,
 };
 
+// ── Client-side image resize ──────────────────────────────────────────────
+// Reduces large phone photos (often 8–12 MB) to under ~500 KB before upload,
+// dramatically cutting upload time without visible quality loss for tree photos.
+// HEIC/HEIF are skipped — most browsers can't decode them via Canvas.
+const RESIZE_MAX_PX = 2000;   // cap longest dimension
+const RESIZE_QUALITY = 0.82;  // JPEG quality
+
+function canResizeInBrowser(file: File): boolean {
+  const unresizeable = new Set(["image/heic", "image/heif"]);
+  if (unresizeable.has(file.type)) return false;
+  if (/\.(heic|heif)$/i.test(file.name)) return false;
+  return true;
+}
+
+function resizePhoto(file: File): Promise<File> {
+  if (!canResizeInBrowser(file)) return Promise.resolve(file);
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(RESIZE_MAX_PX / w, RESIZE_MAX_PX / h, 1);
+      // If already small and under 800 KB, skip canvas work
+      if (scale >= 1 && file.size <= 800 * 1024) {
+        resolve(file);
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          const stem = file.name.replace(/\.[^.]+$/, "");
+          resolve(new File([blob], `${stem}.jpg`, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        RESIZE_QUALITY,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file); // fall back to original on decode error
+    };
+    img.src = objectUrl;
+  });
+}
+
 export default function FreeEstimateClient() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerRef = useRef<HTMLDivElement | null>(null);
   const submittedRef = useRef(false);
 
   const { trackStart, trackFieldError, trackAbandoned, trackSubmitted } =
@@ -193,6 +246,14 @@ export default function FreeEstimateClient() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
+
+  // Scroll error banner into view whenever one appears so the user never
+  // has to manually scroll up to discover why submission failed.
+  useEffect(() => {
+    if (banner?.kind === "err") {
+      bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [banner]);
 
   // ── File handling ─────────────────────────────────────────────────────────
   function handleFiles(incoming: File[]) {
@@ -301,7 +362,6 @@ export default function FreeEstimateClient() {
           | { ok: false; timedOut: boolean; filename: string };
 
         const uploadOne = async (photo: File): Promise<UploadResult> => {
-          const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const controller = new AbortController();
           let timedOut = false;
           const timer = setTimeout(() => {
@@ -309,7 +369,12 @@ export default function FreeEstimateClient() {
             controller.abort();
           }, UPLOAD_TIMEOUT_MS);
           try {
-            const blob = await upload(safeName, photo, {
+            // Resize/recompress large images in the browser before upload.
+            // Cuts a typical 8–12 MB phone photo down to ~300–600 KB, which
+            // makes the CDN upload 10–20× faster with no visible quality loss.
+            const toUpload = await resizePhoto(photo);
+            const safeName = toUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+            const blob = await upload(safeName, toUpload, {
               access: "public",
               handleUploadUrl: "/api/blob-upload",
               abortSignal: controller.signal,
@@ -626,14 +691,17 @@ export default function FreeEstimateClient() {
                 Help us give you an accurate estimate.
               </p>
 
-              {/* Error banner */}
+              {/* Error banner — ref used to scroll into view on failure */}
               {banner && (
-                <div style={{
-                  marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13,
-                  background: banner.kind === "ok" ? "rgba(22,163,74,0.15)" : "rgba(239,68,68,0.15)",
-                  border: `1px solid ${banner.kind === "ok" ? "rgba(22,163,74,0.35)" : "rgba(239,68,68,0.35)"}`,
-                  color: banner.kind === "ok" ? "#86efad" : "#fca5a5",
-                }}>
+                <div
+                  ref={bannerRef}
+                  style={{
+                    marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+                    background: banner.kind === "ok" ? "rgba(22,163,74,0.15)" : "rgba(239,68,68,0.15)",
+                    border: `1px solid ${banner.kind === "ok" ? "rgba(22,163,74,0.35)" : "rgba(239,68,68,0.35)"}`,
+                    color: banner.kind === "ok" ? "#86efad" : "#fca5a5",
+                  }}
+                >
                   {banner.text}
                 </div>
               )}
