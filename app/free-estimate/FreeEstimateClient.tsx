@@ -154,6 +154,7 @@ export default function FreeEstimateClient() {
 
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const [tsToken, setTsToken] = useState("");
@@ -287,23 +288,39 @@ export default function FreeEstimateClient() {
     setSubmitting(true);
     try {
       // ── Step 1: Upload photos directly to Vercel Blob (client-side) ──────
-      // This bypasses the 4.5 MB serverless function body limit entirely.
-      // Photos go browser → Vercel Blob CDN; only the resulting URLs are
-      // sent with the form submission.
-      const photoUrls: string[] = [];
-      for (const photo of photos) {
-        try {
-          // Sanitise filename the same way the server would
+      // Photos stream browser → Vercel Blob CDN in parallel, bypassing the
+      // 4.5 MB serverless body limit. Each upload has a 30 s timeout so a
+      // slow or failed upload can never leave the form stuck indefinitely.
+      let photoUrls: string[] = [];
+      if (photos.length > 0) {
+        setUploadingPhotos(true);
+        const UPLOAD_TIMEOUT_MS = 30_000;
+
+        const uploadOne = async (photo: File): Promise<string | null> => {
           const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const blob = await upload(safeName, photo, {
-            access: "public",
-            handleUploadUrl: "/api/blob-upload",
-          });
-          photoUrls.push(blob.url);
-        } catch (err) {
-          console.error("Photo upload failed:", err);
-          // Don't block submission if a photo upload fails — lead still saved
-        }
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+          try {
+            const blob = await upload(safeName, photo, {
+              access: "public",
+              handleUploadUrl: "/api/blob-upload",
+              abortSignal: controller.signal,
+            });
+            return blob.url;
+          } catch (err) {
+            console.error("Photo upload failed:", err);
+            return null; // don't block lead creation
+          } finally {
+            clearTimeout(timer);
+          }
+        };
+
+        // All uploads in parallel
+        const results = await Promise.allSettled(photos.map(uploadOne));
+        photoUrls = results
+          .map((r) => (r.status === "fulfilled" ? r.value : null))
+          .filter((url): url is string => url !== null);
+        setUploadingPhotos(false);
       }
 
       // ── Step 2: Submit form fields + photo URLs (no binary data) ─────────
@@ -349,6 +366,7 @@ export default function FreeEstimateClient() {
     } catch {
       setBanner({ kind: "err", text: "Something went wrong. Please try again." });
     } finally {
+      setUploadingPhotos(false);
       setSubmitting(false);
     }
   }
@@ -745,7 +763,11 @@ export default function FreeEstimateClient() {
                   disabled={submitting}
                   style={{ ...dk.btnPrimary, opacity: submitting ? 0.65 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
                 >
-                  {submitting ? "Submitting…" : "Request Free Estimate →"}
+                  {uploadingPhotos
+                    ? `Uploading ${photos.length} photo${photos.length > 1 ? "s" : ""}…`
+                    : submitting
+                    ? "Submitting…"
+                    : "Request Free Estimate →"}
                 </button>
               </div>
 
