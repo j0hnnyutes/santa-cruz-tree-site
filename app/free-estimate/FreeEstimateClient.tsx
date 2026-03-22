@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useFormEventTracker } from "@/lib/formEventTracker";
+import { upload } from "@vercel/blob/client";
 
 type Errors = Record<string, string>;
 
@@ -285,6 +286,27 @@ export default function FreeEstimateClient() {
 
     setSubmitting(true);
     try {
+      // ── Step 1: Upload photos directly to Vercel Blob (client-side) ──────
+      // This bypasses the 4.5 MB serverless function body limit entirely.
+      // Photos go browser → Vercel Blob CDN; only the resulting URLs are
+      // sent with the form submission.
+      const photoUrls: string[] = [];
+      for (const photo of photos) {
+        try {
+          // Sanitise filename the same way the server would
+          const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const blob = await upload(safeName, photo, {
+            access: "public",
+            handleUploadUrl: "/api/blob-upload",
+          });
+          photoUrls.push(blob.url);
+        } catch (err) {
+          console.error("Photo upload failed:", err);
+          // Don't block submission if a photo upload fails — lead still saved
+        }
+      }
+
+      // ── Step 2: Submit form fields + photo URLs (no binary data) ─────────
       const fd = new FormData();
       fd.append("fullName", fullName.trim());
       fd.append("phone", digitsOnly(phone));
@@ -294,7 +316,7 @@ export default function FreeEstimateClient() {
       fd.append("service", service);
       fd.append("details", details.trim());
       fd.append("turnstileToken", tsToken);
-      for (const photo of photos) fd.append("photos", photo);
+      for (const url of photoUrls) fd.append("photoUrls", url);
 
       try {
         const raw = sessionStorage.getItem("__utm");

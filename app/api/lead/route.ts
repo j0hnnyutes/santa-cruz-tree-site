@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
-// @vercel/blob is loaded dynamically to avoid compile errors in local dev
-// where the package may not be installed; in production it's always present
+// Photos are uploaded client-side via /api/blob-upload (using @vercel/blob/client).
+// This route only receives the resulting Blob CDN URLs — no binary data.
 
 /* ─── Helpers ─── */
 
@@ -23,10 +23,15 @@ function formatPhone(digits: string) {
 }
 
 /* ─── Parse request body (JSON or multipart) ─── */
+//
+// Photos are no longer uploaded through this function.
+// The client uploads files directly to Vercel Blob via /api/blob-upload
+// (bypassing the 4.5 MB serverless body limit), then submits only the
+// resulting Blob URLs here via the `photoUrls` form field.
 
 type ParsedBody = {
   fields: Record<string, string>;
-  photoAttachments: Array<{ filename: string; content: string; contentType: string }>;
+  photoUrls: string[];
 };
 
 async function parseRequest(request: Request): Promise<ParsedBody> {
@@ -35,40 +40,38 @@ async function parseRequest(request: Request): Promise<ParsedBody> {
   if (ct.includes("multipart/form-data")) {
     const fd = await request.formData();
     const fields: Record<string, string> = {};
-    const photoAttachments: ParsedBody["photoAttachments"] = [];
 
     for (const [key, value] of fd.entries()) {
-      if (typeof value === "string") {
+      if (typeof value === "string" && key !== "photoUrls") {
         fields[key] = value;
       }
     }
 
-    const files = fd.getAll("photos").filter((v): v is File => v instanceof File);
-    for (const file of files.slice(0, 5)) {
-      try {
-        const buffer = await file.arrayBuffer();
-        photoAttachments.push({
-          filename: file.name,
-          content: Buffer.from(buffer).toString("base64"),
-          contentType: file.type || "image/jpeg",
-        });
-      } catch {
-        // Skip unreadable files — don't block the lead
-      }
-    }
+    // Collect all photo URLs submitted by the client after client-side upload
+    const photoUrls = fd
+      .getAll("photoUrls")
+      .filter((v): v is string => typeof v === "string" && v.startsWith("https://"))
+      .slice(0, 5); // hard cap at 5
 
-    return { fields, photoAttachments };
+    return { fields, photoUrls };
   }
 
   // JSON fallback
   try {
     const json = await request.json();
     const fields = Object.fromEntries(
-      Object.entries(json ?? {}).map(([k, v]) => [k, toStr(v)])
+      Object.entries(json ?? {})
+        .filter(([k]) => k !== "photoUrls")
+        .map(([k, v]) => [k, toStr(v)])
     );
-    return { fields, photoAttachments: [] };
+    const photoUrls = Array.isArray(json?.photoUrls)
+      ? (json.photoUrls as unknown[])
+          .filter((v): v is string => typeof v === "string" && v.startsWith("https://"))
+          .slice(0, 5)
+      : [];
+    return { fields, photoUrls };
   } catch {
-    return { fields: {}, photoAttachments: [] };
+    return { fields: {}, photoUrls: [] };
   }
 }
 
@@ -122,7 +125,7 @@ async function sendLeadNotification(lead: {
   service: string;
   details: string | null;
   leadId: string;
-  photoAttachments: Array<{ filename: string; content: string; contentType: string }>;
+  photoUrls: string[];
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const toEmail = process.env.LEAD_TO_EMAIL;
@@ -135,7 +138,7 @@ async function sendLeadNotification(lead: {
   }
 
   const phoneFormatted = lead.phoneDigits ? formatPhone(lead.phoneDigits) : null;
-  const photoCount = lead.photoAttachments.length;
+  const photoCount = lead.photoUrls.length;
   const leadUrl = `${siteUrl}/admin/leads/${lead.leadId}`;
 
   // Safely encode user-supplied text for HTML contexts
@@ -262,8 +265,8 @@ async function sendLeadNotification(lead: {
             ${photoCount > 0 ? `
             <!-- Photos -->
             <div style="border-top:1px solid #f3f4f6;padding-top:20px;margin-bottom:24px;">
-              <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;">Photos</p>
-              <p style="margin:0;font-size:14px;color:#374151;">📎 ${photoCount} photo${photoCount > 1 ? "s" : ""} attached to this email</p>
+              <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;">Photos (${photoCount})</p>
+              ${lead.photoUrls.map((url, i) => `<p style="margin:0 0 4px;font-size:13px;"><a href="${url}" style="color:#1b5e35;">View photo ${i + 1} →</a></p>`).join("")}
             </div>` : ""}
 
             <!-- CTA Button -->
@@ -291,13 +294,8 @@ async function sendLeadNotification(lead: {
       `,
     };
 
-    // Attach photos if present
-    if (photoCount > 0) {
-      payload.attachments = lead.photoAttachments.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-      }));
-    }
+    // Photos are stored in Vercel Blob — links are in the email body above.
+    // No binary attachments needed (and they'd hit Resend's size limits anyway).
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -350,7 +348,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { fields, photoAttachments } = await parseRequest(request);
+  const { fields, photoUrls } = await parseRequest(request);
 
   // Validate Turnstile token — fail open so mobile users whose CAPTCHA
   // widget errors (Cloudflare error 110200) can still submit the form.
@@ -409,34 +407,9 @@ export async function POST(request: Request) {
 
     const leadId = randomUUID();
     const isDuplicate = !!duplicate;
-    const photoCount = photoAttachments.length;
 
-    // Upload photos to Vercel Blob before creating the lead record
-    const photoUrls: string[] = [];
-    if (photoCount > 0) {
-      let put: typeof import("@vercel/blob").put | undefined;
-      try {
-        ({ put } = await import("@vercel/blob"));
-      } catch {
-        console.warn("@vercel/blob not available — skipping photo uploads");
-      }
-      if (put) {
-        for (const att of photoAttachments) {
-          try {
-            const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-            const blob = await put(`leads/${leadId}/${safeName}`, Buffer.from(att.content, "base64"), {
-              access: "public",
-              contentType: att.contentType,
-              addRandomSuffix: false,
-            });
-            photoUrls.push(blob.url);
-          } catch (err) {
-            console.error("Failed to upload photo to Vercel Blob:", err);
-            // Don't block lead creation if a photo upload fails
-          }
-        }
-      }
-    }
+    // Photos are already uploaded to Vercel Blob by the client via /api/blob-upload.
+    // `photoUrls` contains the resulting CDN URLs — no server-side upload needed.
 
     const lead = await prisma.lead.create({
       data: {
@@ -496,7 +469,7 @@ export async function POST(request: Request) {
         ? `${details || ""}\n\n⚠️ POSSIBLE DUPLICATE — same phone/email submitted in last 24h`.trim()
         : details || null,
       leadId: lead.leadId,
-      photoAttachments,
+      photoUrls,
     }).catch((err) => {
       console.error("Email notification error:", err);
       logError(null, {
