@@ -334,8 +334,8 @@ export default function FreeEstimateClient() {
   // ── Step indicator ────────────────────────────────────────────────────────
   const stepDefs = [
     { n: 1, label: "Contact" },
-    { n: 2, label: "Project" },
-    { n: 3, label: "Done"    },
+    { n: 2, label: "Project Details" },
+    { n: 3, label: "Sent"    },
   ];
 
   function StepIndicator() {
@@ -539,10 +539,14 @@ export default function FreeEstimateClient() {
                 Next: Project Details →
               </button>
 
-              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
                 {["🔒 Secure & private", "✓ No spam, ever"].map((t) => (
                   <span key={t} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t}</span>
                 ))}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "underline" }}>
+                  Privacy Policy
+                </a>
               </div>
             </div>
           )}
@@ -723,10 +727,14 @@ export default function FreeEstimateClient() {
                 </button>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                 {["🚫 No obligation", "✉ Timely response to estimate requests"].map((t) => (
                   <span key={t} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t}</span>
                 ))}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "underline" }}>
+                  Privacy Policy
+                </a>
               </div>
 
               {/* Invisible Turnstile */}
