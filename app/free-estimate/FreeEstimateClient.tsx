@@ -31,6 +31,17 @@ const ACCEPTED_EXT = ".jpg,.jpeg,.png,.heic,.heif,.webp,.tif,.tiff";
 const MAX_PHOTOS = 5;
 const MAX_MB = 10;
 
+const UPLOAD_TIMEOUT_MS = 30_000; // 30 s per-file CDN upload timeout
+
+// ── Per-photo upload tracking ─────────────────────────────────────────────
+type PhotoEntry = {
+  id: string;
+  file: File;
+  status: "uploading" | "done" | "error";
+  url?: string;       // populated on success
+  timedOut?: boolean; // true when error was caused by timeout
+};
+
 function digitsOnly(v: string) {
   return v.replace(/\D/g, "");
 }
@@ -131,55 +142,96 @@ const dk = {
 };
 
 // ── Client-side image resize ──────────────────────────────────────────────
-// Reduces large phone photos (often 8–12 MB) to under ~300 KB before upload,
-// dramatically cutting upload time without visible quality loss for tree photos.
-// HEIC/HEIF are skipped — most browsers can't decode them via Canvas.
-const RESIZE_MAX_PX = 1600;   // cap longest dimension (sufficient for tree-service detail)
-const RESIZE_QUALITY = 0.75;  // JPEG quality (outdoor/tree photos look great at 75%)
+// Reduces large phone/desktop photos before upload.
+// Strategy: use createImageBitmap() where available — it decodes + scales in
+// one hardware-accelerated async call without blocking the main thread.
+// Falls back to a standard Image + Canvas pipeline for older browsers.
+// HEIC/HEIF skipped entirely (browsers can't decode them via Canvas/Bitmap).
+const RESIZE_MAX_PX = 1600;   // cap longest dimension
+const RESIZE_QUALITY = 0.78;  // JPEG quality — good for outdoor/tree photos
 
 function canResizeInBrowser(file: File): boolean {
-  const unresizeable = new Set(["image/heic", "image/heif"]);
-  if (unresizeable.has(file.type)) return false;
+  if (["image/heic", "image/heif"].includes(file.type)) return false;
   if (/\.(heic|heif)$/i.test(file.name)) return false;
   return true;
 }
 
-function resizePhoto(file: File): Promise<File> {
-  if (!canResizeInBrowser(file)) return Promise.resolve(file);
-  return new Promise((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const { naturalWidth: w, naturalHeight: h } = img;
+async function resizePhoto(file: File): Promise<File> {
+  if (!canResizeInBrowser(file)) return file;
+
+  // Skip if already small enough
+  if (file.size <= 600 * 1024) return file;
+
+  const stem = file.name.replace(/\.[^.]+$/, "");
+  const outName = `${stem}.jpg`;
+
+  try {
+    // ── Fast path: createImageBitmap with built-in resize ─────────────────
+    // Supported in Chrome 50+, Firefox 42+, Safari 15+.
+    // The browser handles decode + scale in one step, often GPU-accelerated.
+    if (typeof createImageBitmap === "function") {
+      // First decode at full size to get natural dimensions
+      const full = await createImageBitmap(file);
+      const { width: w, height: h } = full;
+      full.close();
+
       const scale = Math.min(RESIZE_MAX_PX / w, RESIZE_MAX_PX / h, 1);
-      // If already small and under 800 KB, skip canvas work
-      if (scale >= 1 && file.size <= 800 * 1024) {
-        resolve(file);
-        return;
-      }
+      if (scale >= 1) return file; // already fits within limit
+
+      const newW = Math.round(w * scale);
+      const newH = Math.round(h * scale);
+
+      // Decode again at target size — single hardware-accelerated step
+      const bitmap = await createImageBitmap(file, {
+        resizeWidth: newW,
+        resizeHeight: newH,
+        resizeQuality: "medium",
+      });
+
       const canvas = document.createElement("canvas");
-      canvas.width  = Math.round(w * scale);
-      canvas.height = Math.round(h * scale);
+      canvas.width = newW;
+      canvas.height = newH;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(file); return; }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) { resolve(file); return; }
-          const stem = file.name.replace(/\.[^.]+$/, "");
-          resolve(new File([blob], `${stem}.jpg`, { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        RESIZE_QUALITY,
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file); // fall back to original on decode error
-    };
-    img.src = objectUrl;
-  });
+      if (!ctx) { bitmap.close(); return file; }
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+
+      return await new Promise<File>((resolve) => {
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], outName, { type: "image/jpeg" }) : file),
+          "image/jpeg",
+          RESIZE_QUALITY,
+        );
+      });
+    }
+
+    // ── Fallback: HTMLImageElement + Canvas ───────────────────────────────
+    return await new Promise<File>((resolve) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const scale = Math.min(RESIZE_MAX_PX / w, RESIZE_MAX_PX / h, 1);
+        if (scale >= 1) { resolve(file); return; }
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], outName, { type: "image/jpeg" }) : file),
+          "image/jpeg",
+          RESIZE_QUALITY,
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+      img.src = objectUrl;
+    });
+  } catch {
+    return file; // always fall back to original on any error
+  }
 }
 
 export default function FreeEstimateClient() {
@@ -188,6 +240,9 @@ export default function FreeEstimateClient() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bannerRef = useRef<HTMLDivElement | null>(null);
   const submittedRef = useRef(false);
+  // Per-photo upload controllers — keyed by PhotoEntry.id
+  const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const nextPhotoIdRef = useRef(0);
 
   const { trackStart, trackFieldError, trackAbandoned, trackSubmitted } =
     useFormEventTracker();
@@ -202,12 +257,11 @@ export default function FreeEstimateClient() {
   const [city, setCity] = useState("");
   const [service, setService] = useState<(typeof SERVICES)[number] | "">("");
   const [details, setDetails] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [photoErrors, setPhotoErrors] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const [tsToken, setTsToken] = useState("");
@@ -257,10 +311,13 @@ export default function FreeEstimateClient() {
     }
   }, [banner]);
 
-  // ── File handling ─────────────────────────────────────────────────────────
+  // ── File handling — upload begins immediately on file select ─────────────
+  // Industry standard (Instagram, Airbnb, Dropbox): start the CDN upload the
+  // moment a file is chosen so it's done (or nearly done) by submit time.
   function handleFiles(incoming: File[]) {
     const errs: string[] = [];
-    const valid: File[] = [];
+    const validFiles: File[] = [];
+
     for (const file of incoming) {
       if (!isAcceptedType(file)) {
         errs.push(`"${file.name}" is not a supported format.`);
@@ -270,21 +327,70 @@ export default function FreeEstimateClient() {
         errs.push(`"${file.name}" exceeds the ${MAX_MB} MB limit.`);
         continue;
       }
-      valid.push(file);
+      validFiles.push(file);
     }
-    setPhotos((prev) => {
-      const combined = [...prev, ...valid];
-      if (combined.length > MAX_PHOTOS) {
-        errs.push(`Maximum ${MAX_PHOTOS} photos allowed — extras were skipped.`);
-        return combined.slice(0, MAX_PHOTOS);
-      }
-      return combined;
+
+    const slotsLeft = MAX_PHOTOS - photos.length;
+    const toAdd = validFiles.slice(0, Math.max(0, slotsLeft));
+    if (validFiles.length > slotsLeft && slotsLeft >= 0) {
+      errs.push(`Maximum ${MAX_PHOTOS} photos allowed — extras were skipped.`);
+    }
+
+    const newEntries: PhotoEntry[] = toAdd.map((file) => {
+      nextPhotoIdRef.current += 1;
+      return { id: String(nextPhotoIdRef.current), file, status: "uploading" as const };
     });
+
+    setPhotos((prev) => [...prev, ...newEntries]);
     setPhotoErrors(errs);
+
+    // Kick off uploads immediately — no waiting for form submit
+    for (const entry of newEntries) {
+      startUpload(entry);
+    }
   }
 
-  function removePhoto(idx: number) {
-    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  async function startUpload(entry: PhotoEntry) {
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const controller = new AbortController();
+    uploadControllersRef.current.set(entry.id, controller);
+    try {
+      // Resize outside the timeout window (CPU-bound canvas work, not network)
+      const toUpload = await resizePhoto(entry.file);
+      const safeName = toUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      // Start abort clock only once the network transfer begins
+      timer = setTimeout(() => { timedOut = true; controller.abort(); }, UPLOAD_TIMEOUT_MS);
+      const blob = await upload(safeName, toUpload, {
+        access: "public",
+        handleUploadUrl: "/api/blob-upload",
+        abortSignal: controller.signal,
+      });
+      setPhotos((prev) =>
+        prev.map((p) => p.id === entry.id ? { ...p, status: "done", url: blob.url } : p),
+      );
+    } catch {
+      setPhotos((prev) =>
+        prev.map((p) => p.id === entry.id ? { ...p, status: "error", timedOut } : p),
+      );
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      uploadControllersRef.current.delete(entry.id);
+    }
+  }
+
+  function retryUpload(entry: PhotoEntry) {
+    // Reset to uploading state, then restart
+    const fresh: PhotoEntry = { id: entry.id, file: entry.file, status: "uploading" };
+    setPhotos((prev) => prev.map((p) => p.id === entry.id ? fresh : p));
+    startUpload(fresh);
+  }
+
+  function removePhoto(id: string) {
+    // Abort in-flight upload if still running
+    uploadControllersRef.current.get(id)?.abort();
+    uploadControllersRef.current.delete(id);
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
     setPhotoErrors([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -348,80 +454,32 @@ export default function FreeEstimateClient() {
       return;
     }
 
+    // Photos are uploaded in the background from the moment they're selected.
+    // By submit time they should already be done; handle the edge cases:
+    const failedPhotos = photos.filter((p) => p.status === "error");
+    if (failedPhotos.length > 0) {
+      setBanner({
+        kind: "err",
+        text: failedPhotos.some((p) => p.timedOut)
+          ? "A photo upload timed out. Remove the failed photo(s) and try again, or submit without them."
+          : "One or more photos failed to upload. Remove them and try again.",
+      });
+      return;
+    }
+    const stillUploading = photos.filter((p) => p.status === "uploading");
+    if (stillUploading.length > 0) {
+      // Shouldn't normally happen — button is disabled while uploading — but guard anyway
+      setBanner({ kind: "err", text: "Photos are still uploading. Please wait a moment and try again." });
+      return;
+    }
+
+    // All photos have CDN URLs ready
+    const photoUrls = photos
+      .filter((p) => p.status === "done")
+      .map((p) => p.url!);
+
     setSubmitting(true);
     try {
-      // ── Step 1: Upload photos directly to Vercel Blob (client-side) ──────
-      // Photos stream browser → Vercel Blob CDN in parallel, bypassing the
-      // 4.5 MB serverless body limit. Each upload has a 30 s timeout so a
-      // slow or failed upload can never leave the form stuck indefinitely.
-      let photoUrls: string[] = [];
-      if (photos.length > 0) {
-        setUploadingPhotos(true);
-        const UPLOAD_TIMEOUT_MS = 30_000;
-
-        type UploadResult =
-          | { ok: true; url: string }
-          | { ok: false; timedOut: boolean; filename: string };
-
-        const uploadOne = async (photo: File): Promise<UploadResult> => {
-          let timedOut = false;
-          let controller: AbortController | undefined;
-          let timer: ReturnType<typeof setTimeout> | undefined;
-          try {
-            // Resize/recompress BEFORE starting the network timeout.
-            // Canvas decode + encode is CPU-bound (no network), so we don't
-            // want it eating into the upload timeout window. A 4 MB PNG can
-            // take 2–5 s to decode on some devices.
-            const toUpload = await resizePhoto(photo);
-            const safeName = toUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-            // Start the abort clock only once the network upload begins.
-            controller = new AbortController();
-            timer = setTimeout(() => {
-              timedOut = true;
-              controller!.abort();
-            }, UPLOAD_TIMEOUT_MS);
-
-            const blob = await upload(safeName, toUpload, {
-              access: "public",
-              handleUploadUrl: "/api/blob-upload",
-              abortSignal: controller.signal,
-            });
-            return { ok: true, url: blob.url };
-          } catch (err) {
-            console.error("Photo upload failed:", err);
-            return { ok: false, timedOut, filename: photo.name };
-          } finally {
-            if (timer !== undefined) clearTimeout(timer);
-          }
-        };
-
-        // All uploads in parallel
-        const results = await Promise.allSettled(photos.map(uploadOne));
-        setUploadingPhotos(false);
-
-        const failures = results
-          .map((r) => (r.status === "fulfilled" ? r.value : null))
-          .filter((v): v is Extract<UploadResult, { ok: false }> => v !== null && !v.ok);
-
-        if (failures.length > 0) {
-          const anyTimedOut = failures.some((f) => f.timedOut);
-          setBanner({
-            kind: "err",
-            text: anyTimedOut
-              ? "Photo upload timed out. Try smaller image files, or remove the photos and resubmit."
-              : "One or more photos failed to upload. Remove them and try again.",
-          });
-          setSubmitting(false);
-          return;
-        }
-
-        photoUrls = results
-          .map((r) => (r.status === "fulfilled" && r.value.ok ? r.value.url : null))
-          .filter((url): url is string => url !== null);
-      }
-
-      // ── Step 2: Submit form fields + photo URLs (no binary data) ─────────
       const fd = new FormData();
       fd.append("fullName", fullName.trim());
       fd.append("phone", digitsOnly(phone));
@@ -464,7 +522,6 @@ export default function FreeEstimateClient() {
     } catch {
       setBanner({ kind: "err", text: "Something went wrong. Please try again." });
     } finally {
-      setUploadingPhotos(false);
       setSubmitting(false);
     }
   }
@@ -699,11 +756,13 @@ export default function FreeEstimateClient() {
                 Help us give you an accurate estimate.
               </p>
 
-              {/* Error banner — ref used to scroll into view on failure */}
+              {/* Error banner — ref used to scroll into view on failure.
+                  scrollMarginTop gives breathing room below the sticky nav. */}
               {banner && (
                 <div
                   ref={bannerRef}
                   style={{
+                    scrollMarginTop: 88,
                     marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13,
                     background: banner.kind === "ok" ? "rgba(22,163,74,0.15)" : "rgba(239,68,68,0.15)",
                     border: `1px solid ${banner.kind === "ok" ? "rgba(22,163,74,0.35)" : "rgba(239,68,68,0.35)"}`,
@@ -827,20 +886,57 @@ export default function FreeEstimateClient() {
 
                 {photos.length > 0 && (
                   <ul style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 0, listStyle: "none" }}>
-                    {photos.map((file, idx) => (
-                      <li key={idx} style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 12px",
+                    {photos.map((entry) => (
+                      <li key={entry.id} style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        background: entry.status === "error"
+                          ? "rgba(239,68,68,0.10)"
+                          : "rgba(255,255,255,0.08)",
+                        borderRadius: 8, padding: "8px 12px",
                         fontSize: 13, color: "rgba(255,255,255,0.80)",
+                        border: entry.status === "error"
+                          ? "1px solid rgba(239,68,68,0.30)"
+                          : "1px solid transparent",
                       }}>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          📄 {file.name} ({formatBytes(file.size)})
+                        {/* Status icon */}
+                        {entry.status === "uploading" && (
+                          <span style={{ flexShrink: 0, fontSize: 12, color: "#4ade80", animation: "spin 1s linear infinite" }}>⟳</span>
+                        )}
+                        {entry.status === "done" && (
+                          <span style={{ flexShrink: 0, fontSize: 12, color: "#4ade80" }}>✓</span>
+                        )}
+                        {entry.status === "error" && (
+                          <span style={{ flexShrink: 0, fontSize: 12, color: "#fca5a5" }}>✕</span>
+                        )}
+
+                        {/* Filename */}
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {entry.file.name}
+                          <span style={{ color: "rgba(255,255,255,0.40)", marginLeft: 5 }}>
+                            ({formatBytes(entry.file.size)})
+                          </span>
                         </span>
+
+                        {/* Upload status label */}
+                        {entry.status === "uploading" && (
+                          <span style={{ flexShrink: 0, fontSize: 11, color: "rgba(255,255,255,0.40)" }}>uploading…</span>
+                        )}
+                        {entry.status === "error" && (
+                          <button
+                            type="button"
+                            onClick={() => retryUpload(entry)}
+                            style={{ flexShrink: 0, background: "rgba(239,68,68,0.20)", border: "1px solid rgba(239,68,68,0.40)", borderRadius: 4, color: "#fca5a5", fontSize: 11, padding: "2px 7px", cursor: "pointer" }}
+                          >
+                            Retry
+                          </button>
+                        )}
+
+                        {/* Remove */}
                         <button
                           type="button"
-                          onClick={() => removePhoto(idx)}
-                          style={{ background: "none", border: "none", color: "rgba(255,255,255,0.40)", cursor: "pointer", flexShrink: 0, marginLeft: 8, fontSize: 14 }}
-                          aria-label={`Remove ${file.name}`}
+                          onClick={() => removePhoto(entry.id)}
+                          style={{ flexShrink: 0, background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px" }}
+                          aria-label={`Remove ${entry.file.name}`}
                         >
                           ✕
                         </button>
@@ -851,26 +947,34 @@ export default function FreeEstimateClient() {
               </div>
 
               {/* Back + Submit */}
-              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => { setErrors({}); setStep(1); }}
-                  style={dk.btnSecondary}
-                >
-                  ← Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{ ...dk.btnPrimary, opacity: submitting ? 0.65 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
-                >
-                  {uploadingPhotos
-                    ? `Uploading ${photos.length} photo${photos.length > 1 ? "s" : ""}…`
-                    : submitting
-                    ? "Submitting…"
-                    : "Request Free Estimate →"}
-                </button>
-              </div>
+              {(() => {
+                const uploadingCount = photos.filter((p) => p.status === "uploading").length;
+                const anyUploading = uploadingCount > 0;
+                const btnDisabled = submitting || anyUploading;
+                const btnLabel = anyUploading
+                  ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
+                  : submitting
+                  ? "Submitting…"
+                  : "Request Free Estimate →";
+                return (
+                  <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setErrors({}); setStep(1); }}
+                      style={dk.btnSecondary}
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={btnDisabled}
+                      style={{ ...dk.btnPrimary, opacity: btnDisabled ? 0.65 : 1, cursor: btnDisabled ? "not-allowed" : "pointer" }}
+                    >
+                      {btnLabel}
+                    </button>
+                  </div>
+                );
+              })()}
 
               <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                 {["🚫 No obligation", "✉ Timely response to estimate requests"].map((t) => (
