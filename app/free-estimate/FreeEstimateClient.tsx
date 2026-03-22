@@ -131,11 +131,11 @@ const dk = {
 };
 
 // ── Client-side image resize ──────────────────────────────────────────────
-// Reduces large phone photos (often 8–12 MB) to under ~500 KB before upload,
+// Reduces large phone photos (often 8–12 MB) to under ~300 KB before upload,
 // dramatically cutting upload time without visible quality loss for tree photos.
 // HEIC/HEIF are skipped — most browsers can't decode them via Canvas.
-const RESIZE_MAX_PX = 2000;   // cap longest dimension
-const RESIZE_QUALITY = 0.82;  // JPEG quality
+const RESIZE_MAX_PX = 1600;   // cap longest dimension (sufficient for tree-service detail)
+const RESIZE_QUALITY = 0.75;  // JPEG quality (outdoor/tree photos look great at 75%)
 
 function canResizeInBrowser(file: File): boolean {
   const unresizeable = new Set(["image/heic", "image/heif"]);
@@ -249,9 +249,11 @@ export default function FreeEstimateClient() {
 
   // Scroll error banner into view whenever one appears so the user never
   // has to manually scroll up to discover why submission failed.
+  // "block: start" forces a scroll UP to the banner's top edge, which is
+  // more reliable than "nearest" (which can calculate no-scroll-needed).
   useEffect(() => {
     if (banner?.kind === "err") {
-      bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [banner]);
 
@@ -362,18 +364,24 @@ export default function FreeEstimateClient() {
           | { ok: false; timedOut: boolean; filename: string };
 
         const uploadOne = async (photo: File): Promise<UploadResult> => {
-          const controller = new AbortController();
           let timedOut = false;
-          const timer = setTimeout(() => {
-            timedOut = true;
-            controller.abort();
-          }, UPLOAD_TIMEOUT_MS);
+          let controller: AbortController | undefined;
+          let timer: ReturnType<typeof setTimeout> | undefined;
           try {
-            // Resize/recompress large images in the browser before upload.
-            // Cuts a typical 8–12 MB phone photo down to ~300–600 KB, which
-            // makes the CDN upload 10–20× faster with no visible quality loss.
+            // Resize/recompress BEFORE starting the network timeout.
+            // Canvas decode + encode is CPU-bound (no network), so we don't
+            // want it eating into the upload timeout window. A 4 MB PNG can
+            // take 2–5 s to decode on some devices.
             const toUpload = await resizePhoto(photo);
             const safeName = toUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+            // Start the abort clock only once the network upload begins.
+            controller = new AbortController();
+            timer = setTimeout(() => {
+              timedOut = true;
+              controller!.abort();
+            }, UPLOAD_TIMEOUT_MS);
+
             const blob = await upload(safeName, toUpload, {
               access: "public",
               handleUploadUrl: "/api/blob-upload",
@@ -384,7 +392,7 @@ export default function FreeEstimateClient() {
             console.error("Photo upload failed:", err);
             return { ok: false, timedOut, filename: photo.name };
           } finally {
-            clearTimeout(timer);
+            if (timer !== undefined) clearTimeout(timer);
           }
         };
 
