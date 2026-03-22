@@ -296,20 +296,28 @@ export default function FreeEstimateClient() {
         setUploadingPhotos(true);
         const UPLOAD_TIMEOUT_MS = 30_000;
 
-        const uploadOne = async (photo: File): Promise<string | null> => {
+        type UploadResult =
+          | { ok: true; url: string }
+          | { ok: false; timedOut: boolean; filename: string };
+
+        const uploadOne = async (photo: File): Promise<UploadResult> => {
           const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+          let timedOut = false;
+          const timer = setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+          }, UPLOAD_TIMEOUT_MS);
           try {
             const blob = await upload(safeName, photo, {
               access: "public",
               handleUploadUrl: "/api/blob-upload",
               abortSignal: controller.signal,
             });
-            return blob.url;
+            return { ok: true, url: blob.url };
           } catch (err) {
             console.error("Photo upload failed:", err);
-            return null; // don't block lead creation
+            return { ok: false, timedOut, filename: photo.name };
           } finally {
             clearTimeout(timer);
           }
@@ -317,10 +325,27 @@ export default function FreeEstimateClient() {
 
         // All uploads in parallel
         const results = await Promise.allSettled(photos.map(uploadOne));
-        photoUrls = results
-          .map((r) => (r.status === "fulfilled" ? r.value : null))
-          .filter((url): url is string => url !== null);
         setUploadingPhotos(false);
+
+        const failures = results
+          .map((r) => (r.status === "fulfilled" ? r.value : null))
+          .filter((v): v is Extract<UploadResult, { ok: false }> => v !== null && !v.ok);
+
+        if (failures.length > 0) {
+          const anyTimedOut = failures.some((f) => f.timedOut);
+          setBanner({
+            kind: "err",
+            text: anyTimedOut
+              ? "Photo upload timed out. Try smaller image files, or remove the photos and resubmit."
+              : "One or more photos failed to upload. Remove them and try again.",
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        photoUrls = results
+          .map((r) => (r.status === "fulfilled" && r.value.ok ? r.value.url : null))
+          .filter((url): url is string => url !== null);
       }
 
       // ── Step 2: Submit form fields + photo URLs (no binary data) ─────────
