@@ -427,6 +427,16 @@ export default function FreeEstimateClient() {
       const res = await fetch("/api/lead", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
 
+      // Debug: log photo upload status so it's visible in the browser console
+      if (typeof data?.photosReceived === "number") {
+        console.log(
+          `[photos] sent=${data.photosReceived} saved=${data.photosSaved ?? "?"}`,
+          data.photosSaved === 0 && data.photosReceived > 0
+            ? "⚠️ Photos were sent but not saved — check Vercel function logs"
+            : "✅"
+        );
+      }
+
       if (!res.ok || data?.ok === false) {
         const apiErrors: Errors = data?.errors || {};
         setErrors((prev) => ({ ...prev, ...apiErrors }));

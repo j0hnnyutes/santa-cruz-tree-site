@@ -86,9 +86,10 @@ async function uploadPhotosToBlobStore(
   photoDataList: string[],
   leadPrefix: string,
 ): Promise<string[]> {
+  console.log(`[photos] received ${photoDataList.length} photo(s) for lead ${leadPrefix}`);
   if (!photoDataList.length) return [];
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn("BLOB_READ_WRITE_TOKEN not set — skipping photo upload");
+    console.warn("[photos] BLOB_READ_WRITE_TOKEN not set — skipping photo upload");
     return [];
   }
   const results = await Promise.allSettled(
@@ -97,18 +98,29 @@ async function uploadPhotosToBlobStore(
       const mimeType = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
       const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
       const buf = Buffer.from(b64, "base64");
+      console.log(`[photos] uploading photo ${i + 1}: ${buf.length} bytes, type=${mimeType}`);
       const blob = await put(`leads/${leadPrefix}-photo-${i + 1}.${ext}`, buf, {
         access: "public",
         contentType: mimeType,
       });
+      console.log(`[photos] photo ${i + 1} uploaded OK: ${blob.url}`);
       return blob.url;
     }),
   );
   const urls: string[] = [];
   for (const r of results) {
     if (r.status === "fulfilled") urls.push(r.value);
-    else console.error("Photo blob upload failed:", r.reason);
+    else {
+      const err = r.reason as Error & { status?: number; code?: string };
+      console.error("[photos] blob upload failed:", {
+        message: err?.message,
+        status: err?.status,
+        code: err?.code,
+        stack: err?.stack?.split("\n")[0],
+      });
+    }
   }
+  console.log(`[photos] saved ${urls.length}/${photoDataList.length} photo(s)`);
   return urls;
 }
 
@@ -522,7 +534,12 @@ export async function POST(request: Request) {
       });
     });
 
-    return NextResponse.json({ ok: true, leadId: lead.leadId }, { status: 200 });
+    return NextResponse.json({
+      ok: true,
+      leadId: lead.leadId,
+      photosReceived: photoDataList.length,
+      photosSaved: photoUrls.length,
+    }, { status: 200 });
   } catch (err) {
     console.error("POST /api/lead error:", err);
     logError(request, {
