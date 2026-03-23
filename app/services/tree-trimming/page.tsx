@@ -181,8 +181,6 @@ export default function TreeTrimmingPage() {
         body="We’ll evaluate your trees and recommend the right pruning approach for safety, structure, and coastal conditions."
         primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
-        secondaryHref="tel:+1XXXXXXXXXX"
-        secondaryLabel="Call Now"
       />
 
       <script

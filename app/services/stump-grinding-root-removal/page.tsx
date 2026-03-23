@@ -184,8 +184,6 @@ export default function StumpGrindingPage() {
         body="Tell us how many stumps you have and what you plan to do with the space. We’ll recommend the right depth and cleanup option."
         primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
-        secondaryHref="tel:+1XXXXXXXXXX"
-        secondaryLabel="Call Now"
       />
 
       <script

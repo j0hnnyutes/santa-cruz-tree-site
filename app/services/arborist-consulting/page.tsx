@@ -153,7 +153,6 @@ export default function ArboristConsultingPage() {
       <ServiceCta
         heading="Schedule an Arborist Evaluation"
         body="If you’re unsure whether a tree needs pruning, monitoring, or removal, start with a professional assessment and clear recommendations."
-        secondaryHref="tel:+1XXXXXXXXXX"
       />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />

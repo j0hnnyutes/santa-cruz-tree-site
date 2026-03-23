@@ -183,8 +183,6 @@ export default function TreeRemovalPage() {
         body="Tell us about the tree and your property. We’ll recommend the safest, most practical plan for Santa Cruz conditions."
         primaryHref="/free-estimate"
         primaryLabel="Request an Estimate"
-        secondaryHref="tel:+1XXXXXXXXXX"
-        secondaryLabel="Call Now"
       />
 
       <script

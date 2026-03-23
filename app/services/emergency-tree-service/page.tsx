@@ -146,10 +146,8 @@ export default function EmergencyTreeServicePage() {
 
       <ServiceCta
         heading="Need Emergency Help?"
-        body="If there’s an immediate hazard, call now. For faster triage, send photos and your address through the estimate form."
-        primaryLabel="Send Photos / Request Help"
-        secondaryLabel="Call for Emergency Service"
-        secondaryHref="tel:+1XXXXXXXXXX"
+        body="If there’s an immediate hazard, submit photos and your address through the estimate form and we’ll prioritize your request."
+        primaryLabel="Submit Emergency Request"
       />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />

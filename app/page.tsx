@@ -157,7 +157,6 @@ const LOCAL_BUSINESS_SCHEMA = {
   "@type": ["LocalBusiness", "HomeAndConstructionBusiness"],
   name: "Santa Cruz Tree Pros",
   url: "https://santacruztreepros.com",
-  telephone: "+1XXXXXXXXXX", // TODO: replace with real number
   description:
     "Tree removal, tree trimming, stump grinding, emergency tree service, and arborist consulting in Santa Cruz County, CA.",
   priceRange: "$$",

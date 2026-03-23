@@ -5,8 +5,6 @@ type ServiceCtaProps = {
   body?: string;
   primaryHref?: string;
   primaryLabel?: string;
-  secondaryHref?: string;
-  secondaryLabel?: string;
 };
 
 export default function ServiceCta({
@@ -14,8 +12,6 @@ export default function ServiceCta({
   body = "Start with a quick on-site assessment. We'll review your goals and provide clear recommendations.",
   primaryHref = "/free-estimate",
   primaryLabel = "Request an Estimate",
-  secondaryHref = "tel:+1XXXXXXXXXX",
-  secondaryLabel = "Call Now",
 }: ServiceCtaProps) {
   return (
     <section className="mt-12 rounded-xl bg-[var(--brand-green)] px-6 py-8 sm:px-8 sm:py-10">
