@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useFormEventTracker } from "@/lib/formEventTracker";
 // Photos are resized to small JPEG data URLs entirely in the browser (no network),
@@ -176,7 +175,6 @@ function resizeAndEncode(file: File): Promise<string> {
 }
 
 export default function FreeEstimateClient() {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bannerRef = useRef<HTMLDivElement | null>(null);
@@ -438,7 +436,8 @@ export default function FreeEstimateClient() {
 
       submittedRef.current = true;
       trackSubmitted();
-      router.push("/thank-you");
+      setStep(3);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setBanner({ kind: "err", text: "Something went wrong. Please try again." });
     } finally {
@@ -917,6 +916,90 @@ export default function FreeEstimateClient() {
                 />
               )}
             </form>
+          )}
+
+          {/* ════════════════ STEP 3: Success ════════════════ */}
+          {step === 3 && (
+            <div>
+              {/* Green check circle */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: "50%",
+                  background: "rgba(22,163,74,0.18)",
+                  border: "2px solid rgba(22,163,74,0.45)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+                    <path d="M7 15.5l5.5 5.5 10-11" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 8 }}>
+                  Request Submitted!
+                </div>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.60)", lineHeight: 1.6, margin: 0 }}>
+                  We&apos;ve received your estimate request and will be in touch within{" "}
+                  <span style={{ color: "#86efad" }}>1–2 business days</span>.
+                </p>
+              </div>
+
+              {/* What happens next */}
+              <div style={{
+                background: "rgba(255,255,255,0.07)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                borderRadius: 10, padding: "16px 18px", marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                  What happens next
+                </div>
+                {[
+                  { icon: "📋", text: "We review your request and any photos to understand your needs." },
+                  { icon: "📞", text: "A team member will contact you within 1–2 business days." },
+                  { icon: "📝", text: "You'll receive a clear, itemized estimate — no hidden fees." },
+                  { icon: "✅", text: "We schedule your service at a time that works for you." },
+                ].map((item) => (
+                  <div key={item.icon} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Trust badges */}
+              <div style={{
+                background: "rgba(22,163,74,0.08)",
+                border: "1px solid rgba(22,163,74,0.20)",
+                borderRadius: 10, padding: "14px 18px", marginBottom: 22,
+              }}>
+                {[
+                  { icon: "🌲", text: "Locally owned — we know Santa Cruz County's trees & terrain." },
+                  { icon: "🛡️", text: "Fully licensed and insured for your peace of mind." },
+                ].map((item) => (
+                  <div key={item.icon} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <a href="/" style={{
+                display: "block", textAlign: "center",
+                background: "#16a34a", color: "#fff",
+                borderRadius: 8, padding: "13px 16px",
+                fontSize: 15, fontWeight: 700, textDecoration: "none",
+              }}>
+                ← Back to Homepage
+              </a>
+
+              <p style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.30)" }}>
+                Questions? Email{" "}
+                <a href="mailto:info@santacruztreepros.com" style={{ color: "rgba(255,255,255,0.45)", textDecoration: "underline" }}>
+                  info@santacruztreepros.com
+                </a>
+              </p>
+            </div>
           )}
         </div>
       </div>
