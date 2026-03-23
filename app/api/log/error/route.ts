@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/logError";
 
 export async function POST(request: Request) {
   try {
-    // Rate limit: 100 per minute
+    // Rate limit: 100 per minute per IP
     const rl = await rateLimit(request, {
       max: 100,
       windowMs: 60_000,
       keyPrefix: "log:error:",
     });
-
     if (!rl.ok) {
       return NextResponse.json({ ok: false }, { status: 429 });
     }
 
-    let body: any = {};
+    let body: Record<string, unknown> = {};
     try {
       body = await request.json();
     } catch {
@@ -24,48 +23,32 @@ export async function POST(request: Request) {
 
     const { severity, type, message, stack, path, metadata } = body;
 
-    // Safely serialise any client-supplied metadata
-    let metadataStr: string | null = null;
-    if (metadata !== undefined && metadata !== null) {
-      try {
-        metadataStr = JSON.stringify(metadata);
-      } catch {
-        metadataStr = null;
-      }
-    }
+    // Validate severity to a known value; default client errors to "high" so
+    // critical JS crashes (unhandled rejections, etc.) trigger alert emails.
+    const safeSeverity = (["critical", "high", "medium", "low"] as const).includes(
+      severity as "critical" | "high" | "medium" | "low",
+    )
+      ? (severity as "critical" | "high" | "medium" | "low")
+      : "high";
 
-    // Write to database (fire-and-forget)
-    (prisma as any).errorLog
-      .create({
-        data: {
-          severity: severity || "high",
-          type: type || "client_error",
-          message: message || "Unknown error",
-          stack: stack || null,
-          path: path || null,
-          ip: getClientIp(request),
-          userAgent: request.headers.get("user-agent"),
-          metadata: metadataStr,
-        },
-      })
-      .catch((err: unknown) => console.error("Failed to log error:", err));
+    const safeMeta =
+      metadata && typeof metadata === "object" && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>)
+        : undefined;
+
+    // Route through logError() so critical/high client errors trigger alert emails
+    logError(request, {
+      severity: safeSeverity,
+      type:     typeof type    === "string" ? type    : "client_error",
+      message:  typeof message === "string" ? message : "Unknown client error",
+      stack:    typeof stack   === "string" ? stack   : undefined,
+      path:     typeof path    === "string" ? path    : undefined,
+      metadata: safeMeta,
+    });
 
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (err: unknown) {
-    // Never return 500 — catch all errors silently
+  } catch {
+    // Never return 500 — client error logging must not break the page
     return NextResponse.json({ ok: true }, { status: 200 });
   }
-}
-
-function getClientIp(req: Request): string {
-  const xfwd = req.headers.get("x-forwarded-for");
-  if (xfwd) return xfwd.split(",")[0].trim();
-
-  const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
-
-  const cf = req.headers.get("cf-connecting-ip");
-  if (cf) return cf.trim();
-
-  return "unknown";
 }
