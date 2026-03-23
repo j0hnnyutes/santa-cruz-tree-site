@@ -355,6 +355,44 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 - Step 1 row: 🔒 Secure & private · ✓ No spam, ever · Privacy Policy
 - Step 2 row: 🚫 No obligation · ✉ Timely response to estimate requests · Privacy Policy
 
+### Phase 9 — Photo Upload Fix, Error Alerts, Phone Removal & Launch Prep (Claude)
+
+**Photo upload — complete rewrite (upload-on-select, server-side Blob)**
+- Replaced client-side `@vercel/blob/client upload()` with upload-on-select + server-side `put()` pattern
+- Root cause of all prior timeouts: Vercel Blob's `onUploadCompleted` webhook requires a publicly-reachable server and is impossible from localhost (confirmed via GitHub issues #432, #444, #687)
+- New flow: files are resized client-side via Canvas API → base64 JPEG data URLs → included in form body → server decodes and calls `put()` directly (no webhook, no timeout risk)
+- `resizeAndEncode(file)` — reliable `Image + Canvas drawImage()` pipeline; max 1200 px, 80% JPEG quality; works cross-browser including Safari
+- `PhotoEntry` type tracks per-file status (`uploading` → `done` | `error`) with `dataUrl` stored on completion
+- `handleFiles()` calls `processPhoto()` immediately on file select (industry-standard upload-on-select pattern)
+- Submit button shows "Processing N photos…" and is disabled while any photo is still encoding
+- `uploadPhotosToBlobStore()` in `/api/lead` decodes base64, calls `put()` in parallel via `Promise.allSettled`, returns URLs; detailed `[photos]` console logging added for Vercel log visibility
+- `photosReceived` + `photosSaved` included in API success response for Network-tab diagnostics
+- **Blob store**: original store was created as Private — incompatible with `access: "public"`. Created new public store (`santa-cruz-tree-site-blob-new`); token stored as `BLOB2_READ_WRITE_TOKEN`. `uploadPhotosToBlobStore` explicitly passes `token: BLOB2_READ_WRITE_TOKEN || BLOB_READ_WRITE_TOKEN`
+- Photo badge in leads table (`/admin/leads`) now derived directly from `photoUrls.length` — replaces fragile regex parse of the CREATED event detail string that broke for duplicate leads
+
+**In-panel success state (step 3)**
+- Replaced `router.push("/thank-you")` redirect with an in-panel success state rendered inside the dark glass form panel
+- Step 3 shows: green checkmark, "Request Submitted!" heading, "What happens next" steps, trust badges, Back to Homepage link
+- `/thank-you` page kept as standalone fallback but form no longer redirects to it
+- Deleted dead code: `app/api/blob-upload/route.ts` (old token-exchange endpoint, no longer called)
+
+**Error alert emails via Resend**
+- `lib/logError.ts` now sends a Resend email for `critical` and `high` severity errors
+- Rate-limited to 1 alert per error type per 15 minutes via `AdminConfig` key-value store (`alert_throttle_{type}` key)
+- Alert email includes: color-coded severity header, full error message, path, stack trace (first 7 lines), device (parsed from user agent), country + city (Vercel geo headers), IP, hourly frequency count for the error type, total errors today, table of last 5 recent errors, direct link to `/admin/errors`
+- Geo (country + city from `x-vercel-ip-country` / `x-vercel-ip-city` Vercel headers) enriched into `metadata` field on every `ErrorLog` record
+- `/api/log/error` now routes through `logError()` instead of writing directly to DB — client-side JS crashes now also trigger alert emails for `critical`/`high` severity
+
+**Phone number removal**
+- Removed all `tel:+1XXXXXXXXXX` placeholders from 5 service pages and `ServiceCta` defaults
+- `secondaryHref` / `secondaryLabel` props removed from `ServiceCta` entirely (were unused in rendered JSX)
+- Emergency service CTA body updated: "call now" → directs users to the estimate form
+- `telephone` field removed from homepage `LocalBusiness` JSON-LD structured data
+- To add phone when available: one line in `ServiceCta.tsx` default props + one line in `app/page.tsx` JSON-LD
+
+**Pre-launch checklist**
+- `PRELAUNCH_CHECKLIST.md` added to repo root — covers push, env var verification, domain pointing, SITE_URL update sequence, UptimeRobot setup, smoke test steps, and phone number re-add instructions
+
 ---
 
 ## Table of Contents
@@ -557,15 +595,18 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 1. Validates all fields (name, phone 10-digit, email, address, city, service, Turnstile token)
 2. Verifies Cloudflare Turnstile token server-side
 3. Checks for duplicate lead: same `phoneDigits` OR `email` submitted within last 24 hours
-4. Stores lead in PostgreSQL with generated `leadId`
-5. Creates `LeadEvent` audit record (`CREATED` or `DUPLICATE_FLAGGED`)
-6. Sends email notification via Resend (includes duplicate warning banner if flagged)
-7. Returns success or field-level validation errors as JSON
+4. Decodes base64 JPEG data URLs (`photoData[]` form fields) and uploads to Vercel Blob via server-side `put()` — returns public URLs
+5. Stores lead in PostgreSQL with generated `leadId` and `photoUrls[]`
+6. Creates `LeadEvent` audit record (`CREATED` or `DUPLICATE_FLAGGED`)
+7. Sends email notification via Resend (includes duplicate warning banner if flagged, photo links if present)
+8. Returns `{ ok, leadId, photosReceived, photosSaved }` — photo counts visible in Network tab for diagnostics
 
-### Error Logging
-Three endpoints write to `ErrorLog`:
-- `POST /api/log/error` — client-side errors (unhandled JS, React crashes, global error tracker). Accepts: severity, type, message, stack, path, metadata (JSON)
-- `lib/logError.ts` — server-side utility called directly from API route catch blocks
+### Error Logging & Alerts
+Two paths write to `ErrorLog`:
+- `POST /api/log/error` — client-side errors (unhandled JS, React crashes, global error tracker). Routes through `logError()` so client `critical`/`high` errors also trigger alert emails.
+- `lib/logError.ts` — server-side utility called directly from API route catch blocks. For `critical` or `high` severity, fires a Resend alert email (rate-limited to 1 per error type per 15 min).
+
+**Alert email contents:** severity/type, message, path, stack trace (7 lines), device, country + city (Vercel geo headers), IP, hourly frequency count, total errors today, last 5 recent errors table, link to `/admin/errors`.
 
 **What is logged:**
 - Unhandled browser JS errors (`window.onerror`) — type `client_js`
@@ -870,15 +911,21 @@ Three endpoints write to `ErrorLog`:
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (client-side widget) | ✅ |
 | `ADMIN_PASSWORD_HASH` | bcrypt hash of the admin password | ✅ |
 | `ADMIN_SESSION_SECRET` | Random secret for signing admin session tokens (min 32 chars) | ✅ |
-| `SITE_URL` | Full production URL e.g. `https://santacruztreepros.com` | ✅ |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store token — auto-set when Blob store is linked in Vercel dashboard | ✅ (photos) |
+| `SITE_URL` | Full production URL e.g. `https://santacruztreepros.com` — update this **after** DNS is pointed, not before | ✅ |
+| `BLOB_READ_WRITE_TOKEN` | Linked to original **private** blob store — superseded by `BLOB2_READ_WRITE_TOKEN` | ⚠️ legacy |
+| `BLOB2_READ_WRITE_TOKEN` | Token for `santa-cruz-tree-site-blob-new` (**public** store) — used for photo uploads | ✅ (photos) |
 | `CRON_SECRET` | Secret for securing the `/api/cron/rollup` endpoint. Set a random 32-char string; Vercel sets it automatically if configured in `vercel.json` crons | ✅ (cron) |
 | `NEXT_PUBLIC_GA_ID` | Google Analytics 4 Measurement ID (optional) | ☐ |
 
 ### Pending Before Go-Live
-- [ ] Replace `tel:+1XXXXXXXXXX` with real phone number (ServiceCta, all service pages, LocalBusiness schema)
-- [ ] Point `santacruztreepros.com` DNS to Vercel
-- [ ] Update `SITE_URL` env var in Vercel from staging URL → `https://santacruztreepros.com`
+- [x] ~~Replace `tel:+1XXXXXXXXXX` with real phone number~~ — phone removed entirely until business number is set up; see Phase 9 for re-add instructions
+- [ ] Push latest commits: `git push origin main`
+- [ ] Point `santacruztreepros.com` DNS to Vercel (Settings → Domains)
+- [ ] Update `SITE_URL` env var → `https://santacruztreepros.com` **after** DNS propagates + SSL is confirmed
+- [ ] Redeploy after `SITE_URL` update
+- [ ] Set up UptimeRobot on `https://santacruztreepros.com` (after domain is live)
+- [ ] Smoke test: form submission, lead email, photos in admin, error alert email
+- [ ] Add real phone number to `ServiceCta.tsx` + `app/page.tsx` JSON-LD when available
 
 ---
 
