@@ -88,10 +88,13 @@ async function uploadPhotosToBlobStore(
 ): Promise<string[]> {
   console.log(`[photos] received ${photoDataList.length} photo(s) for lead ${leadPrefix}`);
   if (!photoDataList.length) return [];
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn("[photos] BLOB_READ_WRITE_TOKEN not set — skipping photo upload");
+  // BLOB2_READ_WRITE_TOKEN = new public store; BLOB_READ_WRITE_TOKEN = legacy fallback
+  const blobToken = process.env.BLOB2_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
+  if (!blobToken) {
+    console.warn("[photos] No blob token found (checked BLOB2_READ_WRITE_TOKEN and BLOB_READ_WRITE_TOKEN) — skipping photo upload");
     return [];
   }
+  console.log(`[photos] using token: ${blobToken.slice(0, 24)}...`);
   const results = await Promise.allSettled(
     photoDataList.map(async (dataUrl, i) => {
       const [header, b64] = dataUrl.split(",");
@@ -102,6 +105,7 @@ async function uploadPhotosToBlobStore(
       const blob = await put(`leads/${leadPrefix}-photo-${i + 1}.${ext}`, buf, {
         access: "public",
         contentType: mimeType,
+        token: blobToken,
       });
       console.log(`[photos] photo ${i + 1} uploaded OK: ${blob.url}`);
       return blob.url;
