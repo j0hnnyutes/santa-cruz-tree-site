@@ -28,20 +28,14 @@ export default async function AdminLeadsPage() {
       city: true,
       service: true,
       status: true,
-      events: {
-        where: { action: { in: ["CREATED", "CREATED_DUPLICATE"] } },
-        select: { detail: true },
-        take: 1,
-      },
+      photoUrls: true,
     },
   });
 
-  // Parse photo count from the CREATED event detail string ("... · 2 photos")
-  const leadsWithPhotos = leads.map((l) => {
-    const detail = l.events[0]?.detail ?? "";
-    const match = detail.match(/·\s*(\d+)\s*photo/);
-    return { ...l, photoCount: match ? parseInt(match[1], 10) : 0 };
-  });
+  const leadsWithPhotos = leads.map((l) => ({
+    ...l,
+    photoCount: l.photoUrls.length,
+  }));
 
   return (
     <>
