@@ -4,8 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
-// Photos are uploaded client-side via /api/blob-upload (using @vercel/blob/client).
-// This route only receives the resulting Blob CDN URLs — no binary data.
+import { put } from "@vercel/blob";
+// Photos are resized client-side to compact JPEG data URLs and sent as
+// base64 strings in the form body (photoData[] fields). This route decodes
+// them and uploads to Vercel Blob via server-side put() — no client↔CDN
+// handshake or onUploadCompleted webhook required, so it works on localhost.
 
 /* ─── Helpers ─── */
 
@@ -31,7 +34,7 @@ function formatPhone(digits: string) {
 
 type ParsedBody = {
   fields: Record<string, string>;
-  photoUrls: string[];
+  photoDataList: string[]; // base64 JPEG data URLs from client resize
 };
 
 async function parseRequest(request: Request): Promise<ParsedBody> {
@@ -42,18 +45,18 @@ async function parseRequest(request: Request): Promise<ParsedBody> {
     const fields: Record<string, string> = {};
 
     for (const [key, value] of fd.entries()) {
-      if (typeof value === "string" && key !== "photoUrls") {
+      if (typeof value === "string" && key !== "photoData") {
         fields[key] = value;
       }
     }
 
-    // Collect all photo URLs submitted by the client after client-side upload
-    const photoUrls = fd
-      .getAll("photoUrls")
-      .filter((v): v is string => typeof v === "string" && v.startsWith("https://"))
+    // Collect base64 JPEG data URLs sent by the client after canvas resize
+    const photoDataList = fd
+      .getAll("photoData")
+      .filter((v): v is string => typeof v === "string" && v.startsWith("data:image/"))
       .slice(0, 5); // hard cap at 5
 
-    return { fields, photoUrls };
+    return { fields, photoDataList };
   }
 
   // JSON fallback
@@ -61,18 +64,52 @@ async function parseRequest(request: Request): Promise<ParsedBody> {
     const json = await request.json();
     const fields = Object.fromEntries(
       Object.entries(json ?? {})
-        .filter(([k]) => k !== "photoUrls")
+        .filter(([k]) => k !== "photoData")
         .map(([k, v]) => [k, toStr(v)])
     );
-    const photoUrls = Array.isArray(json?.photoUrls)
-      ? (json.photoUrls as unknown[])
-          .filter((v): v is string => typeof v === "string" && v.startsWith("https://"))
+    const photoDataList = Array.isArray(json?.photoData)
+      ? (json.photoData as unknown[])
+          .filter((v): v is string => typeof v === "string" && v.startsWith("data:image/"))
           .slice(0, 5)
       : [];
-    return { fields, photoUrls };
+    return { fields, photoDataList };
   } catch {
-    return { fields: {}, photoUrls: [] };
+    return { fields: {}, photoDataList: [] };
   }
+}
+
+/* ─── Server-side Vercel Blob upload ─── */
+// Decodes base64 JPEG data URLs and uploads them to Vercel Blob.
+// Running on the server avoids the onUploadCompleted webhook dependency
+// (which requires a publicly-reachable server and breaks on localhost).
+async function uploadPhotosToBlobStore(
+  photoDataList: string[],
+  leadPrefix: string,
+): Promise<string[]> {
+  if (!photoDataList.length) return [];
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.warn("BLOB_READ_WRITE_TOKEN not set — skipping photo upload");
+    return [];
+  }
+  const results = await Promise.allSettled(
+    photoDataList.map(async (dataUrl, i) => {
+      const [header, b64] = dataUrl.split(",");
+      const mimeType = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
+      const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+      const buf = Buffer.from(b64, "base64");
+      const blob = await put(`leads/${leadPrefix}-photo-${i + 1}.${ext}`, buf, {
+        access: "public",
+        contentType: mimeType,
+      });
+      return blob.url;
+    }),
+  );
+  const urls: string[] = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") urls.push(r.value);
+    else console.error("Photo blob upload failed:", r.reason);
+  }
+  return urls;
 }
 
 /* ─── Turnstile server-side verification ─── */
@@ -348,7 +385,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { fields, photoUrls } = await parseRequest(request);
+  const { fields, photoDataList } = await parseRequest(request);
 
   // Validate Turnstile token — fail open so mobile users whose CAPTCHA
   // widget errors (Cloudflare error 110200) can still submit the form.
@@ -408,8 +445,12 @@ export async function POST(request: Request) {
     const leadId = randomUUID();
     const isDuplicate = !!duplicate;
 
-    // Photos are already uploaded to Vercel Blob by the client via /api/blob-upload.
-    // `photoUrls` contains the resulting CDN URLs — no server-side upload needed.
+    // Decode base64 photos and upload to Vercel Blob from the server.
+    // Server-side put() needs no webhook callback and works on localhost.
+    const photoUrls = await uploadPhotosToBlobStore(
+      photoDataList,
+      leadId.slice(0, 8),
+    );
 
     const lead = await prisma.lead.create({
       data: {

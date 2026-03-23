@@ -4,7 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useFormEventTracker } from "@/lib/formEventTracker";
-import { upload } from "@vercel/blob/client";
+// Photos are resized to small JPEG data URLs entirely in the browser (no network),
+// then sent as base64 strings in the form body. The server-side /api/lead route
+// decodes them and calls Vercel Blob put() — eliminating the onUploadCompleted
+// webhook that requires a publicly-reachable server (breaks localhost without ngrok).
 
 type Errors = Record<string, string>;
 
@@ -31,15 +34,15 @@ const ACCEPTED_EXT = ".jpg,.jpeg,.png,.heic,.heif,.webp,.tif,.tiff";
 const MAX_PHOTOS = 5;
 const MAX_MB = 10;
 
-const UPLOAD_TIMEOUT_MS = 30_000; // 30 s per-file CDN upload timeout
-
-// ── Per-photo upload tracking ─────────────────────────────────────────────
+// ── Per-photo state tracking ──────────────────────────────────────────────
+// "uploading" = canvas resize in progress (CPU only, typically <1 s)
+// "done"      = data URL ready, included on form submit
+// "error"     = resize failed (corrupt file, canvas unavailable, etc.)
 type PhotoEntry = {
   id: string;
   file: File;
   status: "uploading" | "done" | "error";
-  url?: string;       // populated on success
-  timedOut?: boolean; // true when error was caused by timeout
+  dataUrl?: string; // base64 JPEG data URL, set when status === "done"
 };
 
 function digitsOnly(v: string) {
@@ -141,97 +144,35 @@ const dk = {
   } as React.CSSProperties,
 };
 
-// ── Client-side image resize ──────────────────────────────────────────────
-// Reduces large phone/desktop photos before upload.
-// Strategy: use createImageBitmap() where available — it decodes + scales in
-// one hardware-accelerated async call without blocking the main thread.
-// Falls back to a standard Image + Canvas pipeline for older browsers.
-// HEIC/HEIF skipped entirely (browsers can't decode them via Canvas/Bitmap).
-const RESIZE_MAX_PX = 1600;   // cap longest dimension
-const RESIZE_QUALITY = 0.78;  // JPEG quality — good for outdoor/tree photos
+// ── Client-side resize → JPEG data URL ───────────────────────────────────
+// Uses the reliable HTMLImageElement + Canvas pipeline (consistent across all
+// browsers). Returns a base64 JPEG data URL that gets sent in the form body
+// so the server can upload it to Vercel Blob without any client↔CDN round trip.
+//
+// Typical result: 4 MB phone photo → 100–250 KB JPEG = well within the
+// 4.5 MB Vercel function body limit even with 5 photos in one submission.
+const RESIZE_MAX_PX = 1200; // longest dimension — sufficient for tree-service review
+const RESIZE_QUALITY = 0.80; // JPEG quality — outdoor photos compress very well
 
-function canResizeInBrowser(file: File): boolean {
-  if (["image/heic", "image/heif"].includes(file.type)) return false;
-  if (/\.(heic|heif)$/i.test(file.name)) return false;
-  return true;
-}
-
-async function resizePhoto(file: File): Promise<File> {
-  if (!canResizeInBrowser(file)) return file;
-
-  // Skip if already small enough
-  if (file.size <= 600 * 1024) return file;
-
-  const stem = file.name.replace(/\.[^.]+$/, "");
-  const outName = `${stem}.jpg`;
-
-  try {
-    // ── Fast path: createImageBitmap with built-in resize ─────────────────
-    // Supported in Chrome 50+, Firefox 42+, Safari 15+.
-    // The browser handles decode + scale in one step, often GPU-accelerated.
-    if (typeof createImageBitmap === "function") {
-      // First decode at full size to get natural dimensions
-      const full = await createImageBitmap(file);
-      const { width: w, height: h } = full;
-      full.close();
-
+function resizeAndEncode(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { naturalWidth: w, naturalHeight: h } = img;
       const scale = Math.min(RESIZE_MAX_PX / w, RESIZE_MAX_PX / h, 1);
-      if (scale >= 1) return file; // already fits within limit
-
-      const newW = Math.round(w * scale);
-      const newH = Math.round(h * scale);
-
-      // Decode again at target size — single hardware-accelerated step
-      const bitmap = await createImageBitmap(file, {
-        resizeWidth: newW,
-        resizeHeight: newH,
-        resizeQuality: "medium",
-      });
-
       const canvas = document.createElement("canvas");
-      canvas.width = newW;
-      canvas.height = newH;
+      canvas.width  = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
       const ctx = canvas.getContext("2d");
-      if (!ctx) { bitmap.close(); return file; }
-      ctx.drawImage(bitmap, 0, 0);
-      bitmap.close();
-
-      return await new Promise<File>((resolve) => {
-        canvas.toBlob(
-          (blob) => resolve(blob ? new File([blob], outName, { type: "image/jpeg" }) : file),
-          "image/jpeg",
-          RESIZE_QUALITY,
-        );
-      });
-    }
-
-    // ── Fallback: HTMLImageElement + Canvas ───────────────────────────────
-    return await new Promise<File>((resolve) => {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const { naturalWidth: w, naturalHeight: h } = img;
-        const scale = Math.min(RESIZE_MAX_PX / w, RESIZE_MAX_PX / h, 1);
-        if (scale >= 1) { resolve(file); return; }
-        const canvas = document.createElement("canvas");
-        canvas.width  = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { resolve(file); return; }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => resolve(blob ? new File([blob], outName, { type: "image/jpeg" }) : file),
-          "image/jpeg",
-          RESIZE_QUALITY,
-        );
-      };
-      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
-      img.src = objectUrl;
-    });
-  } catch {
-    return file; // always fall back to original on any error
-  }
+      if (!ctx) { reject(new Error("Canvas 2D not available")); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", RESIZE_QUALITY));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image decode failed")); };
+    img.src = objectUrl;
+  });
 }
 
 export default function FreeEstimateClient() {
@@ -240,8 +181,6 @@ export default function FreeEstimateClient() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bannerRef = useRef<HTMLDivElement | null>(null);
   const submittedRef = useRef(false);
-  // Per-photo upload controllers — keyed by PhotoEntry.id
-  const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
   const nextPhotoIdRef = useRef(0);
 
   const { trackStart, trackFieldError, trackAbandoned, trackSubmitted } =
@@ -311,9 +250,10 @@ export default function FreeEstimateClient() {
     }
   }, [banner]);
 
-  // ── File handling — upload begins immediately on file select ─────────────
-  // Industry standard (Instagram, Airbnb, Dropbox): start the CDN upload the
-  // moment a file is chosen so it's done (or nearly done) by submit time.
+  // ── File handling — resize starts immediately on file select ─────────────
+  // The resize is pure CPU work (canvas → JPEG): typically completes in
+  // < 500 ms. By the time the user fills in Address/City/Details, all
+  // photos are already encoded as data URLs ready to attach to the submit.
   function handleFiles(incoming: File[]) {
     const errs: string[] = [];
     const validFiles: File[] = [];
@@ -344,52 +284,35 @@ export default function FreeEstimateClient() {
     setPhotos((prev) => [...prev, ...newEntries]);
     setPhotoErrors(errs);
 
-    // Kick off uploads immediately — no waiting for form submit
+    // Start resize immediately — no waiting for submit
     for (const entry of newEntries) {
-      startUpload(entry);
+      processPhoto(entry);
     }
   }
 
-  async function startUpload(entry: PhotoEntry) {
-    let timedOut = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const controller = new AbortController();
-    uploadControllersRef.current.set(entry.id, controller);
+  // Resize file to a compact JPEG data URL (no network involved)
+  async function processPhoto(entry: PhotoEntry) {
     try {
-      // Resize outside the timeout window (CPU-bound canvas work, not network)
-      const toUpload = await resizePhoto(entry.file);
-      const safeName = toUpload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      // Start abort clock only once the network transfer begins
-      timer = setTimeout(() => { timedOut = true; controller.abort(); }, UPLOAD_TIMEOUT_MS);
-      const blob = await upload(safeName, toUpload, {
-        access: "public",
-        handleUploadUrl: "/api/blob-upload",
-        abortSignal: controller.signal,
-      });
+      const dataUrl = await resizeAndEncode(entry.file);
+      // Entry may have been removed while we were processing — safe to no-op
       setPhotos((prev) =>
-        prev.map((p) => p.id === entry.id ? { ...p, status: "done", url: blob.url } : p),
+        prev.map((p) => p.id === entry.id ? { ...p, status: "done", dataUrl } : p),
       );
-    } catch {
+    } catch (err) {
+      console.error("Photo resize failed:", entry.file.name, err);
       setPhotos((prev) =>
-        prev.map((p) => p.id === entry.id ? { ...p, status: "error", timedOut } : p),
+        prev.map((p) => p.id === entry.id ? { ...p, status: "error" } : p),
       );
-    } finally {
-      if (timer !== undefined) clearTimeout(timer);
-      uploadControllersRef.current.delete(entry.id);
     }
   }
 
   function retryUpload(entry: PhotoEntry) {
-    // Reset to uploading state, then restart
     const fresh: PhotoEntry = { id: entry.id, file: entry.file, status: "uploading" };
     setPhotos((prev) => prev.map((p) => p.id === entry.id ? fresh : p));
-    startUpload(fresh);
+    processPhoto(fresh);
   }
 
   function removePhoto(id: string) {
-    // Abort in-flight upload if still running
-    uploadControllersRef.current.get(id)?.abort();
-    uploadControllersRef.current.delete(id);
     setPhotos((prev) => prev.filter((p) => p.id !== id));
     setPhotoErrors([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -454,29 +377,25 @@ export default function FreeEstimateClient() {
       return;
     }
 
-    // Photos are uploaded in the background from the moment they're selected.
-    // By submit time they should already be done; handle the edge cases:
-    const failedPhotos = photos.filter((p) => p.status === "error");
-    if (failedPhotos.length > 0) {
+    // Photos are resized client-side the moment they're selected (CPU only,
+    // < 1 s). By submit time they're always done. Guard the edge cases:
+    if (photos.some((p) => p.status === "error")) {
       setBanner({
         kind: "err",
-        text: failedPhotos.some((p) => p.timedOut)
-          ? "A photo upload timed out. Remove the failed photo(s) and try again, or submit without them."
-          : "One or more photos failed to upload. Remove them and try again.",
+        text: "One or more photos couldn't be processed. Remove them and try again, or submit without photos.",
       });
       return;
     }
-    const stillUploading = photos.filter((p) => p.status === "uploading");
-    if (stillUploading.length > 0) {
-      // Shouldn't normally happen — button is disabled while uploading — but guard anyway
-      setBanner({ kind: "err", text: "Photos are still uploading. Please wait a moment and try again." });
+    if (photos.some((p) => p.status === "uploading")) {
+      // Shouldn't normally happen — button disabled while processing
+      setBanner({ kind: "err", text: "Photos are still processing. Please wait a moment and try again." });
       return;
     }
 
-    // All photos have CDN URLs ready
-    const photoUrls = photos
-      .filter((p) => p.status === "done")
-      .map((p) => p.url!);
+    // Collect base64-encoded data URLs (server will upload to Vercel Blob)
+    const photoDataList = photos
+      .filter((p) => p.status === "done" && p.dataUrl)
+      .map((p) => p.dataUrl!);
 
     setSubmitting(true);
     try {
@@ -489,7 +408,8 @@ export default function FreeEstimateClient() {
       fd.append("service", service);
       fd.append("details", details.trim());
       fd.append("turnstileToken", tsToken);
-      for (const url of photoUrls) fd.append("photoUrls", url);
+      // Send base64-encoded photos — server decodes and uploads to Vercel Blob
+      for (const dataUrl of photoDataList) fd.append("photoData", dataUrl);
 
       try {
         const raw = sessionStorage.getItem("__utm");
@@ -919,7 +839,7 @@ export default function FreeEstimateClient() {
 
                         {/* Upload status label */}
                         {entry.status === "uploading" && (
-                          <span style={{ flexShrink: 0, fontSize: 11, color: "rgba(255,255,255,0.40)" }}>uploading…</span>
+                          <span style={{ flexShrink: 0, fontSize: 11, color: "rgba(255,255,255,0.40)" }}>processing…</span>
                         )}
                         {entry.status === "error" && (
                           <button
@@ -952,7 +872,7 @@ export default function FreeEstimateClient() {
                 const anyUploading = uploadingCount > 0;
                 const btnDisabled = submitting || anyUploading;
                 const btnLabel = anyUploading
-                  ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
+                  ? `Processing ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
                   : submitting
                   ? "Submitting…"
                   : "Request Free Estimate →";
