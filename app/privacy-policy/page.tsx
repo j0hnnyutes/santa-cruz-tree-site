@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   alternates: { canonical: "https://santacruztreepros.com/privacy-policy" },
 };
-const EFFECTIVE_DATE = "March 1, 2026";
+const EFFECTIVE_DATE = "March 25, 2026";
 const BUSINESS_NAME = "Santa Cruz Tree Pros";
 const CONTACT_EMAIL = "info@santacruztreepros.com";
 const SITE_URL = "https://santacruztreepros.com";
@@ -96,14 +96,27 @@ export default function PrivacyPolicyPage() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold">3. How We Share Your Information</h2>
         <p className="text-[var(--muted)] leading-7">
-          We do not sell, rent, or trade your personal information. We may share your information only in the
-          following limited circumstances:
+          We may share your information in the following circumstances:
         </p>
         <ul className="list-disc pl-6 space-y-1.5 text-[var(--muted)]">
           <li>
-            <strong>Service Providers:</strong> We use Resend (a transactional email platform) to deliver
-            email notifications containing your inquiry details to our team. These providers are contractually
-            obligated to protect your information and may not use it for their own purposes.
+            <strong>Partner Tree Service Providers:</strong> When you submit an estimate request, your
+            contact information and project details may be shared with vetted local tree service companies
+            in your area so they can follow up regarding your request. By submitting the estimate form,
+            you consent to this sharing. You will be informed of this at the point of form submission.
+          </li>
+          <li>
+            <strong>Infrastructure Service Providers:</strong> We use trusted third-party infrastructure to operate
+            this Site. These providers access your information only to perform services on our behalf and
+            are contractually obligated to protect it:
+            <ul className="list-disc pl-6 mt-2 space-y-1">
+              <li><strong>Vercel</strong> — website hosting and serverless infrastructure (vercel.com)</li>
+              <li><strong>Vercel Blob</strong> — cloud storage for photos you upload with your estimate request</li>
+              <li><strong>Neon</strong> — PostgreSQL database hosting for estimate submissions (neon.tech)</li>
+              <li><strong>Resend</strong> — transactional email delivery for inquiry notifications (resend.com)</li>
+              <li><strong>Google Analytics 4</strong> — anonymous website traffic analytics; data is aggregated and does not identify you personally (see Section 5)</li>
+              <li><strong>Cloudflare Turnstile</strong> — bot and spam prevention on our estimate form (cloudflare.com)</li>
+            </ul>
           </li>
           <li>
             <strong>Legal Requirements:</strong> We may disclose information if required by law, subpoena,
@@ -123,7 +136,7 @@ export default function PrivacyPolicyPage() {
           We retain personal information submitted through our contact and estimate forms for as long as
           necessary to fulfill the purposes described in this policy, including responding to your inquiry
           and providing ongoing services. If you have not engaged our services, we typically retain inquiry
-          data for no longer than 24 months. You may request deletion of your data at any time (see Section 7).
+          data for no longer than 24 months. You may request deletion of your data at any time (see Section 6).
         </p>
         <p className="text-[var(--muted)] leading-7">
           Photos you upload as part of a service inquiry are stored on our servers solely to assist in
@@ -141,7 +154,11 @@ export default function PrivacyPolicyPage() {
         </p>
         <ul className="list-disc pl-6 space-y-1.5 text-[var(--muted)]">
           <li><strong>Essential cookies:</strong> Required for the Site to function (e.g., security tokens).</li>
-          <li><strong>Analytics cookies:</strong> Help us understand Site traffic and user behavior in aggregate.</li>
+          <li><strong>Analytics cookies:</strong> We use Google Analytics 4 (GA4) to understand Site traffic and
+          user behavior in aggregate. GA4 uses cookies to collect anonymized data such as pages visited, session
+          duration, and general geographic location. This data is not linked to your name or contact information.
+          You can opt out of Google Analytics tracking by installing the{" "}
+          <a href="https://tools.google.com/dlpage/gaoptout" className="text-[var(--brand-accent)] underline underline-offset-2" target="_blank" rel="noopener noreferrer">Google Analytics Opt-out Browser Add-on</a>.</li>
         </ul>
         <p className="text-[var(--muted)] leading-7">
           You may disable cookies through your browser settings. Disabling cookies may affect certain Site
@@ -213,7 +230,42 @@ export default function PrivacyPolicyPage() {
 
       {/* Section 7 */}
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">7. Children&rsquo;s Privacy</h2>
+        <h2 className="text-xl font-bold">7. Communications &amp; How to Opt Out</h2>
+        <p className="text-[var(--muted)] leading-7">
+          When you submit an estimate request, you consent to being contacted by {BUSINESS_NAME} and/or
+          matched local tree service providers via the phone number and/or email address you provide, for
+          the purpose of following up on your service inquiry, scheduling an on-site assessment, or
+          providing a quote. We and our partner providers may contact you by phone, email, or — if you
+          opt in separately — text (SMS) message.
+        </p>
+        <p className="text-[var(--muted)] leading-7 font-medium">
+          Consent to be contacted is not required to receive a free estimate or to use our services.
+        </p>
+        <h3 className="text-base font-semibold">Opting Out</h3>
+        <p className="text-[var(--muted)] leading-7">
+          You may withdraw your consent to be contacted at any time:
+        </p>
+        <ul className="list-disc pl-6 space-y-1.5 text-[var(--muted)]">
+          <li><strong>Email:</strong> Reply &ldquo;UNSUBSCRIBE&rdquo; or &ldquo;STOP&rdquo; to any email we send, or contact us at{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--brand-accent)] underline underline-offset-2">{CONTACT_EMAIL}</a>.</li>
+          <li><strong>SMS/Text:</strong> Reply <strong>STOP</strong> to any text message. Standard message and data rates may apply.</li>
+          <li><strong>Phone:</strong> Tell our team member you do not wish to receive further calls.</li>
+        </ul>
+        <p className="text-[var(--muted)] leading-7">
+          We will honor opt-out requests within 10 business days. After opting out, you may still receive a
+          single, non-marketing confirmation message.
+        </p>
+        <h3 className="text-base font-semibold">CAN-SPAM Compliance</h3>
+        <p className="text-[var(--muted)] leading-7">
+          Any commercial emails we send comply with the federal CAN-SPAM Act. Each email includes a clear
+          identification of the sender, a physical mailing address, and an easy, functional opt-out mechanism.
+          We do not use deceptive subject lines or misleading headers.
+        </p>
+      </section>
+
+      {/* Section 8 */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold">8. Children&rsquo;s Privacy</h2>
         <p className="text-[var(--muted)] leading-7">
           Our Site is not directed to children under the age of 13, and we do not knowingly collect personal
           information from children under 13. If we become aware that we have inadvertently collected
@@ -223,9 +275,9 @@ export default function PrivacyPolicyPage() {
         </p>
       </section>
 
-      {/* Section 8 */}
+      {/* Section 9 */}
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">8. Security</h2>
+        <h2 className="text-xl font-bold">9. Security</h2>
         <p className="text-[var(--muted)] leading-7">
           We implement reasonable administrative, technical, and physical security measures to protect
           your personal information from unauthorized access, use, or disclosure. These measures include
@@ -238,9 +290,9 @@ export default function PrivacyPolicyPage() {
         </p>
       </section>
 
-      {/* Section 9 */}
+      {/* Section 10 — Third-Party Links */}
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">9. Third-Party Links</h2>
+        <h2 className="text-xl font-bold">10. Third-Party Links</h2>
         <p className="text-[var(--muted)] leading-7">
           Our Site may contain links to third-party websites. We are not responsible for the privacy
           practices or content of those sites. We encourage you to review the privacy policies of any
@@ -248,9 +300,9 @@ export default function PrivacyPolicyPage() {
         </p>
       </section>
 
-      {/* Section 10 */}
+      {/* Section 11 */}
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">10. Changes to This Policy</h2>
+        <h2 className="text-xl font-bold">11. Changes to This Policy</h2>
         <p className="text-[var(--muted)] leading-7">
           We may update this Privacy Policy from time to time to reflect changes in our practices or
           applicable law. When we make material changes, we will update the &ldquo;Effective Date&rdquo; at the top
@@ -259,9 +311,9 @@ export default function PrivacyPolicyPage() {
         </p>
       </section>
 
-      {/* Section 11 */}
+      {/* Section 12 */}
       <section className="space-y-4">
-        <h2 className="text-xl font-bold">11. Contact Us</h2>
+        <h2 className="text-xl font-bold">12. Contact Us</h2>
         <p className="text-[var(--muted)] leading-7">
           If you have questions, concerns, or requests regarding this Privacy Policy or our data practices,
           please contact us:

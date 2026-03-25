@@ -11,6 +11,7 @@ export default function AdminNav() {
     { href: "/admin/leads", label: "Leads" },
     { href: "/admin/errors", label: "Errors" },
     { href: "/admin/analytics", label: "Analytics" },
+    { href: "/admin/privacy", label: "🔒 Privacy" },
     { href: "/admin/settings", label: "⚙️ Settings" },
   ];
 

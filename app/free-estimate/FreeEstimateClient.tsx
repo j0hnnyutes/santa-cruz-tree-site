@@ -905,14 +905,21 @@ export default function FreeEstimateClient() {
                 );
               })()}
 
-              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                {["🚫 No obligation", "✉ Timely response to estimate requests"].map((t) => (
-                  <span key={t} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t}</span>
-                ))}
+              {/* TCPA / consent disclosure */}
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", lineHeight: 1.6, marginTop: 12, textAlign: "center" }}>
+                By submitting, you agree to be contacted by Santa Cruz Tree Pros and matched local tree
+                service providers regarding your estimate request, via phone or email. Consent is not
+                required to receive a free estimate. Msg &amp; data rates may apply. Reply STOP to opt out.{" "}
                 <a href="/privacy-policy" target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textDecoration: "underline" }}>
+                  style={{ color: "rgba(255,255,255,0.45)", textDecoration: "underline" }}>
                   Privacy Policy
                 </a>
+              </p>
+
+              <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {["🚫 No obligation", "✉ Timely response", "🔒 Secure &amp; confidential"].map((t) => (
+                  <span key={t} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{t}</span>
+                ))}
               </div>
 
               {/* Invisible Turnstile */}
