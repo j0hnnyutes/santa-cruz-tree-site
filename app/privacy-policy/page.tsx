@@ -198,8 +198,14 @@ export default function PrivacyPolicyPage() {
 
         <h3 className="text-base font-semibold">Right to Opt-Out of Sale or Sharing</h3>
         <p className="text-[var(--muted)] leading-7">
-          We do not sell or share your personal information for cross-context behavioral advertising.
-          You therefore do not need to opt out of any such sale or sharing.
+          When you submit an estimate request, your contact information and project details may be shared
+          with vetted local tree service companies for the purpose of fulfilling your request. This
+          sharing is disclosed at the point of form submission and is necessary to connect you with
+          service providers. We do not sell or share your personal information for cross-context
+          behavioral advertising. To opt out of having your information shared with partner tree service
+          providers, simply do not submit the estimate form, or contact us at{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--brand-accent)] underline underline-offset-2">{CONTACT_EMAIL}</a>{" "}
+          after submission and we will not forward your information to any additional partners.
         </p>
 
         <h3 className="text-base font-semibold">Right to Limit Use of Sensitive Personal Information</h3>
@@ -213,6 +219,21 @@ export default function PrivacyPolicyPage() {
           We will not discriminate against you for exercising any of your CCPA/CPRA rights. We will not
           deny you services, charge different prices, or provide a different quality of service because
           you exercised your privacy rights.
+        </p>
+
+        <h3 className="text-base font-semibold">Shine the Light (Cal. Civ. Code § 1798.83)</h3>
+        <p className="text-[var(--muted)] leading-7">
+          California residents may request, once per calendar year and free of charge, information about
+          the personal information we have shared with third parties (including our partner tree service
+          providers) for their own direct marketing purposes during the prior calendar year. This includes
+          the categories of personal information shared and the names and addresses of those third parties.
+        </p>
+        <p className="text-[var(--muted)] leading-7">
+          To submit a Shine the Light request, email{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--brand-accent)] underline underline-offset-2">{CONTACT_EMAIL}</a>{" "}
+          with the subject line <strong>&ldquo;Shine the Light Request&rdquo;</strong> and include your
+          current California mailing address and a statement that you are a California resident. We will
+          respond within 30 days.
         </p>
 
         <h3 className="text-base font-semibold">How to Submit a Request</h3>
