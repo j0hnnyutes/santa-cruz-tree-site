@@ -15,8 +15,8 @@ function normaliseEmail(raw: string) {
 // Does NOT mutate anything.
 
 export async function GET(req: NextRequest) {
-  const authErr = await requireAdminAuth(req);
-  if (authErr) return authErr;
+  const auth = await requireAdminAuth();
+  if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const email = req.nextUrl.searchParams.get("email")?.trim();
   if (!email) {
@@ -79,11 +79,10 @@ export async function GET(req: NextRequest) {
       totalPhotoCount: leads.reduce((n, l) => n + l.photoUrls.length, 0),
     });
   } catch (err) {
-    await logError(req, {
+    logError(req, {
       severity: "high",
       type: "server_api",
-      message: `Privacy lookup failed for ${email}`,
-      error: err,
+      message: `Privacy lookup failed for ${email}: ${String(err)}`,
     });
     return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
@@ -98,8 +97,8 @@ export async function GET(req: NextRequest) {
 // Body: { email: string }
 
 export async function DELETE(req: NextRequest) {
-  const authErr = await requireAdminAuth(req);
-  if (authErr) return authErr;
+  const auth = await requireAdminAuth({ enforceCsrf: true });
+  if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: { email?: string };
   try {
@@ -175,11 +174,10 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json(receipt);
   } catch (err) {
-    await logError(req, {
+    logError(req, {
       severity: "high",
       type: "server_api",
-      message: `Privacy deletion failed for ${email}`,
-      error: err,
+      message: `Privacy deletion failed for ${email}: ${String(err)}`,
     });
     return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
   }
