@@ -60,6 +60,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <Link
               href="/free-estimate"
+              aria-label="Get a free estimate — request a quote"
               className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[var(--brand-green)] px-4 py-2 text-base font-semibold text-white hover:bg-[var(--brand-green-dark,#154d2b)] transition-colors"
             >
               Get Free Estimate
@@ -106,6 +107,7 @@ export default function Header() {
               ))}
               <Link
                 href="/free-estimate"
+                aria-label="Get a free estimate — request a quote"
                 onClick={() => setOpen(false)}
                 className="mobile-cta-btn mt-2 rounded-lg bg-[var(--brand-green)] px-3 py-2.5 text-center text-base font-semibold text-white"
               >

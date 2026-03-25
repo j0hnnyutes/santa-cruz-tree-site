@@ -251,7 +251,7 @@ export default function HomePage() {
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 55%" }}
         />
         {/* Gradient overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, rgba(10,30,15,0.82) 0%, rgba(10,30,15,0.55) 60%, rgba(10,30,15,0.2) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, rgba(10,30,15,0.82) 0%, rgba(10,30,15,0.60) 60%, rgba(10,30,15,0.55) 100%)" }} />
         {/* Content */}
         <div className="site-container" style={{ position: "relative", zIndex: 2, padding: "80px 24px" }}>
           {/* Eyebrow */}
@@ -334,7 +334,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>{c.title}</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 3 }}>{c.sub}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", marginTop: 3 }}>{c.sub}</div>
                 </div>
               </div>
             ))}
@@ -382,7 +382,8 @@ export default function HomePage() {
                   <div style={{ position: "relative", height: 210, overflow: "hidden", flexShrink: 0 }}>
                     <img
                       src={s.img}
-                      alt={s.title}
+                      alt=""
+                      aria-hidden="true"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s" }}
                       className="service-photo-card-img"
                     />
