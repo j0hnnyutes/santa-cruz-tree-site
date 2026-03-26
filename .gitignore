@@ -45,3 +45,6 @@ prisma/dev.db
 backups/
 
 lead-uploads/
+
+# Staging folder for blog image processing
+public/images/blog/new/
