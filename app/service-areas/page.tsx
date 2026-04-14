@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import ServiceCta from "@/components/ServiceCta";
+import ServiceAreaMapWrapper from "@/components/ServiceAreaMapWrapper";
 
 export const metadata: Metadata = {
   title: "Tree Service Areas | Santa Cruz County",
@@ -75,56 +76,115 @@ const cities = [
 
 export default function ServiceAreasPage() {
   return (
-    <main className="site-container py-14 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">Service Areas</h1>
-        <p className="text-lg text-[var(--muted)] leading-relaxed">
-          We serve Santa Cruz County and nearby communities. Choose your city to
-          view local service details, common tree issues for the area, and how to
-          request an estimate.
-        </p>
-      </header>
-
-      {/* Nature background behind cards */}
-      <section className="relative rounded-2xl overflow-hidden">
-        <div className="absolute inset-0">
-          <Image
-            src="/assets/tree-mulching.webp"
-            alt=""
-            fill
-            className="object-cover"
-            sizes="100vw"
-            aria-hidden="true"
-          />
-          <div className="absolute inset-0 bg-white/60" />
-        </div>
-
-        <div className="relative px-6 py-8 sm:px-8">
-          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {cities.map((c) => (
-              <li key={c.slug} className="h-full">
-                <Link
-                  className="surface-card flex flex-col h-full p-6 transition-colors duration-200 hover:bg-[var(--brand-accent-light)] hover:border-[var(--brand-accent)]"
-                  href={`/service-areas/${c.slug}`}
-                >
-                  <h3 className="text-xl font-semibold">{c.name}, CA</h3>
-                  <p className="mt-2 text-[var(--muted)] leading-relaxed flex-1">
-                    {c.blurb}
-                  </p>
-                  <div className="mt-6 text-base font-semibold text-[var(--brand-accent)]">
-                    View city page &rarr;
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+    <>
+      {/* ── Hero banner ── */}
+      <section style={{ position: "relative", height: 300, overflow: "hidden" }}>
+        <img
+          src="/assets/tree-mulching.webp"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            objectFit: "cover", objectPosition: "center 40%",
+          }}
+        />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(105deg, rgba(10,30,15,0.82) 0%, rgba(10,30,15,0.58) 100%)",
+        }} />
+        <div
+          className="site-container"
+          style={{
+            position: "relative", zIndex: 2,
+            height: "100%", display: "flex",
+            flexDirection: "column", justifyContent: "center",
+            padding: "40px 24px",
+          }}
+        >
+          <p style={{
+            color: "#86efad", fontSize: 12, fontWeight: 700,
+            letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10,
+          }}>
+            Santa Cruz County
+          </p>
+          <h1 style={{
+            fontSize: "clamp(26px, 3.5vw, 42px)", fontWeight: 900,
+            color: "#fff", lineHeight: 1.1,
+            letterSpacing: "-0.02em", maxWidth: 600, marginBottom: 12,
+          }}>
+            Service Areas
+          </h1>
+          <p style={{
+            fontSize: 16, color: "rgba(255,255,255,0.82)",
+            maxWidth: 520, lineHeight: 1.6,
+          }}>
+            We serve all of Santa Cruz County and nearby communities. Choose your
+            city to see local service details and request an estimate.
+          </p>
         </div>
       </section>
 
-      <ServiceCta
-        heading="Need Tree Service?"
-        body="Tell us your location and what you need. We serve all of Santa Cruz County."
-      />
-    </main>
+      <main className="site-container py-14 space-y-14">
+
+        {/* ── Coverage map ── */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">Coverage Map</h2>
+          <p className="text-[var(--muted)] leading-relaxed">
+            We cover the full county — from the coast to the mountains. Click any
+            marker to jump to that city&apos;s service page.
+          </p>
+          <div
+            className="rounded-2xl overflow-hidden border border-[var(--border)] shadow-sm"
+            style={{ height: 420 }}
+          >
+            <ServiceAreaMapWrapper />
+          </div>
+        </section>
+
+        {/* ── City cards ── */}
+        <section className="relative rounded-2xl overflow-hidden">
+          {/* Background photo — darkened so it reads as texture, not distraction */}
+          <div className="absolute inset-0">
+            <Image
+              src="/assets/tree-mulching.webp"
+              alt=""
+              fill
+              className="object-cover"
+              style={{ objectPosition: "center 40%" }}
+              sizes="100vw"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0" style={{ background: "rgba(10,30,15,0.55)" }} />
+          </div>
+
+          <div className="relative px-6 py-8 sm:px-8">
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+              {cities.map((c) => (
+                <li key={c.slug} className="h-full">
+                  <Link
+                    className="surface-card flex flex-col h-full p-6 transition-colors duration-200 hover:bg-[var(--brand-accent-light)] hover:border-[var(--brand-accent)]"
+                    href={`/service-areas/${c.slug}`}
+                  >
+                    <h3 className="text-xl font-semibold">{c.name}, CA</h3>
+                    <p className="mt-2 text-[var(--muted)] leading-relaxed flex-1">
+                      {c.blurb}
+                    </p>
+                    <div className="mt-6 text-base font-semibold text-[var(--brand-accent)]">
+                      View city page &rarr;
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <ServiceCta
+          heading="Need Tree Service?"
+          body="Tell us your location and what you need. We serve all of Santa Cruz County."
+        />
+      </main>
+    </>
   );
 }
