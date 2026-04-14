@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -82,19 +83,13 @@ export default function BoulderCreekPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Boulder Creek, CA"
+        subheading="Hazard removal, fire-damaged trees, and steep terrain specialists"
+        imgSrc="/assets/chainsaw.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Boulder Creek, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Boulder Creek is the most remote of our service areas—a mountain community in the upper San Lorenzo Valley
-          surrounded by dense forest and steep terrain. Many properties were directly affected by the 2020 CZU Lightning Complex
-          fire and continue to deal with fire-damaged trees, post-fire recovery, and defensible space requirements. We specialize
-          in challenging access, remote properties, fire mitigation, and working safely on slopes where conventional equipment
-          simply cannot go.
-        </p>
-      </header>
 
       {/* Common Tree Issues */}
       <section className="space-y-6">
@@ -197,5 +192,6 @@ export default function BoulderCreekPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Boulder Creek")) }}
       />
     </main>
+    </>
   );
 }

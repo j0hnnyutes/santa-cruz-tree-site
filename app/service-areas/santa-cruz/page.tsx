@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -108,17 +109,13 @@ export default function SantaCruzPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Santa Cruz, CA"
+        subheading="Coastal tree care across West Cliff, Westside, Seabright, and beyond"
+        imgSrc="/assets/tree-removal-with-crane.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Santa Cruz, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Santa Cruz’s coastal neighborhoods—from West Cliff to Seabright, and UCSC-adjacent areas—feature mature Monterey
-          Cypress, Coast Live Oak, and Redwoods that face persistent wind, salt spray, and fog-drip stress. We provide expert
-          tree removal, pruning, and emergency response tailored to Santa Cruz’s unique environmental and access challenges.
-        </p>
-      </header>
 
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Santa Cruz</h2>
@@ -226,5 +223,6 @@ export default function SantaCruzPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Santa Cruz")) }}
       />
     </main>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -82,19 +83,13 @@ export default function ScottsValleyPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Scotts Valley, CA"
+        subheading="Fire clearance, defensible space, and redwood management for forested neighborhoods"
+        imgSrc="/assets/chainsaw.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Scotts Valley, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Scotts Valley's suburban neighborhoods are deeply embedded in forested hillsides—a transition zone
-          between coastal redwood forest and oak woodland. Located along Highway 17, Scotts Valley faces significant
-          wildfire risk and power line management challenges. We help residents and property managers implement
-          defensible space, manage dense canopy, clear utility conflicts, and maintain healthy trees in a high-risk
-          wildland-urban interface.
-        </p>
-      </header>
 
       {/* Common Tree Issues */}
       <section className="space-y-6">
@@ -197,5 +192,6 @@ export default function ScottsValleyPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Scotts Valley")) }}
       />
     </main>
+    </>
   );
 }

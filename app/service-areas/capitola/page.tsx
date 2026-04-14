@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -108,17 +109,13 @@ export default function CapitolaPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Capitola, CA"
+        subheading="Expert care for coastal cypress, mature pines, and tight beachside lots"
+        imgSrc="/assets/tree-trimming.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Capitola, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Capitola’s charming village setting features dense residential neighborhoods, Soquel Creek erosion challenges, and
-          heritage trees requiring specialized care. We provide expert tree removal, emergency response, and arborist consulting
-          tailored to Capitola’s tight access, creek-side hazards, and protected tree requirements.
-        </p>
-      </header>
 
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Capitola</h2>
@@ -226,5 +223,6 @@ export default function CapitolaPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Capitola")) }}
       />
     </main>
+    </>
   );
 }

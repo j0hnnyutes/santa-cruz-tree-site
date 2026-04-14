@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -82,17 +83,13 @@ export default function LiveOakPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Live Oak, CA"
+        subheading="Street tree clearance and structural tree work in established neighborhoods"
+        imgSrc="/assets/tree-trimming.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Live Oak, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Live Oak's dense neighborhoods, salt-swept coastal exposure, and aging tree canopy present unique challenges.
-          Many properties struggle with declining Monterey Pines, tight spaces between homes, and storm-weakened trees.
-          We know the local conditions and provide practical solutions for property safety and mature tree care.
-        </p>
-      </header>
 
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Live Oak</h2>
@@ -215,5 +212,6 @@ export default function LiveOakPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Live Oak")) }}
       />
     </main>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -82,18 +83,13 @@ export default function FeltonPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Felton, CA"
+        subheading="Old-growth redwood care and technical rigging in the San Lorenzo Valley"
+        imgSrc="/assets/chainsaw.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Felton, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Felton is a small mountain town in the San Lorenzo Valley, nestled in dense old-growth redwood forest.
-          Most homes are built among massive Coast Redwoods, Douglas Firs, and Tan Oaks—creating unique challenges
-          for tree care, property access, and flood risk management. We specialize in close-quarters work, limited-access
-          properties, and the particular needs of homes surrounded by forest giants near Henry Cowell Redwoods State Park.
-        </p>
-      </header>
 
       {/* Common Tree Issues */}
       <section className="space-y-6">
@@ -197,5 +193,6 @@ export default function FeltonPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Felton")) }}
       />
     </main>
+    </>
   );
 }

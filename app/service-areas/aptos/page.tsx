@@ -3,6 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 import { serviceAreaBreadcrumb } from "@/lib/jsonld";
 import { FaqBlock, InfoCard } from "@/components/ServicePageKit";
+import CityHero from "@/components/CityHero";
 
 const siteUrl = "https://santacruztreepros.com";
 const siteName = "Santa Cruz Tree Pros";
@@ -82,18 +83,13 @@ export default function AptosPage() {
   };
 
   return (
+    <>
+      <CityHero
+        heading="Tree Service in Aptos, CA"
+        subheading="Storm damage cleanup, hazard removal, and coastal wind care for Rio del Mar"
+        imgSrc="/assets/tree-trimming.webp"
+      />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Tree Service in Aptos, CA
-        </h1>
-        <p className="text-[var(--muted)] leading-7">
-          Aptos sits in the heart of Santa Cruz County's coastal zone—where salt air, persistent
-          wind, and winter storms challenge tree health and safety. From Aptos Village to Rio del Mar
-          to the Seacliff State Beach area, we help property owners manage Monterey Pines, Coast Live Oaks,
-          and canyon redwoods through hazard mitigation, storm cleanup, and preventive care.
-        </p>
-      </header>
 
       {/* Common Tree Issues */}
       <section className="space-y-6">
@@ -196,5 +192,6 @@ export default function AptosPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceAreaBreadcrumb("Tree Service in Aptos")) }}
       />
     </main>
+    </>
   );
 }
