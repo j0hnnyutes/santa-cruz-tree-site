@@ -117,6 +117,10 @@ export default function SantaCruzPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Santa Cruz’s coastal neighborhoods—from West Cliff to Seabright, and UCSC-adjacent areas—feature mature Monterey Cypress, Coast Live Oak, and Redwoods that face persistent wind, salt spray, and fog-drip stress. We provide expert tree removal, pruning, and emergency response tailored to Santa Cruz’s unique environmental and access challenges.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Santa Cruz</h2>
         <div className="grid gap-4 sm:grid-cols-2">

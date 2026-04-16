@@ -117,6 +117,10 @@ export default function CapitolaPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Capitola’s charming village setting features dense residential neighborhoods, Soquel Creek erosion challenges, and heritage trees requiring specialized care. We provide expert tree removal, emergency response, and arborist consulting tailored to Capitola’s tight access, creek-side hazards, and protected tree requirements.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Capitola</h2>
         <div className="grid gap-4 sm:grid-cols-2">

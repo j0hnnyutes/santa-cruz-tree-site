@@ -91,6 +91,10 @@ export default function BoulderCreekPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Boulder Creek is the most remote of our service areas—a mountain community in the upper San Lorenzo Valley surrounded by dense forest and steep terrain. Many properties were directly affected by the 2020 CZU Lightning Complex fire and continue to deal with fire-damaged trees, post-fire recovery, and defensible space requirements. We specialize in challenging access, remote properties, fire mitigation, and working safely on slopes where conventional equipment simply cannot go.
+        </p>
+
       {/* Common Tree Issues */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Boulder Creek</h2>

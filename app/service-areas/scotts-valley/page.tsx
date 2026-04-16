@@ -91,6 +91,10 @@ export default function ScottsValleyPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Scotts Valley’s suburban neighborhoods are deeply embedded in forested hillsides—a transition zone between coastal redwood forest and oak woodland. Located along Highway 17, Scotts Valley faces significant wildfire risk and power line management challenges. We help residents and property managers implement defensible space, manage dense canopy, clear utility conflicts, and maintain healthy trees in a high-risk wildland-urban interface.
+        </p>
+
       {/* Common Tree Issues */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Scotts Valley</h2>

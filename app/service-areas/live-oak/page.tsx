@@ -91,6 +91,10 @@ export default function LiveOakPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Live Oak’s dense neighborhoods, salt-swept coastal exposure, and aging tree canopy present unique challenges. Many properties struggle with declining Monterey Pines, tight spaces between homes, and storm-weakened trees. We know the local conditions and provide practical solutions for property safety and mature tree care.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Live Oak</h2>
 

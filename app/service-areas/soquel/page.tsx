@@ -117,6 +117,10 @@ export default function SoquelPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Soquel’s hillside neighborhoods feature redwood groves, mixed forests, and rural-residential properties in the wildland-urban interface. We provide specialized tree removal, fire-risk mitigation, and emergency response designed for steep terrain, limited access, and defensible space planning.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Soquel</h2>
         <div className="grid gap-4 sm:grid-cols-2">

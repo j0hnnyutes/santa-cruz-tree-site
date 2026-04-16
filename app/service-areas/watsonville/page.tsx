@@ -117,6 +117,10 @@ export default function WatsonvillePage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Watsonville’s agricultural heritage and Pajaro Valley location create unique tree management challenges—from farm windbreak effectiveness and seasonal flooding risk to native oak preservation. We provide specialized tree removal, pruning, and emergency response for both farm and residential properties in the Watsonville area.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Watsonville</h2>
         <div className="grid gap-4 sm:grid-cols-2">

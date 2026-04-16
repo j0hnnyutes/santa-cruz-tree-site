@@ -91,6 +91,10 @@ export default function FeltonPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Felton is a small mountain town in the San Lorenzo Valley, nestled in dense old-growth redwood forest. Most homes are built among massive Coast Redwoods, Douglas Firs, and Tan Oaks—creating unique challenges for tree care, property access, and flood risk management. We specialize in close-quarters work, limited-access properties, and the particular needs of homes surrounded by forest giants near Henry Cowell Redwoods State Park.
+        </p>
+
       {/* Common Tree Issues */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Felton</h2>

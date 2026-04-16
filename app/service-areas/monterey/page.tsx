@@ -91,6 +91,10 @@ export default function MontereyPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Monterey’s coastal location, native Cypress and Pine heritage, and protected urban forest require expertise in heritage tree preservation, coastal species management, and sensitive removal planning. We respect both the natural character and practical safety needs of Monterey properties.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Monterey</h2>
 

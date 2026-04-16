@@ -91,6 +91,10 @@ export default function AptosPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Aptos sits in the heart of Santa Cruz County’s coastal zone—where salt air, persistent wind, and winter storms challenge tree health and safety. From Aptos Village to Rio del Mar to the Seacliff State Beach area, we help property owners manage Monterey Pines, Coast Live Oaks, and canyon redwoods through hazard mitigation, storm cleanup, and preventive care.
+        </p>
+
       {/* Common Tree Issues */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Aptos</h2>

@@ -91,6 +91,10 @@ export default function BenLomondPage() {
       />
     <main className="mx-auto w-full max-w-[1100px] px-4 py-10 space-y-12">
 
+        <p className="text-[var(--muted)] leading-7">
+          Ben Lomond’s heavily forested slopes, San Lorenzo River proximity, and limited vehicle access require specialized tree care expertise. Between post-CZU fire recovery, erosion management, and the challenges of working in steep terrain, we provide solutions built for mountain conditions.
+        </p>
+
       <section className="space-y-6">
         <h2 className="text-2xl font-bold">Common Tree Issues in Ben Lomond</h2>
 
