@@ -9,6 +9,7 @@ export default function AdminNav() {
   const links = [
     { href: "/admin/dashboard", label: "Dashboard" },
     { href: "/admin/leads", label: "Leads" },
+    { href: "/admin/partners", label: "Partners" },
     { href: "/admin/errors", label: "Errors" },
     { href: "/admin/analytics", label: "Analytics" },
     { href: "/admin/privacy", label: "🔒 Privacy" },

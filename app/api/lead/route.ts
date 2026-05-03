@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
 import { randomUUID } from "crypto";
 import { put } from "@vercel/blob";
+import { sendLeadSms } from "@/lib/twilio";
 // Photos are resized client-side to compact JPEG data URLs and sent as
 // base64 strings in the form body (photoData[] fields). This route decodes
 // them and uploads to Vercel Blob via server-side put() — no client↔CDN
@@ -513,6 +514,75 @@ export async function POST(request: Request) {
         },
       }).catch(() => {});
     }
+
+    // Auto-forward: find an active partner covering this city and send SMS
+    // Fire-and-forget — don't let failures block the lead creation response.
+    void (async () => {
+      try {
+        const cityLower = city.toLowerCase();
+        // Find the first active partner whose cities array contains this city.
+        // We load all active partners and match case-insensitively in JS — the
+        // list is small enough that a full scan is fine.
+        const allActive = await prisma.partner.findMany({
+          where: { active: true },
+          select: { id: true, name: true, company: true, phone: true, cities: true },
+        });
+        const autoPartner = allActive.find((p) =>
+          p.cities.some((c) => c.toLowerCase() === cityLower)
+        ) ?? null;
+
+        if (!autoPartner) return;
+
+        const smsPayload = {
+          leadId: lead.leadId,
+          fullName,
+          phoneDigits,
+          email,
+          address,
+          city,
+          service,
+          details: details || null,
+        };
+
+        let twilioSid: string | null = null;
+        let smsStatus: "SENT" | "FAILED" = "SENT";
+        let smsError: string | null = null;
+
+        try {
+          twilioSid = await sendLeadSms(autoPartner.phone, smsPayload);
+        } catch (err) {
+          smsStatus = "FAILED";
+          smsError = err instanceof Error ? err.message : String(err);
+          console.error("[auto-forward] SMS failed:", smsError);
+        }
+
+        await Promise.all([
+          prisma.leadForward.create({
+            data: {
+              leadId: lead.leadId,
+              partnerId: autoPartner.id,
+              method: "SMS",
+              status: smsStatus,
+              twilioSid,
+              isAuto: true,
+              error: smsError,
+            },
+          }),
+          prisma.leadEvent.create({
+            data: {
+              leadId: lead.leadId,
+              action: smsStatus === "SENT" ? "FORWARDED" : "FORWARD_FAILED",
+              detail:
+                smsStatus === "SENT"
+                  ? `Auto-SMS sent to ${autoPartner.name} (${autoPartner.company})`
+                  : `Auto-SMS to ${autoPartner.name} failed: ${smsError}`,
+            },
+          }),
+        ]);
+      } catch (err) {
+        console.error("[auto-forward] unexpected error:", err);
+      }
+    })();
 
     // Await email so Vercel doesn't shut down the function before it sends
     await sendLeadNotification({

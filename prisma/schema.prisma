@@ -59,6 +59,43 @@ model Lead {
 
   // Audit trail
   events       LeadEvent[]
+
+  // Partner forwarding
+  forwards     LeadForward[]
+}
+
+// ─── Partner lead forwarding ──────────────────────────────────────────────────
+
+model Partner {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String                        // owner first/last name
+  company   String                        // company name
+  phone     String                        // mobile number for SMS (digits only or E.164)
+  email     String?                       // optional — for email backup
+  cities    String[] @default([])         // SC city names this partner covers
+  active    Boolean  @default(true)
+  notes     String?
+  forwards  LeadForward[]
+
+  @@index([active])
+}
+
+model LeadForward {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [leadId], onDelete: Cascade)
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+  method    String   // "SMS" | "EMAIL"
+  status    String   // "SENT" | "FAILED"
+  twilioSid String?  // Twilio message SID for delivery tracking
+  isAuto    Boolean  @default(false) // true = auto-forwarded on lead creation
+  error     String?  // error message if FAILED
+
+  @@index([leadId, createdAt])
+  @@index([partnerId, createdAt])
 }
 
 model LeadEvent {

@@ -108,6 +108,49 @@ const steps = [
     name: 'Add maxScrollDepth column to PageView',
     sql: `ALTER TABLE "PageView" ADD COLUMN IF NOT EXISTS "maxScrollDepth" INTEGER`,
   },
+  {
+    name: 'Create Partner table',
+    sql: `CREATE TABLE IF NOT EXISTS "Partner" (
+      "id"        TEXT NOT NULL,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+      "name"      TEXT NOT NULL,
+      "company"   TEXT NOT NULL,
+      "phone"     TEXT NOT NULL,
+      "email"     TEXT,
+      "cities"    TEXT[] NOT NULL DEFAULT '{}',
+      "active"    BOOLEAN NOT NULL DEFAULT true,
+      "notes"     TEXT,
+      CONSTRAINT "Partner_pkey" PRIMARY KEY ("id")
+    )`,
+  },
+  {
+    name: 'Create Partner active index',
+    sql: `CREATE INDEX IF NOT EXISTS "Partner_active_idx" ON "Partner" ("active")`,
+  },
+  {
+    name: 'Create LeadForward table',
+    sql: `CREATE TABLE IF NOT EXISTS "LeadForward" (
+      "id"        SERIAL PRIMARY KEY,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+      "leadId"    TEXT NOT NULL,
+      "partnerId" TEXT NOT NULL,
+      "method"    TEXT NOT NULL,
+      "status"    TEXT NOT NULL,
+      "twilioSid" TEXT,
+      "isAuto"    BOOLEAN NOT NULL DEFAULT false,
+      "error"     TEXT,
+      CONSTRAINT "LeadForward_leadId_fkey"    FOREIGN KEY ("leadId")    REFERENCES "Lead"("leadId")    ON DELETE CASCADE,
+      CONSTRAINT "LeadForward_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id")
+    )`,
+  },
+  {
+    name: 'Create LeadForward leadId index',
+    sql: `CREATE INDEX IF NOT EXISTS "LeadForward_leadId_createdAt_idx" ON "LeadForward" ("leadId", "createdAt")`,
+  },
+  {
+    name: 'Create LeadForward partnerId index',
+    sql: `CREATE INDEX IF NOT EXISTS "LeadForward_partnerId_createdAt_idx" ON "LeadForward" ("partnerId", "createdAt")`,
+  },
 ];
 
 console.log("Running UTM + geo schema migration...\n");

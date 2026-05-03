@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import AdminNotesEditor from "@/components/AdminNotesEditor";
+import AdminForwardPanel from "@/components/AdminForwardPanel";
 import AdminNav from "@/components/AdminNav";
 
 export const metadata = {
@@ -44,6 +45,8 @@ const EVENT_ICONS: Record<string, string> = {
   STATUS_CHANGE: "🔄",
   NOTES_UPDATED: "📝",
   DUPLICATE_FLAGGED: "⚠️",
+  FORWARDED: "📤",
+  FORWARD_FAILED: "❌",
 };
 
 export default async function LeadDetailPage({
@@ -320,6 +323,9 @@ export default async function LeadDetailPage({
           initialNotes={lead.adminNotes || ""}
         />
       </div>
+
+      {/* Forward to partner (SMS) */}
+      <AdminForwardPanel leadId={lead.leadId} leadCity={lead.city} />
 
       {/* Event history / audit trail */}
       {events.length > 0 ? (
