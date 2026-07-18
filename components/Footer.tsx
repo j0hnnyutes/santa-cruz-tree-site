@@ -61,6 +61,10 @@ export default function Footer() {
               Privacy Policy
             </Link>
             <span className="text-sm text-white/20">·</span>
+            <Link href="/sms-terms" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+              SMS Terms
+            </Link>
+            <span className="text-sm text-white/20">·</span>
             <p className="text-sm text-white/30">
               Licensed &amp; Insured · Santa Cruz County, CA
             </p>
