@@ -29,6 +29,12 @@ Go to **Vercel → Project → Settings → Environment Variables** and confirm 
 | `NEXT_PUBLIC_GA_ID` | Google Analytics 4 measurement ID |
 | `CRON_SECRET` | Protects the nightly rollup cron endpoint |
 | `SITE_URL` | ⚠️ Currently set to Vercel preview URL — **update this last** (see Step 6) |
+| `TWILIO_ACCOUNT_SID` | Twilio SMS lead forwarding — from console.twilio.com |
+| `TWILIO_AUTH_TOKEN` | Twilio SMS lead forwarding — from console.twilio.com |
+| `TWILIO_FROM_NUMBER` | Your Twilio phone number in E.164 format (e.g. `+18315551234`) |
+| `NEXT_PUBLIC_SITE_URL` | Used by Twilio SMS to build the admin lead link — should match `SITE_URL` |
+
+> ⚠️ Without the three `TWILIO_*` vars set, partner lead forwarding will silently fail (errors are logged to `/admin/errors` but no SMS is sent).
 
 ---
 
@@ -79,10 +85,26 @@ Run through these manually after everything is pointing correctly:
 - [ ] Lead notification email arrives in inbox with correct admin link (points to `santacruztreepros.com/admin/...`)
 - [ ] Admin login works at `santacruztreepros.com/admin`
 - [ ] Error alert email works — trigger a test by checking `/admin/errors` or waiting for a real one
+- [ ] Add at least one partner in `/admin/partners` with a city match, then submit a test lead for that city and confirm the SMS forward arrives (check `/admin/leads/[leadId]` forward history if it doesn't)
 
 ---
 
-## 7. When You Get a Business Phone Number
+## 7. Split Production and Staging Databases
+
+Currently all environments (local dev, Vercel preview, production) share a single Neon database. Before launch, create a separate database for production so real customer data is isolated from test data and dev activity.
+
+1. Go to [console.neon.tech](https://console.neon.tech) and create a new database (or branch) named `production`
+2. Push the schema to it. **Do not use `prisma migrate deploy`** — the migration history in `prisma/migrations/` is SQLite-format and incompatible with Neon Postgres. This project's real migration path is `scripts/migrate-utm-geo.mjs`, a de-facto raw-SQL migration script that normally runs automatically as part of `npm run build`. Either:
+   - Deploy once with `DATABASE_URL` pointed at the new DB (the build's `npm run build` step runs `prisma generate && node scripts/migrate-utm-geo.mjs && next build`, which creates all tables/columns idempotently), or
+   - Run it manually first: `DATABASE_URL="<new-production-url>" node scripts/migrate-utm-geo.mjs`
+3. In **Vercel → Settings → Environment Variables**, update `DATABASE_URL` and `DIRECT_URL` to the new production credentials — set scope to **Production** only
+4. Keep the existing database credentials scoped to **Preview / Development** environments in Vercel so staging continues to use the separate DB
+
+> ⚠️ Do this **before** going live. Once real leads start coming in on the production DB, you don't want dev/test deletions touching that data.
+
+---
+
+## 8. When You Get a Business Phone Number
 
 Two places to add it:
 
