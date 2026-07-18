@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { StatCard } from "@/components/AdminShared";
+import { StatCard, AdminCard, SectionHeader } from "@/components/AdminShared";
 
 function getCsrfHeaders(): Record<string, string> {
   const token = document.cookie
@@ -49,6 +49,7 @@ const TYPE_OPTIONS = [
   { value: "rate_limit",      label: "Rate Limit" },
   { value: "auth",            label: "Auth" },
   { value: "form_validation", label: "Form Validation" },
+  { value: "not_found",       label: "Not Found" },
 ];
 
 // Time preset options — value is how many hours back (0 = all time)
@@ -180,6 +181,27 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
 
   const hasActiveFilters = severity || type || search || timePreset !== 0 || customMode;
 
+  /* Top repeat 404 paths — from the same filtered/fetched errors array, so
+     it respects whatever time range / filters are active on the page. */
+  const topNotFoundPaths = useMemo(() => {
+    const counts = new Map<string, { count: number; lastSeen: string }>();
+    for (const e of errors) {
+      if (e.type !== "not_found") continue;
+      const path = e.path || "(unknown path)";
+      const existing = counts.get(path);
+      if (existing) {
+        existing.count += 1;
+        if (e.createdAt > existing.lastSeen) existing.lastSeen = e.createdAt;
+      } else {
+        counts.set(path, { count: 1, lastSeen: e.createdAt });
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([path, v]) => ({ path, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [errors]);
+
   /* Delete single */
   async function deleteError(id: number) {
     setDeletingId(id);
@@ -248,6 +270,36 @@ export default function AdminErrorsClient({ initialErrors, initialTotal }: Props
         <StatCard label="High Severity"   value={stats.high}     color="#f97316" />
         <StatCard label="Medium / Low"    value={stats.medium + stats.low} color="#eab308" />
       </div>
+
+      {/* ── Top repeat 404 paths ── */}
+      {topNotFoundPaths.length > 0 && (
+        <AdminCard>
+          <SectionHeader
+            title="Top 404 Paths"
+            sub="Most-hit missing pages within the current filter/time range"
+          />
+          <div className="space-y-2">
+            {topNotFoundPaths.map((row) => (
+              <div
+                key={row.path}
+                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm"
+                style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+              >
+                <span className="font-mono text-gray-200 truncate">{row.path}</span>
+                <div className="flex items-center gap-3 shrink-0 text-gray-400">
+                  <span>{relativeTime(row.lastSeen)}</span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                    style={{ backgroundColor: "#6b7280" }}
+                  >
+                    {row.count}×
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AdminCard>
+      )}
 
       {/* ── Filters ── */}
       <div
