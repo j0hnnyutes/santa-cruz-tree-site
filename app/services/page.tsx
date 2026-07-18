@@ -3,7 +3,7 @@ import Link from "next/link";
 import ServiceCta from "@/components/ServiceCta";
 
 export const metadata: Metadata = {
-  title: "Tree Services in Santa Cruz, CA | Santa Cruz Tree Pros",
+  title: "Tree Services in Santa Cruz, CA",
   description:
     "Professional tree removal, trimming, stump grinding, emergency service, and arborist consulting across Santa Cruz County.",
   alternates: { canonical: "https://santacruztreepros.com/services" },

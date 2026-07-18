@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SMS Terms & Conditions | Santa Cruz Tree Pros",
+  title: "SMS Terms & Conditions",
   description: "Terms and conditions for SMS lead notifications sent to Santa Cruz Tree Pros partner tree service providers.",
   robots: { index: true, follow: true },
   alternates: { canonical: "https://santacruztreepros.com/sms-terms" },
