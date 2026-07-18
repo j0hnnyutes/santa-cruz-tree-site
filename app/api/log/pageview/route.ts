@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/logError";
@@ -94,29 +94,33 @@ export async function POST(request: Request) {
           : null;
 
       if (resolvedScrollDepth !== null) {
-        prisma.$executeRaw`
-          UPDATE "PageView" SET "duration" = ${duration}, "maxScrollDepth" = ${resolvedScrollDepth}
-          WHERE id = (
-            SELECT id FROM "PageView"
-            WHERE "sessionId" = ${resolvedSessionId}
-              AND "path" = ${resolvedPath}
-              AND "duration" IS NULL
-            ORDER BY "createdAt" DESC
-            LIMIT 1
-          )
-        `.catch((err: unknown) => console.error("Failed to update pageview duration+scroll:", err));
+        after(() =>
+          prisma.$executeRaw`
+            UPDATE "PageView" SET "duration" = ${duration}, "maxScrollDepth" = ${resolvedScrollDepth}
+            WHERE id = (
+              SELECT id FROM "PageView"
+              WHERE "sessionId" = ${resolvedSessionId}
+                AND "path" = ${resolvedPath}
+                AND "duration" IS NULL
+              ORDER BY "createdAt" DESC
+              LIMIT 1
+            )
+          `.catch((err: unknown) => console.error("Failed to update pageview duration+scroll:", err)),
+        );
       } else {
-        prisma.$executeRaw`
-          UPDATE "PageView" SET "duration" = ${duration}
-          WHERE id = (
-            SELECT id FROM "PageView"
-            WHERE "sessionId" = ${resolvedSessionId}
-              AND "path" = ${resolvedPath}
-              AND "duration" IS NULL
-            ORDER BY "createdAt" DESC
-            LIMIT 1
-          )
-        `.catch((err: unknown) => console.error("Failed to update pageview duration:", err));
+        after(() =>
+          prisma.$executeRaw`
+            UPDATE "PageView" SET "duration" = ${duration}
+            WHERE id = (
+              SELECT id FROM "PageView"
+              WHERE "sessionId" = ${resolvedSessionId}
+                AND "path" = ${resolvedPath}
+                AND "duration" IS NULL
+              ORDER BY "createdAt" DESC
+              LIMIT 1
+            )
+          `.catch((err: unknown) => console.error("Failed to update pageview duration:", err)),
+        );
       }
     } else {
       // Fresh pageview INSERT
@@ -142,16 +146,18 @@ export async function POST(request: Request) {
       // Only store a boolean if the client sent an explicit true/false
       const resolvedIsNewVisitor = typeof isNewVisitor === "boolean" ? isNewVisitor : null;
 
-      prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","isNewVisitor","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},${resolvedIsNewVisitor},NOW())`
-        .catch((err: unknown) => {
-          console.error("Failed to log pageview:", err);
-          logError(null, {
-            severity: "medium",
-            type: "server_api",
-            message: `Pageview DB write failed: ${err instanceof Error ? err.message : String(err)}`,
-            path: "/api/log/pageview",
-          });
-        });
+      after(() =>
+        prisma.$executeRaw`INSERT INTO "PageView" ("path","referrer","sessionId","userAgent","utmSource","utmMedium","utmCampaign","country","region","city","isNewVisitor","createdAt") VALUES (${resolvedPath},${resolvedReferrer},${resolvedSessionId},${ua},${resolvedUtmSource},${resolvedUtmMedium},${resolvedUtmCampaign},${country},${region},${city},${resolvedIsNewVisitor},NOW())`
+          .catch((err: unknown) => {
+            console.error("Failed to log pageview:", err);
+            logError(null, {
+              severity: "medium",
+              type: "server_api",
+              message: `Pageview DB write failed: ${err instanceof Error ? err.message : String(err)}`,
+              path: "/api/log/pageview",
+            });
+          }),
+      );
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });

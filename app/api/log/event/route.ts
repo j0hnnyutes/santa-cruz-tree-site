@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import { prisma } from "@/lib/prisma";
 
@@ -24,16 +24,20 @@ export async function POST(request: Request) {
 
     const { sessionId, eventType, fieldName } = body;
 
-    // Write to database (fire-and-forget)
-    (prisma as any).formEvent
-      .create({
-        data: {
-          sessionId: sessionId || "",
-          eventType: eventType || "UNKNOWN",
-          fieldName: fieldName || null,
-        },
-      })
-      .catch((err: unknown) => console.error("Failed to log form event:", err));
+    // Deferred via after() — response isn't held up, but Vercel keeps the
+    // function alive until the write completes instead of freezing it
+    // mid-write (a bare fire-and-forget call here was silently dropping rows).
+    after(() =>
+      (prisma as any).formEvent
+        .create({
+          data: {
+            sessionId: sessionId || "",
+            eventType: eventType || "UNKNOWN",
+            fieldName: fieldName || null,
+          },
+        })
+        .catch((err: unknown) => console.error("Failed to log form event:", err)),
+    );
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err: unknown) {

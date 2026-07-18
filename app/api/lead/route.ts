@@ -1,5 +1,5 @@
 // app/api/lead/route.ts
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { logError } from "@/lib/logError";
@@ -515,9 +515,14 @@ export async function POST(request: Request) {
       }).catch(() => {});
     }
 
-    // Auto-forward: find an active partner covering this city and send SMS
-    // Fire-and-forget — don't let failures block the lead creation response.
-    void (async () => {
+    // Auto-forward: find an active partner covering this city and send SMS.
+    // Deferred via after() — doesn't block the lead creation response, but
+    // Vercel keeps the function alive until it finishes instead of freezing
+    // it mid-send. A bare fire-and-forget IIFE here (the prior approach) hit
+    // the exact bug already diagnosed and fixed for the email send in
+    // c2c8ca0 — the runtime can shut down before the awaited work inside
+    // resolves.
+    after(async () => {
       try {
         const cityLower = city.toLowerCase();
         // Find the first active partner whose cities array contains this city.
@@ -582,7 +587,7 @@ export async function POST(request: Request) {
       } catch (err) {
         console.error("[auto-forward] unexpected error:", err);
       }
-    })();
+    });
 
     // Await email so Vercel doesn't shut down the function before it sends
     await sendLeadNotification({

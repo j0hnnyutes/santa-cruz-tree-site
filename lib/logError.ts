@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { after } from "next/server";
 
 /* ─── Request helpers ─── */
 
@@ -365,5 +366,9 @@ export function logError(
     }
   };
 
-  saveAndAlert().catch((err) => console.error("Failed to log/alert error:", err));
+  // Deferred via after() so the response isn't held up, but Vercel keeps the
+  // function alive until this completes instead of freezing it mid-write —
+  // a bare fire-and-forget call here was silently dropping error logs and
+  // alert emails (confirmed via direct DB check: rows never landed).
+  after(() => saveAndAlert().catch((err) => console.error("Failed to log/alert error:", err)));
 }
