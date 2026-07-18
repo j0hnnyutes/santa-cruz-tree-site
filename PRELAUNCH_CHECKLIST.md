@@ -22,7 +22,7 @@ Go to **Vercel → Project → Settings → Environment Variables** and confirm 
 | `DIRECT_URL` | Neon direct connection (for migrations) |
 | `BLOB2_READ_WRITE_TOKEN` | **Public** Vercel Blob store (`santa-cruz-tree-site-blob-new`) — used for photo uploads |
 | `RESEND_API_KEY` | Lead notification + error alert emails |
-| `LEAD_TO_EMAIL` | Your email address — receives lead + alert emails |
+| `LEAD_TO_EMAIL` | Should be `estimates@santacruztreepros.com` — receives lead + alert emails. ⚠️ Confirm this inbox actually exists (email hosting/forwarding set up on the domain) before switching — Resend doesn't verify recipient addresses, so a typo or non-existent mailbox fails silently |
 | `LEAD_FROM_EMAIL` | Verified sender address in Resend |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile (spam protection on the form) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile (client-side) |

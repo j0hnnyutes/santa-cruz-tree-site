@@ -516,13 +516,18 @@ export async function POST(request: Request) {
     }
 
     // Auto-forward: find an active partner covering this city and send SMS.
+    // Skipped for duplicates — a repeat submission from the same customer
+    // shouldn't fire a second automated text to a partner. It still reaches
+    // the business owner via the lead notification email below (always
+    // sent, duplicate or not), for manual review/forwarding.
+    //
     // Deferred via after() — doesn't block the lead creation response, but
     // Vercel keeps the function alive until it finishes instead of freezing
     // it mid-send. A bare fire-and-forget IIFE here (the prior approach) hit
     // the exact bug already diagnosed and fixed for the email send in
     // c2c8ca0 — the runtime can shut down before the awaited work inside
     // resolves.
-    after(async () => {
+    if (!isDuplicate) after(async () => {
       try {
         const cityLower = city.toLowerCase();
         // Find the first active partner whose cities array contains this city.
