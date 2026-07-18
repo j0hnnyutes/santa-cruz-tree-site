@@ -56,9 +56,15 @@ Once the domain is live:
 
 1. **Vercel → Settings → Environment Variables** → find `SITE_URL`
 2. Change the value from the Vercel preview URL to `https://santacruztreepros.com`
-3. Save, then **redeploy** (Deployments → three dots on latest → Redeploy)
+3. Also update `NEXT_PUBLIC_SITE_URL` to the same value — it's what `lib/twilio.ts` uses to build the "Admin:" link in lead-forward SMS texts
+4. Save, then **redeploy** (Deployments → three dots on latest → Redeploy)
 
 > ⚠️ Do this **after** the domain is confirmed live — not before. If you flip it early, lead notification emails and error alert emails will have broken "View in Admin" links.
+
+**Other places referencing the Vercel preview URL that also need to be swapped to `https://santacruztreepros.com` once the domain is live:**
+
+- [ ] **Twilio Console → Phone Numbers → your number → Messaging Configuration → "A message comes in" webhook** — currently points at `https://santa-cruz-tree-site.vercel.app/api/twilio/inbound`
+- [ ] **Twilio A2P 10DLC campaign registration** — if you submitted `https://santa-cruz-tree-site.vercel.app/sms-terms` as the terms URL, check whether Twilio lets you edit it post-approval or if it just needs to keep resolving (the preview URL will keep working either way since Vercel doesn't remove it, but the production URL looks more legitimate to carriers reviewing the campaign)
 
 ---
 
