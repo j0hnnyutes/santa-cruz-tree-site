@@ -71,11 +71,15 @@ export default function AdminForwardPanel({ leadId, leadCity }: Props) {
       const data = await res.json();
       const active = (data.partners as Partner[]).filter((p) => p.active);
       setPartners(active);
-      // Pre-select partner whose cities match this lead's city (if any)
+      // Pre-select partner whose cities match this lead's city (if any),
+      // falling back to a wildcard ("*") catch-all partner — same priority
+      // order as the auto-forward logic in /api/lead.
       const cityLower = leadCity.toLowerCase();
-      const match = active.find((p) =>
+      const exactMatch = active.find((p) =>
         p.cities.some((c) => c.toLowerCase() === cityLower)
       );
+      const wildcardMatch = active.find((p) => p.cities.includes("*"));
+      const match = exactMatch ?? wildcardMatch;
       if (match) setSelectedPartnerId(match.id);
     } finally {
       setLoadingPartners(false);
@@ -158,11 +162,11 @@ export default function AdminForwardPanel({ leadId, leadCity }: Props) {
                 {partners.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} · {p.company} · {formatPhone(p.phone)}
-                    {p.cities.some(
-                      (c) => c.toLowerCase() === leadCity.toLowerCase()
-                    )
+                    {p.cities.some((c) => c.toLowerCase() === leadCity.toLowerCase())
                       ? " ✓ covers this city"
-                      : ""}
+                      : p.cities.includes("*")
+                        ? " ✓ covers all cities"
+                        : ""}
                   </option>
                 ))}
               </select>

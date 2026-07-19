@@ -530,16 +530,23 @@ export async function POST(request: Request) {
     if (!isDuplicate) after(async () => {
       try {
         const cityLower = city.toLowerCase();
-        // Find the first active partner whose cities array contains this city.
-        // We load all active partners and match case-insensitively in JS — the
-        // list is small enough that a full scan is fine.
+        // Find the active partner covering this city. We load all active
+        // partners and match case-insensitively in JS — the list is small
+        // enough that a full scan is fine.
+        //
+        // A partner whose cities array contains "*" covers every city — used
+        // as a catch-all (e.g. the owner's own number before real per-city
+        // partners exist). Exact city matches take priority over the
+        // wildcard so a specific partner isn't shadowed once one exists.
         const allActive = await prisma.partner.findMany({
           where: { active: true },
           select: { id: true, name: true, company: true, phone: true, cities: true },
         });
-        const autoPartner = allActive.find((p) =>
+        const exactMatch = allActive.find((p) =>
           p.cities.some((c) => c.toLowerCase() === cityLower)
-        ) ?? null;
+        );
+        const wildcardMatch = allActive.find((p) => p.cities.includes("*"));
+        const autoPartner = exactMatch ?? wildcardMatch ?? null;
 
         if (!autoPartner) return;
 

@@ -261,7 +261,7 @@ export default function PartnersPage() {
                           key={c}
                           className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-medium"
                         >
-                          📍 {c}
+                          {c === "*" ? "🌐 All cities" : `📍 ${c}`}
                         </span>
                       ))}
                     </div>
@@ -382,7 +382,9 @@ export default function PartnersPage() {
                 />
                 <p className="mt-1 text-xs text-neutral-400">
                   Comma-separated. When a new lead arrives from one of these cities,
-                  this partner automatically receives an SMS.
+                  this partner automatically receives an SMS. Use <strong>*</strong> alone
+                  to cover every city (a catch-all) — specific-city partners still take
+                  priority over the wildcard if both exist.
                 </p>
               </div>
 
