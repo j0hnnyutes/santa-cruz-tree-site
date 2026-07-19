@@ -400,12 +400,13 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 2. [Pages & Routes](#pages--routes)
 3. [Frontend Features](#frontend-features)
 4. [Backend & API](#backend--api)
-5. [Database](#database)
-6. [Admin Dashboard](#admin-dashboard)
-7. [SEO & Metadata](#seo--metadata)
-8. [Email](#email)
-9. [Security](#security)
-10. [Infrastructure & Deployment](#infrastructure--deployment)
+5. [Partner Lead Forwarding (SMS + Email)](#partner-lead-forwarding-sms--email)
+6. [Database](#database)
+7. [Admin Dashboard](#admin-dashboard)
+8. [SEO & Metadata](#seo--metadata)
+9. [Email](#email)
+10. [Security](#security)
+11. [Infrastructure & Deployment](#infrastructure--deployment)
 
 ---
 
@@ -598,7 +599,7 @@ A chronological record of what was built and when. "Phase 1" was completed via C
 4. Decodes base64 JPEG data URLs (`photoData[]` form fields) and uploads to Vercel Blob via server-side `put()` — returns public URLs
 5. Stores lead in PostgreSQL with generated `leadId` and `photoUrls[]`
 6. Creates `LeadEvent` audit record (`CREATED` or `DUPLICATE_FLAGGED`)
-7. Sends email notification via Resend (includes duplicate warning banner if flagged, photo links if present)
+7. Sends the **owner notification email** via Resend to `LEAD_TO_EMAIL` (includes duplicate warning banner if flagged, photo links if present) — see [Partner Lead Forwarding](#partner-lead-forwarding-sms--email) below for what else happens on lead creation
 8. Returns `{ ok, leadId, photosReceived, photosSaved }` — photo counts visible in Network tab for diagnostics
 
 ### Error Logging & Alerts
@@ -627,6 +628,57 @@ Two paths write to `ErrorLog`:
 ### CSV Export (`GET /api/admin/leads/export`)
 - Exports all leads as a properly formatted CSV
 - Columns: ID, Name, Phone, Email, Address, City, Service, Details, Status, Created, Notes
+
+---
+
+## Partner Lead Forwarding (SMS + Email)
+
+Two independent notification systems run on every lead. Don't confuse them:
+
+| | **Owner notification** | **Partner forward** |
+|---|---|---|
+| Recipient | `LEAD_TO_EMAIL` (the business inbox — `estimates@santacruztreepros.com`) | Whichever `Partner` record covers the lead's city |
+| Channel | Email only | SMS + Email (email only if the partner has one on file) |
+| Sent for duplicates? | **Yes, always** | **No — skipped entirely** (see below) |
+| Triggered by | Every `POST /api/lead`, unconditionally | Auto-match on lead creation, or an admin manually picking a partner |
+| Code | `sendLeadNotification()` in `lib/email.ts` | this section |
+
+**The owner email is the one guarantee.** Every lead — fresh or duplicate — always reaches `LEAD_TO_EMAIL`. Partner forwarding is an additional, best-effort layer on top of that, not a replacement for it.
+
+### Auto-forward (on lead creation)
+
+Runs inside `POST /api/lead`, deferred via Next's `after()` so it doesn't block the form response but Vercel won't kill the function mid-send (see [Reliability](#error-logging--alerts) note on `after()` below — this bit the codebase once already for the owner email, fixed in `c2c8ca0`, then had to be re-fixed here and in error/pageview logging).
+
+1. Look up all `active` partners.
+2. Find a match for the lead's city, case-insensitive: an **exact city match** wins if one exists.
+3. If no exact match, fall back to any partner whose `cities` array contains the literal string `"*"` — a **wildcard partner that covers every city**. Useful before you have real per-city partners onboarded (this is how the owner's own number is currently configured — see `/admin/partners`).
+4. **Skipped entirely if the lead is flagged as a duplicate** (same phone or email submitted in the last 24h). Rationale: a customer accidentally double-submitting shouldn't cause a partner to get texted/emailed twice about the same job. The lead still reaches the owner via the email above — a human decides whether/how to forward it.
+5. If a partner is matched (and it's not a duplicate):
+   - **SMS** is sent via `sendLeadSms()` (`lib/twilio.ts`) — always attempted if a partner matched.
+   - **Email** is sent via `sendPartnerLeadEmail()` (`lib/email.ts`) — only attempted if `partner.email` is set. Skipped silently (no error, no LeadForward row) if the partner has no email on file.
+   - Each channel's outcome is recorded as its **own** `LeadForward` row (`method: "SMS"` or `"EMAIL"`, `status: "SENT"` or `"FAILED"`) and its own `LeadEvent` (`FORWARDED` or `FORWARD_FAILED`) — so a lead that auto-forwards via both channels gets 2 LeadForward rows + 2 LeadEvent rows, visible in the lead's audit trail on `/admin/leads/[leadId]`.
+   - The two channels are fully independent: SMS failing doesn't block the email attempt, and vice versa.
+
+### Manual forward (admin-triggered)
+
+`POST /api/admin/leads/forward` (used by `AdminForwardPanel` on the lead detail page). An admin explicitly picks a partner from a dropdown (pre-selected the same way as auto-forward: exact city match, else wildcard) and clicks forward.
+
+- Sends **both SMS and email** (email only if the partner has one on file) — same dual-channel behavior as auto-forward.
+- **Not gated by duplicate status** — an admin can manually forward a duplicate lead if they decide it's actually worth sending (the auto-forward skip is specifically about not *automatically* double-notifying a partner, not a hard rule against ever forwarding a duplicate).
+- Records the same `LeadForward` + `LeadEvent` pairs as auto-forward, with `isAuto: false`.
+- The panel's result message reflects both outcomes, e.g. *"SMS sent successfully. Email sent too."* or *"SMS sent successfully. Email failed: \<reason\>."*
+
+### Wildcard partners (`cities: ["*"]`)
+
+The Free Estimate form's City field is **free text**, not a dropdown — customers can type anything. An exact-match-only partner list would silently miss leads whenever someone types their city slightly differently than expected. A partner whose `cities` array contains exactly `"*"` matches **any** city, used as a catch-all.
+
+- Enter `*` alone in the Covered Cities field in `/admin/partners` to set this.
+- **Priority**: an exact city match always wins over a wildcard match, everywhere this logic runs (auto-forward, manual-forward pre-selection, the forward-panel dropdown badge). So it's safe to add real per-city partners later without the wildcard partner stealing their leads.
+- Displays as a "🌐 All cities" pill in the admin UI instead of a literal `*`.
+
+### Failure handling
+
+Both SMS and email forwarding **fail open** — a failure never blocks lead creation or the customer's success screen. Failures are recorded in `LeadForward.error` and surfaced as a `FORWARD_FAILED` event in the lead's audit trail, but (unlike the owner email) do **not** trigger a `critical`-severity alert email — a missed partner forward is lower stakes than the business itself never hearing about a lead. Check `/admin/leads/[leadId]` for forward failures, not `/admin/errors`.
 
 ---
 
@@ -661,8 +713,35 @@ Two paths write to `ErrorLog`:
 | `id` | Int | Auto-increment |
 | `leadId` | String | FK → Lead |
 | `createdAt` | DateTime | Auto-set |
-| `action` | String | CREATED, STATUS_CHANGE, NOTES_UPDATED, DUPLICATE_FLAGGED |
+| `action` | String | CREATED, STATUS_CHANGE, NOTES_UPDATED, DUPLICATE_FLAGGED, FORWARDED, FORWARD_FAILED |
 | `detail` | String? | Human-readable change description |
+
+#### `Partner` (see [Partner Lead Forwarding](#partner-lead-forwarding-sms--email))
+| Field | Type | Notes |
+|---|---|---|
+| `id` | String | Primary key (cuid) |
+| `createdAt` | DateTime | Auto-set |
+| `name` | String | Owner first/last name |
+| `company` | String | Company name |
+| `phone` | String | Digits-only or E.164 — SMS destination |
+| `email` | String? | Optional — enables the email forward channel |
+| `cities` | String[] | City names this partner covers, case-insensitive exact match. `["*"]` = wildcard, covers every city |
+| `active` | Boolean | Inactive partners are never matched for forwarding |
+| `notes` | String? | |
+| `forwards` | LeadForward[] | This partner's forward history |
+
+#### `LeadForward`
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Int | Auto-increment |
+| `createdAt` | DateTime | Auto-set |
+| `leadId` | String | FK → Lead |
+| `partnerId` | String | FK → Partner |
+| `method` | String | `SMS` or `EMAIL` — one row per channel attempted |
+| `status` | String | `SENT` or `FAILED` |
+| `twilioSid` | String? | Twilio message SID (SMS only — null for EMAIL rows) |
+| `isAuto` | Boolean | `true` = auto-forwarded on lead creation, `false` = admin manually forwarded |
+| `error` | String? | Error message if `FAILED` |
 
 #### `ErrorLog`
 | Field | Type | Notes |
@@ -916,6 +995,12 @@ Two paths write to `ErrorLog`:
 | `BLOB2_READ_WRITE_TOKEN` | Token for `santa-cruz-tree-site-blob-new` (**public** store) — used for photo uploads | ✅ (photos) |
 | `CRON_SECRET` | Secret for securing the `/api/cron/rollup` endpoint. Set a random 32-char string; Vercel sets it automatically if configured in `vercel.json` crons | ✅ (cron) |
 | `NEXT_PUBLIC_GA_ID` | Google Analytics 4 Measurement ID (optional) | ☐ |
+| `TWILIO_ACCOUNT_SID` | Twilio SMS partner forwarding — from console.twilio.com | ✅ (SMS forwarding) |
+| `TWILIO_AUTH_TOKEN` | Twilio SMS partner forwarding — from console.twilio.com | ✅ (SMS forwarding) |
+| `TWILIO_FROM_NUMBER` | Twilio phone number in E.164 format, e.g. `+18315551234` | ✅ (SMS forwarding) |
+| `NEXT_PUBLIC_SITE_URL` | Used by the partner SMS body to build the admin lead link — should match `SITE_URL` | ✅ (SMS forwarding) |
+
+> Partner **email** forwarding (as opposed to SMS) doesn't need any of the above — it reuses `RESEND_API_KEY` / `LEAD_FROM_EMAIL`, same as the owner notification email. See [Partner Lead Forwarding](#partner-lead-forwarding-sms--email).
 
 ### Pending Before Go-Live
 - [x] ~~Replace `tel:+1XXXXXXXXXX` with real phone number~~ — phone removed entirely until business number is set up; see Phase 9 for re-add instructions

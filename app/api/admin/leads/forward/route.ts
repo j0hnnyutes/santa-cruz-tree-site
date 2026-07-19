@@ -3,13 +3,16 @@
 // POST /api/admin/leads/forward
 // Body: { leadId: string; partnerId: string }
 //
-// Sends an SMS to the partner's phone with lead details, records the forward
-// in LeadForward, and logs a FORWARDED event on the lead.
+// Sends an SMS to the partner's phone with lead details, and — if the
+// partner has an email on file — also emails them the same details. Each
+// channel is recorded as its own LeadForward row + LeadEvent, independent
+// of the other's outcome.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { sendLeadSms } from "@/lib/twilio";
+import { sendPartnerLeadEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdminAuthenticated())) {
@@ -35,12 +38,12 @@ export async function POST(req: NextRequest) {
       where: { leadId },
       select: {
         leadId: true, fullName: true, phoneDigits: true, email: true,
-        address: true, city: true, service: true, details: true,
+        address: true, city: true, service: true, details: true, photoUrls: true,
       },
     }),
     prisma.partner.findUnique({
       where: { id: partnerId },
-      select: { id: true, name: true, company: true, phone: true },
+      select: { id: true, name: true, company: true, phone: true, email: true },
     }),
   ]);
 
@@ -54,24 +57,23 @@ export async function POST(req: NextRequest) {
   // Send SMS
   let twilioSid: string | null = null;
   let smsError: string | null = null;
-  let status: "SENT" | "FAILED" = "SENT";
+  let smsStatus: "SENT" | "FAILED" = "SENT";
 
   try {
     twilioSid = await sendLeadSms(partner.phone, lead);
   } catch (err) {
-    status = "FAILED";
+    smsStatus = "FAILED";
     smsError = err instanceof Error ? err.message : String(err);
     console.error("SMS forward error:", smsError);
   }
 
-  // Record forward + lead event
-  await Promise.all([
+  const writes: Promise<unknown>[] = [
     prisma.leadForward.create({
       data: {
         leadId,
         partnerId,
         method: "SMS",
-        status,
+        status: smsStatus,
         twilioSid,
         isAuto: false,
         error: smsError,
@@ -80,20 +82,70 @@ export async function POST(req: NextRequest) {
     prisma.leadEvent.create({
       data: {
         leadId,
-        action: status === "SENT" ? "FORWARDED" : "FORWARD_FAILED",
-        detail: status === "SENT"
+        action: smsStatus === "SENT" ? "FORWARDED" : "FORWARD_FAILED",
+        detail: smsStatus === "SENT"
           ? `SMS sent to ${partner.name} (${partner.company})`
           : `SMS to ${partner.name} failed: ${smsError}`,
       },
     }),
-  ]);
+  ];
 
-  if (status === "FAILED") {
+  // Also email the partner, if they have an address on file — independent
+  // of the SMS outcome above.
+  let emailAttempted = false;
+  let emailStatus: "SENT" | "FAILED" | null = null;
+  let emailError: string | null = null;
+
+  if (partner.email) {
+    emailAttempted = true;
+    emailStatus = "SENT";
+    try {
+      await sendPartnerLeadEmail({ ...partner, email: partner.email }, lead);
+    } catch (err) {
+      emailStatus = "FAILED";
+      emailError = err instanceof Error ? err.message : String(err);
+      console.error("Email forward error:", emailError);
+    }
+
+    writes.push(
+      prisma.leadForward.create({
+        data: {
+          leadId,
+          partnerId,
+          method: "EMAIL",
+          status: emailStatus,
+          isAuto: false,
+          error: emailError,
+        },
+      }),
+      prisma.leadEvent.create({
+        data: {
+          leadId,
+          action: emailStatus === "SENT" ? "FORWARDED" : "FORWARD_FAILED",
+          detail: emailStatus === "SENT"
+            ? `Email sent to ${partner.name} (${partner.company})`
+            : `Email to ${partner.name} failed: ${emailError}`,
+        },
+      }),
+    );
+  }
+
+  await Promise.all(writes);
+
+  if (smsStatus === "FAILED") {
     return NextResponse.json(
-      { ok: false, error: `SMS failed: ${smsError}` },
+      {
+        ok: false,
+        error: `SMS failed: ${smsError}`,
+        emailAttempted, emailStatus, emailError,
+      },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ ok: true, twilioSid });
+  return NextResponse.json({
+    ok: true,
+    twilioSid,
+    emailAttempted, emailStatus, emailError,
+  });
 }

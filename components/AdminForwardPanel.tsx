@@ -113,11 +113,16 @@ export default function AdminForwardPanel({ leadId, leadCity }: Props) {
         body: JSON.stringify({ leadId, partnerId: selectedPartnerId }),
       });
       const data = await res.json();
+      const emailNote = !data.emailAttempted
+        ? ""
+        : data.emailStatus === "SENT"
+          ? " Email sent too."
+          : ` Email failed: ${data.emailError || "unknown error"}.`;
       if (res.ok && data.ok) {
-        setSendResult({ ok: true, message: "SMS sent successfully." });
+        setSendResult({ ok: true, message: `SMS sent successfully.${emailNote}` });
         await loadForwards();
       } else {
-        setSendResult({ ok: false, message: data.error || "Failed to send SMS." });
+        setSendResult({ ok: false, message: `${data.error || "Failed to send SMS."}${emailNote}` });
       }
     } catch {
       setSendResult({ ok: false, message: "Network error. Try again." });
